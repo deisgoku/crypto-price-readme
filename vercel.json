@@ -4,6 +4,7 @@
     { "src": "/api/chart", "dest": "/api/chart.js" },
     { "src": "/api/prices", "dest": "/api/prices.js" },
     { "src": "/api/trend", "dest": "/api/trend.js" },
-    { "src": "/api/volume", "dest": "/api/volume.js" }
+    { "src": "/api/volume", "dest": "/api/volume.js" },
+    { "src": "/", "status": 301, "headers": { "Location": "https://github.com/deisgoku/crypto-price-readme" } }
   ]
 }
