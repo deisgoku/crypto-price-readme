@@ -1,0 +1,10 @@
+{
+  "name": "crypto-price-readme",
+  "version": "1.10.1",
+  "description": "API to generate crypto price badges for GitHub README",
+  "main": "api/prices.js",
+  "engines": {
+    "node": "18.x"
+  },
+  "license": "MIT"
+}

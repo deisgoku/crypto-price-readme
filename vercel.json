@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "routes": [
+    { "src": "/api/chart", "dest": "/api/chart.js" },
+    { "src": "/api/prices", "dest": "/api/prices.js" },
+    { "src": "/api/trend", "dest": "/api/trend.js" },
+    { "src": "/api/volume", "dest": "/api/volume.js" }
+  ]
+}
