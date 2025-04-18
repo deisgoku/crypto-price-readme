@@ -1,43 +1,29 @@
 {
   "name": "crypto-price-readme",
   "version": "1.4.1",
-  "description": "Realtime crypto badges (price, volume, trend, chart) for GitHub READMEs using dynamic API.",
-  "keywords": [
-    "crypto",
-    "readme",
-    "badge",
-    "price",
-    "volume",
-    "trend",
-    "chart",
-    "vercel"
-  ],
-  "main": "api/price.js",
-  "homepage": "https://github.com/deisgoku/crypto-price-readme",
-  "bugs": {
-    "url": "https://github.com/deisgoku/crypto-price-readme/issues"
+  "description": "Realtime crypto badges for GitHub README (price, volume, trend, and chart) with dynamic API.",
+  "main": "api/prices.js",
+  "engines": {
+    "node": "18.x"
   },
+  "author": "deisgoku",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/deisgoku/crypto-price-readme.git"
   },
-  "scripts": {
-    "dev": "vercel dev",
-    "format": "prettier --write .",
-    "lint": "eslint ."
+  "homepage": "https://github.com/deisgoku/crypto-price-readme",
+  "bugs": {
+    "url": "https://github.com/deisgoku/crypto-price-readme/issues"
   },
-  "author": "deisgoku",
-  "license": "MIT",
-  "dependencies": {
-    "axios": "^1.8.4",
-    "dotenv": "^16.5.0",
-    "sparkline": "^0.3.0"
-  },
-  "devDependencies": {
-    "eslint": "^9.24.0",
-    "prettier": "^3.5.3"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  }
+  "keywords": [
+    "crypto",
+    "badge",
+    "vercel",
+    "readme",
+    "price",
+    "volume",
+    "trend",
+    "chart"
+  ]
 }
