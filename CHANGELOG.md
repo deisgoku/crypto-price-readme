@@ -2,19 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+
 ## [v1.3.0] - 2025-04-18
 ### Added
-- Chart API endpoint: `/api/chart.js` for sparkline visualization
-- Trend direction indicator in `/api/trend.js`
+- `/api/chart.js`: dynamic chart (sparkline) rendering for each coin.
+- Trend indicator badges in `/api/trend.js`.
 
 ### Improved
-- Decimal formatting for prices and volumes
-- Error handling and fallback (`N/A` if data is unavailable)
-- Modular structure for easier maintenance
+- **Failover support**: if any API fails, system will display `Inaccesible` instead of crashing.
+- **Decimal formatting**: prices and volumes are now human-readable (e.g. 1.2K, 4.5M, 22.3B).
+- **Code modularity**: each endpoint now self-contained and easier to scale.
 
 ### Fixed
-- Timeout errors during data fetching
-- Chart rendering inconsistencies
+- Timeout issues on slow external APIs.
+- Inconsistent chart width/height on various screen sizes.
 
 ---
 
