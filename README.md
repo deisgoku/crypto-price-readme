@@ -2,11 +2,9 @@
 
 > Not just another README project. This one's alive.
 
-[![](https://img.shields.io/badge/Built%20my%20own%20Crypto%20Badges-check%20yeah!-orange?style=for-the-badge&logo=bitcoin&logoColor=white)](https://github.com/deisgoku/crypto-price-readme)
-
 ---
 
-## 📝 Sample `Crypto Price Badge ( 🔴Live )`
+## 📝 Demo `Crypto Price Badge ( 🔴Live )`
 
 - example badge default
 
@@ -204,13 +202,14 @@ Feel free to fork, star, and send a pull request. Open to ideas, collabs, or jus
 
 ---
 
-## ☕ Tips for a cigarette and a cup of coffee in USDT
+## ☕ Tips for a cigarette and a cup of coffee 
 
 If you find this project helpful and want to support me:
 
-**Network:** BNB Smart Chain (BEP20)  
-**USDT Address:** `0x2d4e53651cFC3f8C46774F5a3CE78cDA32fb1438`
+- **Network:** BNB Smart Chain (BEP20)  
+- **USDT Address:** `0x2d4e53651cFC3f8C46774F5a3CE78cDA32fb1438`
 
+- [![Donate with PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?logo=paypal)](https://paypal.me/DIskandar) 
 ---
 
 *This is not the end — it's just the start of living READMEs.*
