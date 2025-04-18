@@ -204,12 +204,12 @@ Feel free to fork, star, and send a pull request. Open to ideas, collabs, or jus
 
 ---
 
-## ☕ Support & Connect
+## ☕ Tips for a cigarette and a cup of coffee in USDT
 
-- Star the repo  
-- Share with your dev friends  
-- Tips in USDT? (Address coming soon)  
-- Or just follow me on [X](http://www.x.com/Deisgoku) & [LinkedIn](http://www.linkedin.com/in/dedi-iskandar)
+If you find this project helpful and want to support me:
+
+**Network:** BNB Smart Chain (BEP20)  
+**USDT Address:** `0x2d4e53651cFC3f8C46774F5a3CE78cDA32fb1438`
 
 ---
 
