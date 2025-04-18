@@ -16,7 +16,7 @@ This is an example of using price badges for cryptocurrencies. The badges displa
 
 ### Example Default Badges
 
-#### 1. Bitcoin (BTC)
+### 1. Bitcoin (BTC)
 ```bash
 ![BTC](https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=bitcoin&label=BTC&color=blue&style=flat&logo=bitcoin&logoColor=orange) 
 ```
@@ -24,15 +24,15 @@ This is an example of using price badges for cryptocurrencies. The badges displa
 ```bash
 ![ETH](https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=ethereum&label=ETH&color=gray&style=flat&logo=ethereum&logoColor=white)
 ```
-### 2. solana ( SOL)
+### 3. solana ( SOL)
 ```bash
 ![SOL](https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=solana&label=SOL&color=cyan&style=flat&logo=solana)
 ```
-### 2. Binance ( BNB)
+### 4. Binance ( BNB)
 ```bash
 ![BNB](https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=binancecoin&label=BNB&color=yellow&style=flat&logo=binance)
 ```
-### 2. XRP ( XRP)
+### 5. XRP ( XRP)
 ```bash
 ![XRP](https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=ripple&label=XRP&color=blueviolet&style=flat&logo=ripple)
 ```
