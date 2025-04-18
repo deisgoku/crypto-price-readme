@@ -9,7 +9,7 @@ jobs:
   fetch:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout repo
         uses: actions/checkout@v3
 
       - name: Get GitHub clone stats
@@ -18,10 +18,13 @@ jobs:
                https://api.github.com/repos/deisgoku/crypto-price-readme/traffic/clones \
                -o clones.json
 
-      - name: Commit clone data
+      - name: Commit clone data using PAT
+        env:
+          TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git add clones.json
           git commit -m "Update clone stats [bot]" || echo "No changes"
-          git push
+          git remote set-url origin https://x-access-token:${TOKEN}@github.com/${{ github.repository }}
+          git push origin HEAD
