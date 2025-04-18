@@ -1,0 +1,27 @@
+name: Fetch GitHub Clones
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # Setiap hari jam 09:00 WIB
+  workflow_dispatch:
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Get GitHub clone stats
+        run: |
+          curl -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
+               https://api.github.com/repos/deisgoku/crypto-price-readme/traffic/clones \
+               -o clones.json
+
+      - name: Commit clone data
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add clones.json
+          git commit -m "Update clone stats [bot]" || echo "No changes"
+          git push
