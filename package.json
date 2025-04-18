@@ -13,7 +13,6 @@
     "vercel"
   ],
   "main": "api/price.js",
-  "type": "module",
   "homepage": "https://github.com/deisgoku/crypto-price-readme",
   "bugs": {
     "url": "https://github.com/deisgoku/crypto-price-readme/issues"
