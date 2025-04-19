@@ -1,12 +1,11 @@
-
 import fetch from "node-fetch";
 
-// Caching coin list
+// Cache data coin
 let cachedTopCoins = null;
 let lastFetchTime = 0;
-const CACHE_DURATION = 60 * 1000; // 1 menit (ms)
+const CACHE_DURATION = 60 * 1000; // 1 menit
 
-// Ambil 6 coin teratas dari CoinMarketCap
+// Coba ambil dari CoinMarketCap
 async function fetchTopCoinsFromCMC() {
   const res = await fetch("https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest?limit=6", {
     headers: { "X-CMC_PRO_API_KEY": process.env.CMC_API_KEY },
@@ -15,11 +14,11 @@ async function fetchTopCoinsFromCMC() {
   return data.data.map((coin) => ({ id: coin.slug, symbol: coin.symbol }));
 }
 
-// Fallback: ambil top coin berdasarkan volume di Binance
+// Coba dari Binance (berdasarkan volume)
 async function fetchTopCoinsFromBinance() {
   const res = await fetch("https://api.binance.com/api/v3/ticker/24hr");
   const data = await res.json();
-  const sorted = data
+  return data
     .filter((coin) => coin.symbol.endsWith("USDT"))
     .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
     .slice(0, 6)
@@ -27,17 +26,30 @@ async function fetchTopCoinsFromBinance() {
       const symbol = coin.symbol.replace("USDT", "");
       return { id: symbol.toLowerCase(), symbol };
     });
-  return sorted;
 }
 
-// Fallback kedua: ambil dari CoinGecko
+// Coba dari CoinGecko (dan simpan id-nya)
 async function fetchTopCoinsFromCoinGecko() {
   const res = await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=6&page=1");
   const data = await res.json();
-  return data.map((coin) => ({ id: coin.id, symbol: coin.symbol.toUpperCase() }));
+  return data.map((coin) => ({
+    id: coin.id,                // ini yang akan digunakan untuk fetch price/volume/trend/chart
+    symbol: coin.symbol.toUpperCase()
+  }));
 }
 
-// Fungsi utama ambil top coins dengan failover dan cache
+// Ambil mapping symbol → id dari CoinGecko
+async function getCoinGeckoMap() {
+  const res = await fetch("https://api.coingecko.com/api/v3/coins/list");
+  const data = await res.json();
+  const map = {};
+  for (const coin of data) {
+    map[coin.symbol.toUpperCase()] = coin.id;
+  }
+  return map;
+}
+
+// Fungsi utama dengan cache dan failover
 async function fetchTopCoins() {
   const now = Date.now();
   if (cachedTopCoins && now - lastFetchTime < CACHE_DURATION) return cachedTopCoins;
@@ -48,15 +60,21 @@ async function fetchTopCoins() {
     try {
       const coins = await source();
       if (coins?.length > 0) {
-        cachedTopCoins = coins;
+        const map = await getCoinGeckoMap();
+        const withCorrectId = coins.map(({ symbol }) => ({
+          symbol,
+          id: map[symbol] || symbol.toLowerCase() // fallback kalau gak ada mapping
+        }));
+        cachedTopCoins = withCorrectId;
         lastFetchTime = now;
         console.log("Top coins diambil dari:", source.name);
-        return coins;
+        return withCorrectId;
       }
     } catch (err) {
       console.error(`Gagal dari ${source.name}:`, err.message);
     }
   }
+
   return [];
 }
 
@@ -90,7 +108,7 @@ export default async function handler(req, res) {
           chart,
         };
       } catch (err) {
-        console.error(`Error fetching data for ${id}:`, err);
+        console.error(`Error fetching data for ${id} (${symbol}):`, err);
         return null;
       }
     })
