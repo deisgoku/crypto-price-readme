@@ -1,84 +1,89 @@
-const fetch = require('node-fetch');
+import fetch from "node-fetch";
 
-const BASE = 'https://crypto-price-on.vercel.app/api';
-const COINS = ['BTC', 'ETH', 'BNB', 'SOL', 'XRP', 'ADA'];
+export default async function handler(req, res) {
+  const { theme = "light" } = req.query;
 
-async function fetchData(endpoint, symbol) {
-  const isPrices = endpoint === 'prices';
-  const param = isPrices ? `coin=${symbol.toLowerCase()}` : `symbol=${symbol}`;
+  const coins = [
+    "bitcoin", "ethereum", "binancecoin", "solana", "ripple", "dogecoin"
+  ];
+
   try {
-    const res = await fetch(`${BASE}/${endpoint}?${param}`);
-    return endpoint === 'chart' ? await res.text() : (await res.json())?.data || 'N/A';
-  } catch {
-    return endpoint === 'chart' ? '<text>Chart N/A</text>' : 'N/A';
+    const data = await Promise.all(
+      coins.map(async (coin) => {
+        try {
+          const [priceRes, volumeRes, trendRes, chartRes] = await Promise.all([
+            fetch(`${getBaseUrl(req)}/api/prices?coin=${coin}`),
+            fetch(`${getBaseUrl(req)}/api/volume?coin=${coin}`),
+            fetch(`${getBaseUrl(req)}/api/trend?coin=${coin}`),
+            fetch(`${getBaseUrl(req)}/api/chart?coin=${coin}`)
+          ]);
+
+          const price = await priceRes.json();
+          const volume = await volumeRes.json();
+          const trend = await trendRes.json();
+          const chart = await chartRes.text();
+
+          return {
+            coin,
+            price: price.message,
+            volume: volume.message,
+            trend: trend.message,
+            chart
+          };
+        } catch (err) {
+          console.error(`Error fetching data for ${coin}:`, err);
+          return null;
+        }
+      })
+    );
+
+    const svg = generateSvg(data.filter(Boolean), theme);
+
+    res.setHeader("Content-Type", "image/svg+xml");
+    res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate");
+    res.status(200).send(svg);
+  } catch (err) {
+    console.error("Error processing data:", err);
+    res.status(500).send("Internal Server Error");
   }
 }
 
-module.exports = async (req, res) => {
-  res.setHeader('Content-Type', 'image/svg+xml');
-  res.setHeader('Cache-Control', 'no-cache');
+function getBaseUrl(req) {
+  return req.headers.host.includes("localhost") ? "http" : "https";
+}
 
-  const theme = req.query.theme === 'light' ? 'light' : 'dark';
-  const bg = theme === 'light' ? '#ffffff' : '#0d1117';
-  const text = theme === 'light' ? '#000000' : '#ffffff';
-  const border = theme === 'light' ? '#e1e4e8' : '#30363d';
+function generateSvg(data, theme) {
+  const bg = theme === "dark" ? "#0d1117" : "#ffffff";
+  const text = theme === "dark" ? "#c9d1d9" : "#333333";
+  const border = theme === "dark" ? "#30363d" : "#e1e4e8";
 
-  const rows = await Promise.all(
-    COINS.map(async (symbol) => {
-      const price = await fetchData('prices', symbol);
-      const volume = await fetchData('volume', symbol);
-      const trend = await fetchData('trend', symbol);
-      const chart = await fetchData('chart', symbol);
-      return { symbol, price, volume, trend, chart };
-    })
-  );
-
-  const rowHeight = 44;
-  const tableStartY = 60;
-  const footerY = tableStartY + rowHeight * (rows.length + 1) + 20;
-  const width = 640;
-  const height = footerY + 30;
-
-  const header = `
-    <line x1="20" y1="${tableStartY}" x2="${width - 20}" y2="${tableStartY}" stroke="${border}" stroke-width="1"/>
-    <text x="20" y="${tableStartY + 20}" fill="${text}" font-size="14" font-weight="bold">Name</text>
-    <text x="80" y="${tableStartY + 20}" fill="${text}" font-size="14" font-weight="bold">Price</text>
-    <text x="180" y="${tableStartY + 20}" fill="${text}" font-size="14" font-weight="bold">Volume</text>
-    <text x="290" y="${tableStartY + 20}" fill="${text}" font-size="14" font-weight="bold">Trend</text>
-    <text x="360" y="${tableStartY + 20}" fill="${text}" font-size="14" font-weight="bold">Chart</text>
-    <line x1="20" y1="${tableStartY + 26}" x2="${width - 20}" y2="${tableStartY + 26}" stroke="${border}" stroke-width="1"/>
-  `;
-
-  const svgRows = rows.map((coin, i) => {
-    const y = tableStartY + rowHeight * (i + 1);
-    const trendColor = coin.trend.includes('-') ? '#f85149' : '#3fb950';
-
+  const coinRows = data.map((item, i) => {
     return `
-      <text x="20" y="${y}" fill="${text}" font-size="14" font-weight="bold">${coin.symbol}</text>
-      <text x="80" y="${y}" fill="${text}" font-size="14">${coin.price}</text>
-      <text x="180" y="${y}" fill="#58a6ff" font-size="14">${coin.volume}</text>
-      <text x="290" y="${y}" fill="${trendColor}" font-size="14">${coin.trend}</text>
-      <g transform="translate(360, ${y - 20})">
-        ${coin.chart}
+      <g transform="translate(0, ${i * 70})">
+        <rect x="0" y="0" width="600" height="70" fill="${i % 2 === 0 ? bg : (theme === 'dark' ? '#161b22' : '#f6f8fa')}" />
+        <text x="10" y="25" font-size="14" fill="${text}" font-family="monospace">${item.coin.toUpperCase()}</text>
+        <text x="150" y="25" font-size="14" fill="${text}" font-family="monospace">${item.price}</text>
+        <text x="300" y="25" font-size="14" fill="${text}" font-family="monospace">${item.volume}</text>
+        <text x="450" y="25" font-size="14" fill="${text}" font-family="monospace">${item.trend}</text>
+        <g transform="translate(10, 35)">
+          ${item.chart.replace(/<\/?svg[^>]*>/g, "")}
+        </g>
+        <line x1="0" y1="69" x2="600" y2="69" stroke="${border}" stroke-width="1" />
       </g>
     `;
-  }).join('');
+  }).join("");
 
+  const footerText = "crypto-price-readme v1.4.1";
   const footer = `
-    <line x1="20" y1="${footerY - 20}" x2="${width - 20}" y2="${footerY - 20}" stroke="${border}" stroke-width="1"/>
-    <text x="20" y="${footerY}" fill="${text}" font-size="12">Data: CoinGecko, CMC, Binance | Build by @deisgoku</text>
+    <text x="10" y="${data.length * 70 + 20}" font-size="12" fill="${text}" font-family="monospace">${footerText}</text>
   `;
 
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-      <style> text { font-family: 'Segoe UI', sans-serif; } </style>
-      <rect width="100%" height="100%" fill="${bg}" rx="16" />
-      <text x="20" y="35" font-size="18" font-weight="bold" fill="${text}">Top 6 Crypto Prices</text>
-      ${header}
-      ${svgRows}
+  return `
+    <svg xmlns="http://www.w3.org/2000/svg" width="600" height="${data.length * 70 + 40}" viewBox="0 0 600 ${data.length * 70 + 40}">
+      <style> text { dominant-baseline: middle; } </style>
+      <rect width="100%" height="100%" fill="${bg}" />
+      ${coinRows}
       ${footer}
     </svg>
   `;
-
-  res.send(svg);
-};
+}
