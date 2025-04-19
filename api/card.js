@@ -12,7 +12,7 @@ export default async function handler(req, res) {
     { id: "dogecoin", symbol: "DOGE" },
   ];
 
-  const baseUrl = `${req.headers.host.includes('localhost') ? 'http' : 'https'}://${req.headers.host}`;
+  const baseUrl = `${req.headers.host.includes("localhost") ? "http" : "https"}://${req.headers.host}`;
 
   const data = await Promise.all(
     coins.map(async ({ id, symbol }) => {
@@ -47,19 +47,20 @@ export default async function handler(req, res) {
 
   const bg = theme === "dark" ? "#0d1117" : "#ffffff";
   const text = theme === "dark" ? "#c9d1d9" : "#333333";
-  const border = theme === "dark" ? "#30363d" : "#e1e4e8";
+  const border = theme === "dark" ? "#ffffff" : "#000000";
+  const headerBg = theme === "dark" ? "#30363d" : "#e1e4e8";
 
   const header = `
     <g transform="translate(0, 40)">
       <text x="10" y="0" font-size="16" fill="${text}" font-family="monospace">Top 6 Popular Prices</text>
     </g>
     <g transform="translate(0, 60)">
-      <rect width="600" height="30" fill="${border}" />
-      <text x="10" y="15" font-size="14" fill="${bg}" font-family="monospace">NAME</text>
-      <text x="120" y="15" font-size="14" fill="${bg}" font-family="monospace">PRICE</text>
-      <text x="240" y="15" font-size="14" fill="${bg}" font-family="monospace">VOL</text>
-      <text x="340" y="15" font-size="14" fill="${bg}" font-family="monospace">TREND</text>
-      <text x="440" y="15" font-size="14" fill="${bg}" font-family="monospace">CHART</text>
+      <rect width="600" height="30" fill="${headerBg}" />
+      <text x="10" y="15" font-size="14" fill="${border}" font-family="monospace">NAME</text>
+      <text x="120" y="15" font-size="14" fill="${border}" font-family="monospace">PRICE</text>
+      <text x="240" y="15" font-size="14" fill="${border}" font-family="monospace">VOL</text>
+      <text x="340" y="15" font-size="14" fill="${border}" font-family="monospace">TREND</text>
+      <text x="440" y="15" font-size="14" fill="${border}" font-family="monospace">CHART</text>
     </g>
   `;
 
@@ -70,10 +71,13 @@ export default async function handler(req, res) {
       item.trendChange < 0 ? "#3c1010" :
       (theme === "dark" ? "#161b22" : "#f6f8fa");
 
+    const logoUrl = `https://cryptologos.cc/logos/${item.id}-logo.svg?v=025`;
+    const fallbackText = `<text x="10" y="30" font-size="10" fill="${text}" font-family="monospace">No Logo</text>`;
+
     return `
       <g transform="translate(0, ${y})">
         <rect x="0" y="0" width="600" height="60" fill="${rowBg}" />
-        <image href="https://cryptologos.cc/logos/${item.id}-logo.svg?v=025" x="10" y="10" width="20" height="20" />
+        <image href="${logoUrl}" x="10" y="10" width="20" height="20" onerror="this.href=''" />
         <text x="40" y="20" font-size="14" fill="${text}" font-family="monospace">${item.symbol}</text>
         <text x="120" y="20" font-size="14" fill="${text}" font-family="monospace">${item.price}</text>
         <text x="240" y="20" font-size="14" fill="${text}" font-family="monospace">${item.volume}</text>
@@ -88,7 +92,7 @@ export default async function handler(req, res) {
 
   const footer = `
     <text x="10" y="${data.length * 60 + 110}" font-size="12" fill="${text}" font-family="monospace">
-      crypto-price-readme v1.4.1 - github.com/your-repo
+      crypto-price-readme v1.4.1 - github.com/deisgoku
     </text>
   `;
 
@@ -98,6 +102,7 @@ export default async function handler(req, res) {
     <svg xmlns="http://www.w3.org/2000/svg" width="600" height="${svgHeight}" viewBox="0 0 600 ${svgHeight}">
       <style>
         text { dominant-baseline: middle; }
+        image:invalid { display: none; }
       </style>
       <rect width="100%" height="100%" fill="${bg}" />
       ${header}
