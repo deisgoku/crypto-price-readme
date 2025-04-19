@@ -12,7 +12,7 @@ export default async function handler(req, res) {
     { id: "dogecoin", symbol: "DOGE" },
   ];
 
-  const baseUrl = `${req.headers.host.includes("localhost") ? "http" : "https"}://${req.headers.host}`;
+  const baseUrl = `${req.headers.host.includes('localhost') ? 'http' : 'https'}://${req.headers.host}`;
 
   const data = await Promise.all(
     coins.map(async ({ id, symbol }) => {
@@ -45,86 +45,70 @@ export default async function handler(req, res) {
     })
   );
 
-  const isDark = theme === "dark";
-  const bg = isDark ? "#0d1117" : "#ffffff";
-  const text = isDark ? "#c9d1d9" : "#333333";
-  const border = isDark ? "#444c56" : "#cccccc";
-
-  const colWidths = [100, 100, 100, 100, 200]; // total 600
-  const colX = colWidths.reduce((acc, w, i) => {
-    acc.push(i === 0 ? 0 : acc[i - 1] + colWidths[i - 1]);
-    return acc;
-  }, []);
-
-  const rowHeight = 60;
+  const bg = theme === "dark" ? "#0d1117" : "#ffffff";
+  const text = theme === "dark" ? "#c9d1d9" : "#333333";
+  const border = theme === "dark" ? "#ffffff" : "#000000";
+  const shadow = theme === "dark" ? "#00000088" : "#cccccc88";
 
   const header = `
     <g transform="translate(0, 40)">
-      <text x="300" y="0" font-size="18" fill="${text}" font-family="monospace" text-anchor="middle">
-        Top 6 Popular Prices
+      <text x="300" text-anchor="middle" y="0" font-size="16" fill="${text}" font-family="monospace">
+        ☍ Top 6 Popular Prices
       </text>
     </g>
     <g transform="translate(0, 60)">
-      <rect x="0" y="0" width="600" height="${rowHeight}" fill="${border}" />
-      ${['NAME', 'PRICE', 'VOL', 'TREND', 'CHART'].map((label, i) => `
-        <text x="${colX[i] + colWidths[i]/2}" y="30" font-size="14" fill="${bg}" font-family="monospace" text-anchor="middle">
-          ${label}
-        </text>
-      `).join("")}
+      <rect x="10" y="0" width="580" height="30" rx="6" ry="6" fill="${border}" />
+      <text x="30" y="15" font-size="13" fill="${bg}" font-family="monospace">NAME</text>
+      <text x="140" y="15" font-size="13" fill="${bg}" font-family="monospace">PRICE</text>
+      <text x="250" y="15" font-size="13" fill="${bg}" font-family="monospace">VOL</text>
+      <text x="360" y="15" font-size="13" fill="${bg}" font-family="monospace">TREND</text>
+      <text x="470" y="15" font-size="13" fill="${bg}" font-family="monospace">CHART</text>
     </g>
   `;
 
   const coinRows = data.filter(Boolean).map((item, i) => {
-    const y = 60 + rowHeight + i * rowHeight;
+    const y = 100 + i * 60;
     const rowBg =
       item.trendChange > 0 ? "#103c2d" :
       item.trendChange < 0 ? "#3c1010" :
-      (isDark ? "#161b22" : "#f6f8fa");
-
-    const logoUrl = `https://cryptologos.cc/logos/${item.id}-logo.svg?v=025`;
-
-    const cells = `
-      <image href="${logoUrl}" x="${colX[0] + 10}" y="${y + 10}" width="20" height="20"
-        onerror="this.setAttribute('href', 'https://cryptologos.cc/logos/generic-coin-logo.svg?v=025')" />
-      <text x="${colX[0] + 40}" y="${y + 30}" font-size="14" fill="${text}" font-family="monospace">${item.symbol}</text>
-
-      <text x="${colX[1] + colWidths[1]/2}" y="${y + 30}" font-size="14" fill="${text}" font-family="monospace" text-anchor="middle">${item.price}</text>
-      <text x="${colX[2] + colWidths[2]/2}" y="${y + 30}" font-size="14" fill="${text}" font-family="monospace" text-anchor="middle">${item.volume}</text>
-      <text x="${colX[3] + colWidths[3]/2}" y="${y + 30}" font-size="14" fill="${text}" font-family="monospace" text-anchor="middle">${item.trend}</text>
-
-      <g transform="translate(${colX[4] + 10}, ${y + 5})">
-        ${item.chart.replace(/<\/?svg[^>]*>/g, "")}
-      </g>
-    `;
-
-    // Grid lines
-    const lines = colX.map(x => `<line x1="${x}" y1="${y}" x2="${x}" y2="${y + rowHeight}" stroke="${border}" stroke-width="1"/>`).join("");
+      (theme === "dark" ? "#161b22" : "#f6f8fa");
 
     return `
-      <g>
-        <rect x="0" y="${y}" width="600" height="${rowHeight}" fill="${rowBg}" />
-        ${cells}
-        <line x1="0" y1="${y + rowHeight}" x2="600" y2="${y + rowHeight}" stroke="${border}" stroke-width="1"/>
-        ${lines}
+      <g transform="translate(10, ${y})">
+        <rect width="580" height="50" rx="6" ry="6" fill="${rowBg}" />
+        <text x="20" y="25" font-size="13" fill="${text}" font-family="monospace">${item.symbol}</text>
+        <text x="140" y="25" font-size="13" fill="${text}" font-family="monospace">${item.price}</text>
+        <text x="250" y="25" font-size="13" fill="${text}" font-family="monospace">${item.volume}</text>
+        <text x="360" y="25" font-size="13" fill="${text}" font-family="monospace">${item.trend}</text>
+        <g transform="translate(470, 5)">
+          ${item.chart.replace(/<\/?svg[^>]*>/g, "")}
+        </g>
+        <rect width="580" height="50" fill="none" stroke="${border}" stroke-width="0.5" rx="6" ry="6" />
       </g>
     `;
   }).join("");
 
+  const footerY = 100 + data.length * 60 + 20;
+
   const footer = `
-    <text x="10" y="${data.length * rowHeight + 60 + 30}" font-size="12" fill="${text}" font-family="monospace">
-      crypto-price-readme v1.4.1 — github.com/deisgoku/crypto-price-readme
+    <text x="300" y="${footerY}" text-anchor="middle" font-size="11" fill="${text}" font-family="monospace">
+      © crypto-price-readme v1.4.1 by github.com/deisgoku
     </text>
   `;
 
-  const svgHeight = data.length * rowHeight + 60 + 60;
+  const cardHeight = footerY + 20;
 
   const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="600" height="${svgHeight}" viewBox="0 0 600 ${svgHeight}">
+    <svg xmlns="http://www.w3.org/2000/svg" width="600" height="${cardHeight}" viewBox="0 0 600 ${cardHeight}">
       <style>
         text { dominant-baseline: middle; }
-        image { shape-rendering: crispEdges; }
       </style>
-      <rect width="100%" height="100%" fill="${bg}" />
+      <filter id="card-shadow">
+        <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="${shadow}" />
+      </filter>
+      <g filter="url(#card-shadow)">
+        <rect x="5" y="5" width="590" height="${cardHeight - 10}" rx="12" ry="12" fill="${bg}" />
+      </g>
       ${header}
       ${coinRows}
       ${footer}
