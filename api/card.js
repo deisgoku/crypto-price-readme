@@ -45,24 +45,27 @@ export default async function handler(req, res) {
     })
   );
 
-  const bg = theme === "dark" ? "#0d1117" : "#ffffff";
-  const text = theme === "dark" ? "#c9d1d9" : "#333333";
-  const border = theme === "dark" ? "#ffffff" : "#000000";
-  const shadow = theme === "dark" ? "#00000088" : "#cccccc88";
+  const isDark = theme === "dark";
+  const bg = isDark ? "#0d1117" : "#ffffff";
+  const text = isDark ? "#c9d1d9" : "#ffffff"; // warna isi tabel
+  const titleColor = isDark ? "#c9d1d9" : "#000000"; // warna judul & footer
+  const headerText = "#ffffff";
+  const border = isDark ? "#ffffff" : "#000000";
+  const shadow = isDark ? "#00000088" : "#cccccc88";
 
   const header = `
     <g transform="translate(0, 40)">
-      <text x="300" text-anchor="middle" y="0" font-size="16" fill="${text}" font-family="monospace">
+      <text x="300" text-anchor="middle" y="0" font-size="16" fill="${titleColor}" font-family="monospace" font-weight="bold">
         ☍ Top 6 Popular Prices
       </text>
     </g>
     <g transform="translate(0, 60)">
       <rect x="10" y="0" width="580" height="30" rx="6" ry="6" fill="${border}" />
-      <text x="70" y="15" text-anchor="middle" font-size="13" fill="${bg}" font-family="monospace">NAME</text>
-      <text x="190" y="15" text-anchor="middle" font-size="13" fill="${bg}" font-family="monospace">PRICE</text>
-      <text x="300" y="15" text-anchor="middle" font-size="13" fill="${bg}" font-family="monospace">VOL</text>
-      <text x="410" y="15" text-anchor="middle" font-size="13" fill="${bg}" font-family="monospace">TREND</text>
-      <text x="520" y="15" text-anchor="middle" font-size="13" fill="${bg}" font-family="monospace">CHART</text>
+      <text x="70" y="15" text-anchor="middle" font-size="13" fill="${headerText}" font-family="monospace" font-weight="bold">NAME</text>
+      <text x="190" y="15" text-anchor="middle" font-size="13" fill="${headerText}" font-family="monospace" font-weight="bold">PRICE</text>
+      <text x="300" y="15" text-anchor="middle" font-size="13" fill="${headerText}" font-family="monospace" font-weight="bold">VOL</text>
+      <text x="410" y="15" text-anchor="middle" font-size="13" fill="${headerText}" font-family="monospace" font-weight="bold">TREND</text>
+      <text x="520" y="15" text-anchor="middle" font-size="13" fill="${headerText}" font-family="monospace" font-weight="bold">CHART</text>
     </g>
   `;
 
@@ -75,9 +78,9 @@ export default async function handler(req, res) {
           ? "#103c2d"
           : item.trendChange < 0
           ? "#3c1010"
-          : theme === "dark"
+          : isDark
           ? "#161b22"
-          : "#f6f8fa";
+          : "#d6d6d6";
 
       return `
         <g transform="translate(10, ${y})">
@@ -98,7 +101,7 @@ export default async function handler(req, res) {
   const footerY = 100 + data.length * 60 + 20;
 
   const footer = `
-    <text x="300" y="${footerY}" text-anchor="middle" font-size="11" fill="${text}" font-family="monospace">
+    <text x="300" y="${footerY}" text-anchor="middle" font-size="11" fill="${titleColor}" font-family="monospace">
       © crypto-price-readme v1.4.1 by github.com/deisgoku
     </text>
   `;
