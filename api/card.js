@@ -1,113 +1,145 @@
 import fetch from "node-fetch";
 
-export default async function handler(req, res) {
-  const { theme = "light" } = req.query;
+let cachedData = null;
+let lastFetchTime = 0;
+const CACHE_DURATION = 60 * 1000;
 
-  const coins = [
-    { id: "bitcoin", symbol: "BTC" },
-    { id: "ethereum", symbol: "ETH" },
-    { id: "binancecoin", symbol: "BNB" },
-    { id: "solana", symbol: "SOL" },
-    { id: "ripple", symbol: "XRP" },
-    { id: "dogecoin", symbol: "DOGE" },
-  ];
+async function fetchFromCMC() {
+  const apiKey = process.env.CMC_API_KEY;
+  const res = await fetch("https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest?limit=6", {
+    headers: { "X-CMC_PRO_API_KEY": apiKey },
+  });
+  const json = await res.json();
+  return json.data.map((coin) => ({
+    id: coin.id,
+    name: coin.name,
+    symbol: coin.symbol,
+    price: coin.quote.USD.price.toFixed(2),
+    volume: coin.quote.USD.volume_24h.toFixed(0),
+    trendChange: coin.quote.USD.percent_change_24h.toFixed(2),
+  }));
+}
 
-  const baseUrl = `${req.headers.host.includes("localhost") ? "http" : "https"}://${req.headers.host}`;
+async function fetchFromCoingecko() {
+  const res = await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=6&page=1");
+  const json = await res.json();
+  return json.map((coin) => ({
+    id: coin.id,
+    name: coin.name,
+    symbol: coin.symbol.toUpperCase(),
+    price: coin.current_price.toFixed(2),
+    volume: coin.total_volume.toFixed(0),
+    trendChange: coin.price_change_percentage_24h.toFixed(2),
+  }));
+}
+
+async function fetchFromBinance() {
+  const res = await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=6&page=1");
+  const topCoins = await res.json();
+
+  const symbols = topCoins.map((coin) => ({
+    id: coin.id,
+    name: coin.name,
+    symbol: coin.symbol.toUpperCase(),
+    binanceSymbol: `${coin.symbol.toUpperCase()}USDT`,
+  }));
 
   const data = await Promise.all(
-    coins.map(async ({ id, symbol }) => {
+    symbols.map(async (coin) => {
       try {
-        const [priceRes, volumeRes, trendRes, chartRes] = await Promise.all([
-          fetch(`${baseUrl}/api/prices?coin=${id}`),
-          fetch(`${baseUrl}/api/volume?coin=${id}`),
-          fetch(`${baseUrl}/api/trend?coin=${id}`),
-          fetch(`${baseUrl}/api/chart?coin=${id}`),
-        ]);
-
-        const price = await priceRes.json();
-        const volume = await volumeRes.json();
-        const trend = await trendRes.json();
-        const chart = await chartRes.text();
-
+        const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${coin.binanceSymbol}`);
+        const json = await res.json();
+        if (json.code) throw new Error(json.msg);
         return {
-          id,
-          symbol,
-          price: price.message,
-          volume: volume.message,
-          trend: trend.message,
-          trendChange: parseFloat(trend.message),
-          chart,
+          id: coin.id,
+          name: coin.name,
+          symbol: coin.symbol,
+          price: parseFloat(json.lastPrice).toFixed(2),
+          volume: parseFloat(json.quoteVolume).toFixed(0),
+          trendChange: parseFloat(json.priceChangePercent).toFixed(2),
         };
-      } catch (err) {
-        console.error(`Error fetching data for ${id}:`, err);
+      } catch {
         return null;
       }
     })
   );
 
+  return data.filter((coin) => coin !== null);
+}
+
+async function getCoinData() {
+  const now = Date.now();
+  if (cachedData && now - lastFetchTime < CACHE_DURATION) return cachedData;
+
+  try {
+    cachedData = await fetchFromCMC();
+  } catch {
+    try {
+      cachedData = await fetchFromCoingecko();
+    } catch {
+      cachedData = await fetchFromBinance();
+    }
+  }
+
+  lastFetchTime = now;
+  return cachedData;
+}
+
+export default async function handler(req, res) {
+  const { theme = "light" } = req.query;
+  const data = await getCoinData();
+
   const isDark = theme === "dark";
   const bg = isDark ? "#0d1117" : "#ffffff";
-  const text = isDark ? "#c9d1d9" : "#ffffff"; // warna isi tabel
-  const titleColor = isDark ? "#c9d1d9" : "#000000"; // warna judul & footer
+  const text = isDark ? "#c9d1d9" : "#000000";
   const headerText = "#ffffff";
   const border = isDark ? "#ffffff" : "#000000";
   const shadow = isDark ? "#00000088" : "#cccccc88";
 
   const header = `
     <g transform="translate(0, 40)">
-      <text x="300" text-anchor="middle" y="0" font-size="16" fill="${titleColor}" font-family="monospace" font-weight="bold">
-        ☍ Top 6 Popular Prices
+      <text x="300" text-anchor="middle" y="0" font-size="16" fill="${text}" font-family="monospace" font-weight="bold">
+        ☍ Top 6 Crypto Prices
       </text>
     </g>
     <g transform="translate(0, 60)">
       <rect x="10" y="0" width="580" height="30" rx="6" ry="6" fill="${border}" />
       <text x="70" y="15" text-anchor="middle" font-size="13" fill="${headerText}" font-family="monospace" font-weight="bold">NAME</text>
-      <text x="190" y="15" text-anchor="middle" font-size="13" fill="${headerText}" font-family="monospace" font-weight="bold">PRICE</text>
-      <text x="300" y="15" text-anchor="middle" font-size="13" fill="${headerText}" font-family="monospace" font-weight="bold">VOL</text>
-      <text x="410" y="15" text-anchor="middle" font-size="13" fill="${headerText}" font-family="monospace" font-weight="bold">TREND</text>
-      <text x="520" y="15" text-anchor="middle" font-size="13" fill="${headerText}" font-family="monospace" font-weight="bold">CHART</text>
+      <text x="190" y="15" text-anchor="end" font-size="13" fill="${headerText}" font-family="monospace" font-weight="bold">PRICE</text>
+      <text x="300" y="15" text-anchor="end" font-size="13" fill="${headerText}" font-family="monospace" font-weight="bold">VOL</text>
+      <text x="410" y="15" text-anchor="end" font-size="13" fill="${headerText}" font-family="monospace" font-weight="bold">CHANGE</text>
+      <text x="525" y="15" text-anchor="middle" font-size="13" fill="${headerText}" font-family="monospace" font-weight="bold">CHART</text>
     </g>
   `;
 
-  const coinRows = data
-    .filter(Boolean)
-    .map((item, i) => {
-      const y = 100 + i * 60;
-      const rowBg =
-        item.trendChange > 0
-          ? "#103c2d"
-          : item.trendChange < 0
-          ? "#3c1010"
-          : isDark
-          ? "#161b22"
-          : "#d6d6d6";
+  const coinRows = data.map((item, i) => {
+    const y = 100 + i * 60;
+    const rowBg =
+      item.trendChange > 0 ? "#103c2d" :
+      item.trendChange < 0 ? "#3c1010" :
+      isDark ? "#161b22" : "#d6d6d6";
 
-      return `
-        <g transform="translate(10, ${y})">
-          <rect width="580" height="50" rx="6" ry="6" fill="${rowBg}" />
-          <text x="70" y="25" text-anchor="end" font-size="13" fill="${text}" font-family="monospace">${item.symbol}</text>
-          <text x="190" y="25" text-anchor="end" font-size="13" fill="${text}" font-family="monospace">${item.price}</text>
-          <text x="300" y="25" text-anchor="end" font-size="13" fill="${text}" font-family="monospace">${item.volume}</text>
-          <text x="410" y="25" text-anchor="end" font-size="13" fill="${text}" font-family="monospace">${item.trend}</text>
-          <g transform="translate(470, 5)">
-            ${item.chart.replace(/<\/?svg[^>]*>/g, "")}
-          </g>
-          <rect width="580" height="50" fill="none" stroke="${border}" stroke-width="0.5" rx="6" ry="6" />
-        </g>
-      `;
-    })
-    .join("");
+    return `
+      <g transform="translate(10, ${y})">
+        <rect width="580" height="50" rx="6" ry="6" fill="${rowBg}" />
+        <text x="70" y="25" text-anchor="middle" font-size="13" fill="${text}" font-family="monospace">${item.symbol}</text>
+        <text x="190" y="25" text-anchor="end" font-size="13" fill="${text}" font-family="monospace">$${item.price}</text>
+        <text x="300" y="25" text-anchor="end" font-size="13" fill="${text}" font-family="monospace">${item.volume}</text>
+        <text x="410" y="25" text-anchor="end" font-size="13" fill="${text}" font-family="monospace">${item.trendChange}%</text>
+        <text x="525" y="25" text-anchor="middle" font-size="13" fill="${text}" font-family="monospace">chart</text>
+        <rect width="580" height="50" fill="none" stroke="${border}" stroke-width="0.5" rx="6" ry="6" />
+      </g>
+    `;
+  }).join("");
 
   const footerY = 100 + data.length * 60 + 20;
-
   const footer = `
-    <text x="300" y="${footerY}" text-anchor="middle" font-size="11" fill="${titleColor}" font-family="monospace">
+    <text x="300" y="${footerY}" text-anchor="middle" font-size="11" fill="${text}" font-family="monospace">
       © crypto-price-readme v1.4.1 by github.com/deisgoku
     </text>
   `;
 
   const cardHeight = footerY + 20;
-
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="600" height="${cardHeight}" viewBox="0 0 600 ${cardHeight}">
       <style> text { dominant-baseline: middle; } </style>
