@@ -5,7 +5,7 @@ const COINS = ['BTC', 'ETH', 'BNB', 'SOL', 'XRP', 'ADA'];
 
 async function fetchData(endpoint, symbol) {
   try {
-    const res = await fetch(`${BASE}/${endpoint}?symbol=${symbol}`);
+    const res = await fetch(`${BASE}/${endpoint}?coin=${symbol}`);
     return endpoint === 'chart' ? await res.text() : (await res.json())?.data || 'N/A';
   } catch {
     return endpoint === 'chart' ? '<text>Chart N/A</text>' : 'N/A';
@@ -22,7 +22,7 @@ module.exports = async (req, res) => {
 
   const rows = await Promise.all(
     COINS.map(async (symbol) => {
-      const price = await fetchData('price', symbol);
+      const price = await fetchData('prices', symbol);
       const volume = await fetchData('volume', symbol);
       const trend = await fetchData('trend', symbol);
       const chart = await fetchData('chart', symbol);
