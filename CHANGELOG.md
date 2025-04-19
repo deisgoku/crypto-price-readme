@@ -1,34 +1,88 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
-
-
-## [v1.3.0] - 2025-04-18
-### Added
-- `/api/chart.js`: dynamic chart (sparkline) rendering for each coin.
-- Trend indicator badges in `/api/trend.js`.
-
-### Improved
-- **Failover support**: if any API fails, system will display `Inaccesible` instead of crashing.
-- **Decimal formatting**: prices and volumes are now human-readable (e.g. 1.2K, 4.5M, 22.3B).
-- **Code modularity**: each endpoint now self-contained and easier to scale.
-
-### Fixed
-- Timeout issues on slow external APIs.
-- Inconsistent chart width/height on various screen sizes.
+All notable changes to this project will be documented here.
 
 ---
 
-## [v1.2.0] - 2025-04-16
-- Added sparkline chart API
-- Added trend up/down indicator using emoji badges
+## Reliable Multi-Provider API — v1.4.1
 
-## [v1.1.0] - 2025-04-14
-- Introduced decimal formatting (1.2K, 3.4M, etc.)
-- Implemented fallback mechanism for missing API data
+This release introduces robust **failover logic** and improved **data reliability** across all badge endpoints by integrating three major crypto data providers. It marks a significant step toward making the GitHub README badges resilient and production-ready.
 
-## [v1.0.0] - 2025-04-12
-- Initial release
-- Endpoints: `/api/price.js`, `/api/volume.js`, `/api/trend.js`
-- Stable deployment to production (`crypto-price-on.vercel.app`)
-- Supports dynamic badge generation via shields.io
+### What's New
+- **Failover API system** implemented across all endpoints:
+  - **Primary:** CoinGecko
+  - **Secondary:** CoinMarketCap
+  - **Fallback:** Binance Public API
+- All endpoints (`/api/price.js`, `/api/volume.js`, `/api/trend.js`, `/api/chart.js`) now adapt to provider downtimes automatically.
+- Live rendering of sparkline charts via `/api/chart.js`.
+
+### Improvements
+- Unified decimal formatting (e.g., `1.2K`, `3.5M`, `8.4B`) across all badges.
+- Enhanced error handling and auto-recovery on request failure.
+- More stable and responsive performance under heavy usage.
+
+### Fixes
+- Fixed chart rendering bugs on specific resolutions.
+- Prevented null data from causing blank badges.
+- Improved compatibility for GitHub dark/light themes.
+
+---
+
+## [Superseded] v1.4.0
+
+> This version was skipped due to GitHub rejecting the release tag as invalid. All intended changes were immediately carried into `v1.4.1`.  
+> See `v1.4.1` for details.
+
+---
+
+## Stable API & Chart Support — v1.3.0
+
+A stable and modular milestone for the project with improved rendering and maintenance.
+
+### What's New
+- `/api/chart.js` for sparkline chart rendering.
+- New trend indicator badges in `/api/trend.js`.
+
+### Improvements
+- Decimal formatting (1.2K, 3.5M, etc.).
+- Better fallback for unavailable data.
+- Refactored for easier maintenance.
+
+### Fixes
+- Chart render bugs on certain sizes.
+- API timeout failover protection.
+
+---
+
+## Chart Rendering — v1.2.0
+
+Adds visual support with sparkline charts.
+
+### What's New
+- `/api/chart.js`: renders price trend line charts.
+
+### Fixes
+- Layout and badge rendering bugs.
+- Minor improvements to performance and response times.
+
+---
+
+## Extended Badge Support — v1.1.0
+
+Introduces new endpoints for trend and volume.
+
+### What's New
+- `/api/volume.js`: 24h trading volume.
+- `/api/trend.js`: simple trend indicator (up/down).
+- Refactored API response structure.
+
+---
+
+## Initial Idea — v1.0.0
+
+First release of `crypto-price-readme`.
+
+### What's Included
+- `/api/price.js`: fetches live prices from CoinGecko.
+- Simple badge display using Shields.io format.
+- Deployed to Vercel.
