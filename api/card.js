@@ -1,64 +1,51 @@
-import fetch from "node-fetch";
+const { getPrice, getVolume, getTrend, getChartUrl } = require("../lib/data");
 
-export default async function handler(req, res) { const { theme = "light" } = req.query;
+module.exports = async (req, res) => {
+  const coins = ["bitcoin", "ethereum", "bnb", "solana", "xrp", "dogecoin"];
+  const theme = req.query.theme === "light" ? "light" : "dark";
 
-const coins = [ { id: "bitcoin", symbol: "BTC" }, { id: "ethereum", symbol: "ETH" }, { id: "binancecoin", symbol: "BNB" }, { id: "solana", symbol: "SOL" }, { id: "ripple", symbol: "XRP" }, { id: "dogecoin", symbol: "DOGE" }, ];
+  const data = await Promise.all(
+    coins.map(async (coin) => {
+      const [price, volume, trend] = await Promise.all([
+        getPrice(coin),
+        getVolume(coin),
+        getTrend(coin),
+      ]);
+      const chart = getChartUrl(coin);
+      return { coin, price, volume, trend, chart };
+    })
+  );
 
-const baseUrl = ${req.headers.host.includes('localhost') ? 'http' : 'https'}://${req.headers.host};
+  const bgColor = theme === "light" ? "#ffffff" : "#0d1117";
+  const textColor = theme === "light" ? "#000000" : "#ffffff";
 
-const data = await Promise.all( coins.map(async ({ id, symbol }) => { try { const [priceRes, volumeRes, trendRes, chartRes] = await Promise.all([ fetch(${baseUrl}/api/prices?coin=${id}), fetch(${baseUrl}/api/volume?coin=${id}), fetch(${baseUrl}/api/trend?coin=${id}), fetch(${baseUrl}/api/chart?coin=${id}), ]);
+  const svg = `
+    <svg width="700" height="300" xmlns="http://www.w3.org/2000/svg">
+      <style>
+        .title { font: 600 18px sans-serif; fill: ${textColor}; }
+        .label { font: 500 14px sans-serif; fill: ${textColor}; }
+        .value { font: 400 13px monospace; fill: ${textColor}; }
+        .small { font: 12px sans-serif; fill: gray; }
+      </style>
+      <rect width="100%" height="100%" fill="${bgColor}" rx="10" />
+      ${data
+        .map((coin, i) => {
+          const y = 20 + i * 45;
+          return `
+            <g transform="translate(20, ${y})">
+              <text class="label" x="0" y="0">${coin.coin.toUpperCase()}</text>
+              <text class="value" x="100" y="0">Price: $${coin.price}</text>
+              <text class="value" x="250" y="0">Vol: $${coin.volume}</text>
+              <text class="value" x="400" y="0">24h: ${coin.trend}</text>
+              <image href="${coin.chart}" x="500" y="-12" width="100" height="25" />
+            </g>
+          `;
+        })
+        .join("")}
+    </svg>
+  `;
 
-const price = await priceRes.json();
-    const volume = await volumeRes.json();
-    const trend = await trendRes.json();
-    const chart = await chartRes.text();
-
-    return {
-      id,
-      symbol,
-      price: price.message,
-      volume: volume.message,
-      trend: trend.message,
-      trendChange: parseFloat(trend.message),
-      chart,
-    };
-  } catch (err) {
-    console.error(`Error fetching data for ${id}:`, err);
-    return null;
-  }
-})
-
-);
-
-const bg = theme === "dark" ? "#0d1117" : "#ffffff"; const text = theme === "dark" ? "#c9d1d9" : "#333333"; const border = theme === "dark" ? "#ffffff" : "#000000"; const shadow = theme === "dark" ? "#00000088" : "#cccccc88";
-
-const header = <g transform="translate(0, 40)"> <text x="300" text-anchor="middle" y="0" font-size="16" fill="${text}" font-family="monospace"> ☍ Top 6 Popular Prices </text> </g> <g transform="translate(0, 60)"> <rect x="10" y="0" width="580" height="30" rx="6" ry="6" fill="${border}" /> <text x="70" y="15" text-anchor="middle" font-size="13" fill="${bg}" font-family="monospace">NAME</text> <text x="190" y="15" text-anchor="middle" font-size="13" fill="${bg}" font-family="monospace">PRICE</text> <text x="300" y="15" text-anchor="middle" font-size="13" fill="${bg}" font-family="monospace">VOL</text> <text x="410" y="15" text-anchor="middle" font-size="13" fill="${bg}" font-family="monospace">TREND</text> <text x="520" y="15" text-anchor="middle" font-size="13" fill="${bg}" font-family="monospace">CHART</text> </g>;
-
-const coinRows = data.filter(Boolean).map((item, i) => { const y = 100 + i * 60; const rowBg = item.trendChange > 0 ? "#103c2d" : item.trendChange < 0 ? "#3c1010" : (theme === "dark" ? "#161b22" : "#f6f8fa");
-
-return `
-  <g transform="translate(10, ${y})">
-    <rect width="580" height="50" rx="6" ry="6" fill="${rowBg}" />
-    <text x="70" y="25" text-anchor="end" font-size="13" fill="${text}" font-family="monospace">${item.symbol}</text>
-    <text x="190" y="25" text-anchor="end" font-size="13" fill="${text}" font-family="monospace">${item.price}</text>
-    <text x="300" y="25" text-anchor="end" font-size="13" fill="${text}" font-family="monospace">${item.volume}</text>
-    <text x="410" y="25" text-anchor="end" font-size="13" fill="${text}" font-family="monospace">${item.trend}</text>
-    <g transform="translate(470, 5)">
-      ${item.chart.replace(/<\/?svg[^>]*>/g, "")}
-    </g>
-    <rect width="580" height="50" fill="none" stroke="${border}" stroke-width="0.5" rx="6" ry="6" />
-  </g>
-`;
-
-}).join("");
-
-const footerY = 100 + data.length * 60 + 20;
-
-const footer = <text x="300" y="${footerY}" text-anchor="middle" font-size="11" fill="${text}" font-family="monospace"> © crypto-price-readme v1.4.1 by github.com/deisgoku </text>;
-
-const cardHeight = footerY + 20;
-
-const svg = <svg xmlns="http://www.w3.org/2000/svg" width="600" height="${cardHeight}" viewBox="0 0 600 ${cardHeight}"> <style> text { dominant-baseline: middle; } </style> <filter id="card-shadow"> <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="${shadow}" /> </filter> <g filter="url(#card-shadow)"> <rect x="5" y="5" width="590" height="${cardHeight - 10}" rx="12" ry="12" fill="${bg}" /> </g> ${header} ${coinRows} ${footer} </svg>;
-
-res.setHeader("Content-Type", "image/svg+xml"); res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate"); res.status(200).send(svg); }
-
+  res.setHeader("Content-Type", "image/svg+xml");
+  res.setHeader("Cache-Control", "s-maxage=3600");
+  res.status(200).send(svg);
+};
