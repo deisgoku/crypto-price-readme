@@ -1,83 +1,143 @@
-// pages/unlock.js
-
+// UI
 import { useState } from "react";
-import Head from "next/head";
 
-export default function Unlock() {
+export default function UnlockPage() {
   const [username, setUsername] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    if (!username) return;
-    setLoading(true);
-    try {
-      await fetch("/api/add-follower", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username }),
-      });
-      setSubmitted(true);
-    } catch (err) {
-      console.error("Failed to submit:", err);
-    } finally {
-      setLoading(false);
+  const handleUnlock = async () => {
+    const res = await fetch("/api/add-follower", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username }),
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      setSuccess(true);
     }
-  }
+  };
 
   return (
-    <>
-      <Head>
-        <title>Unlock Card Access</title>
-      </Head>
-      <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-gradient-to-b from-gray-900 to-black text-white">
-        <div className="max-w-md w-full text-center">
-          <h1 className="text-3xl font-bold mb-4">Unlock Your Card</h1>
-          <p className="mb-2">
-            Visit my X profile first:{" "}
-            <a
-              href="https://x.com/Deisgoku"
-              target="_blank"
-              className="text-blue-400 underline"
-            >
-              @Deisgoku
-            </a>
-          </p>
-          <p className="mb-6 text-sm">
-            Please make sure you already followed{" "}
-            <strong>@Deisgoku</strong> on Twitter.
-          </p>
+    <div style={styles.page}>
+      <div style={styles.overlay} />
+      <div style={styles.card}>
+        <h1 style={styles.heading}>Welcome Web3 Builder!</h1>
+        <p style={styles.subtext}>
+          Make sure you've followed my Twitter:{" "}
+          <a href="https://x.com/Deisgoku" target="_blank" style={styles.link}>
+            @Deisgoku
+          </a>
+        </p>
+        <p style={styles.label}>Enter your Twitter username:</p>
+        <input
+          type="text"
+          placeholder="e.g. satoshinakamoto"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          style={styles.input}
+        />
+        <button onClick={handleUnlock} style={styles.button}>
+          Unlock
+        </button>
 
-          {!submitted ? (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <input
-                type="text"
-                placeholder="Your Twitter username"
-                className="w-full px-4 py-2 rounded bg-gray-800 border border-gray-700 focus:outline-none"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-2 rounded bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
-              >
-                {loading ? "Unlocking..." : "Unlock"}
-              </button>
-            </form>
-          ) : (
-            <div className="bg-green-600 p-4 rounded text-white mt-4">
-              Thank you for following! You can now use the card.
-            </div>
-          )}
+        {success && (
+          <p style={styles.success}>
+            Thanks! You’ve been verified. You can now access the card.
+          </p>
+        )}
 
-          <blockquote className="mt-10 text-sm italic text-gray-400">
-            “Appreciation in Web3 creations is essential for staying connected
-            and valuing one another.”
-          </blockquote>
-        </div>
+        <blockquote style={styles.quote}>
+          “Appreciation in Web3 is crucial — it keeps us connected and
+          respectful of each other’s work.”
+        </blockquote>
       </div>
-    </>
+    </div>
   );
 }
+
+const styles = {
+  page: {
+    display: "flex",
+    minHeight: "100vh",
+    background: "#0d1117",
+    justifyContent: "center",
+    alignItems: "center",
+    color: "#fff",
+    position: "relative",
+    overflow: "hidden",
+  },
+  overlay: {
+    position: "absolute",
+    inset: 0,
+    background:
+      "radial-gradient(circle at top left, #1f6feb55, transparent 70%), radial-gradient(circle at bottom right, #58a6ff22, transparent 70%)",
+    zIndex: 0,
+    animation: "bgPulse 10s ease-in-out infinite",
+  },
+  card: {
+    position: "relative",
+    background: "#161b22",
+    padding: "2rem",
+    borderRadius: "1rem",
+    boxShadow: "0 0 20px rgba(0,0,0,0.3)",
+    zIndex: 1,
+    maxWidth: "400px",
+    width: "100%",
+    textAlign: "center",
+  },
+  heading: {
+    fontSize: "1.8rem",
+    marginBottom: "1rem",
+  },
+  subtext: {
+    marginBottom: "1rem",
+  },
+  label: {
+    textAlign: "left",
+    marginBottom: "0.25rem",
+    fontWeight: "bold",
+    color: "#c9d1d9",
+  },
+  input: {
+    width: "100%",
+    padding: "0.6rem",
+    marginBottom: "1rem",
+    borderRadius: "8px",
+    border: "1px solid #30363d",
+    backgroundColor: "#0d1117",
+    color: "#fff",
+  },
+  button: {
+    width: "100%",
+    padding: "0.6rem",
+    background: "#238636",
+    border: "none",
+    borderRadius: "8px",
+    color: "#fff",
+    cursor: "pointer",
+    fontWeight: "bold",
+    transition: "0.3s",
+  },
+  success: {
+    color: "#3fb950",
+    marginTop: "1rem",
+    fontWeight: "bold",
+  },
+  quote: {
+    marginTop: "2rem",
+    fontStyle: "italic",
+    color: "#8b949e",
+    fontSize: "0.95rem",
+  },
+  link: {
+    color: "#58a6ff",
+    textDecoration: "underline",
+  },
+};
+
+// Add this to global.css if needed
+// @keyframes bgPulse {
+//   0%, 100% { opacity: 0.6; }
+//   50% { opacity: 1; }
+// }
