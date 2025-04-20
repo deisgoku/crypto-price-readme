@@ -54,7 +54,7 @@ async function fetchTopCoins() {
   const now = Date.now();
   if (cachedTopCoins && now - lastFetchTime < CACHE_DURATION) return cachedTopCoins;
 
-  const sources = [fetchTopCoinsFromCMC, fetchTopCoinsFromBinance, fetchTopCoinsFromCoinGecko];
+  const sources = [fetchTopCoinsFromCoinGecko, fetchTopCoinsFromCMC, fetchTopCoinsFromBinance];
 
   for (const source of sources) {
     try {
@@ -118,7 +118,7 @@ export default async function handler(req, res) {
   const bg = isDark ? "#0d1117" : "#ffffff";
   const text = isDark ? "#c9d1d9" : "#ffffff";
   const titleColor = isDark ? "#c9d1d9" : "#000000";
-  const headerText = "#ffffff";
+  const headerText = isDark ? "#c9d1d9" : "#ffffff";
   const border = isDark ? "#ffffff" : "#000000";
   const shadow = isDark ? "#00000088" : "#cccccc88";
 
