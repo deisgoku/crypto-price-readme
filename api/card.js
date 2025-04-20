@@ -5,37 +5,38 @@ let cachedTopCoins = null;
 let lastFetchTime = 0;
 const CACHE_DURATION = 60 * 1000; // 1 menit
 
-// Coba ambil dari CoinMarketCap
-async function fetchTopCoinsFromCMC() {
-  const res = await fetch("https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest?limit=6", {
-    headers: { "X-CMC_PRO_API_KEY": process.env.CMC_API_KEY },
-  });
-  const data = await res.json();
-  return data.data.map((coin) => ({ id: coin.slug, symbol: coin.symbol }));
-}
-
-// Coba dari Binance (berdasarkan volume)
-async function fetchTopCoinsFromBinance() {
-  const res = await fetch("https://api.binance.com/api/v3/ticker/24hr");
-  const data = await res.json();
-  return data
-    .filter((coin) => coin.symbol.endsWith("USDT"))
-    .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
-    .slice(0, 6)
-    .map((coin) => {
-      const symbol = coin.symbol.replace("USDT", "");
-      return { id: symbol.toLowerCase(), symbol };
-    });
-}
-
-// Coba dari CoinGecko (dan simpan id-nya)
+// Ambil dari CoinGecko (prioritas utama)
 async function fetchTopCoinsFromCoinGecko() {
   const res = await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=6&page=1");
   const data = await res.json();
   return data.map((coin) => ({
-    id: coin.id,                // ini yang akan digunakan untuk fetch price/volume/trend/chart
-    symbol: coin.symbol.toUpperCase()
+    id: coin.id,
+    symbol: coin.symbol.toUpperCase(),
   }));
+}
+
+// Coba dari CoinMarketCap, cocokkan dengan symbol dari CoinGecko
+async function fetchTopCoinsFromCMC(geckoSymbols) {
+  const res = await fetch("https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest?limit=100", {
+    headers: { "X-CMC_PRO_API_KEY": process.env.CMC_API_KEY },
+  });
+  const data = await res.json();
+  return data.data
+    .filter((coin) => geckoSymbols.includes(coin.symbol))
+    .slice(0, 6)
+    .map((coin) => ({ id: coin.slug, symbol: coin.symbol }));
+}
+
+// Coba dari Binance, cocokkan dengan symbol dari CoinGecko
+async function fetchTopCoinsFromBinance(geckoSymbols) {
+  const res = await fetch("https://api.binance.com/api/v3/ticker/24hr");
+  const data = await res.json();
+  return data
+    .filter((coin) => coin.symbol.endsWith("USDT"))
+    .map((coin) => coin.symbol.replace("USDT", ""))
+    .filter((symbol) => geckoSymbols.includes(symbol))
+    .slice(0, 6)
+    .map((symbol) => ({ id: symbol.toLowerCase(), symbol }));
 }
 
 // Ambil mapping symbol → id dari CoinGecko
@@ -49,30 +50,59 @@ async function getCoinGeckoMap() {
   return map;
 }
 
-// Fungsi utama dengan cache dan failover
+// Fungsi utama
 async function fetchTopCoins() {
   const now = Date.now();
   if (cachedTopCoins && now - lastFetchTime < CACHE_DURATION) return cachedTopCoins;
 
-  const sources = [fetchTopCoinsFromCoinGecko, fetchTopCoinsFromCMC, fetchTopCoinsFromBinance];
+  try {
+    const primary = await fetchTopCoinsFromCoinGecko();
+    const geckoSymbols = primary.map((coin) => coin.symbol);
+    const map = await getCoinGeckoMap();
+    const withCorrectId = geckoSymbols.map((symbol) => ({
+      symbol,
+      id: map[symbol] || symbol.toLowerCase(),
+    }));
+    cachedTopCoins = withCorrectId;
+    lastFetchTime = now;
+    console.log("Top coins diambil dari: fetchTopCoinsFromCoinGecko");
+    return withCorrectId;
+  } catch (err) {
+    console.error("Gagal dari CoinGecko:", err.message);
+  }
 
-  for (const source of sources) {
-    try {
-      const coins = await source();
-      if (coins?.length > 0) {
-        const map = await getCoinGeckoMap();
-        const withCorrectId = coins.map(({ symbol }) => ({
-          symbol,
-          id: map[symbol] || symbol.toLowerCase() // fallback kalau gak ada mapping
-        }));
-        cachedTopCoins = withCorrectId;
-        lastFetchTime = now;
-        console.log("Top coins diambil dari:", source.name);
-        return withCorrectId;
-      }
-    } catch (err) {
-      console.error(`Gagal dari ${source.name}:`, err.message);
-    }
+  // Failover ke CMC
+  try {
+    const geckoMap = await getCoinGeckoMap();
+    const geckoSymbols = Object.keys(geckoMap).slice(0, 6);
+    const cmc = await fetchTopCoinsFromCMC(geckoSymbols);
+    const withCorrectId = cmc.map(({ symbol }) => ({
+      symbol,
+      id: geckoMap[symbol] || symbol.toLowerCase(),
+    }));
+    cachedTopCoins = withCorrectId;
+    lastFetchTime = now;
+    console.log("Top coins diambil dari: fetchTopCoinsFromCMC");
+    return withCorrectId;
+  } catch (err) {
+    console.error("Gagal dari CMC:", err.message);
+  }
+
+  // Failover ke Binance
+  try {
+    const geckoMap = await getCoinGeckoMap();
+    const geckoSymbols = Object.keys(geckoMap).slice(0, 6);
+    const binance = await fetchTopCoinsFromBinance(geckoSymbols);
+    const withCorrectId = binance.map(({ symbol }) => ({
+      symbol,
+      id: geckoMap[symbol] || symbol.toLowerCase(),
+    }));
+    cachedTopCoins = withCorrectId;
+    lastFetchTime = now;
+    console.log("Top coins diambil dari: fetchTopCoinsFromBinance");
+    return withCorrectId;
+  } catch (err) {
+    console.error("Gagal dari Binance:", err.message);
   }
 
   return [];
