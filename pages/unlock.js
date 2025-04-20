@@ -1,27 +1,32 @@
-// UI
 import { useState } from "react";
 
 export default function UnlockPage() {
   const [username, setUsername] = useState("");
   const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleUnlock = async () => {
-  if (!username.trim()) {
-    alert("Please enter your Twitter username first!");
-    return;
-  }
+    if (!username.trim()) {
+      alert("Please enter your Twitter username first!");
+      return;
+    }
 
-  const res = await fetch("/api/add-follower", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username }),
-  });
+    setLoading(true);
+    const res = await fetch("/api/add-follower", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username }),
+    });
 
-  const data = await res.json();
-  if (data.success) {
-    setSuccess(true);
-  }
-};
+    const data = await res.json();
+    setLoading(false);
+
+    if (data.success) {
+      setSuccess(true);
+    } else {
+      alert("Failed to verify. Please try again.");
+    }
+  };
 
   return (
     <div style={styles.page}>
@@ -42,8 +47,8 @@ export default function UnlockPage() {
           onChange={(e) => setUsername(e.target.value)}
           style={styles.input}
         />
-        <button onClick={handleUnlock} style={styles.button}>
-          Unlock
+        <button onClick={handleUnlock} style={styles.button} disabled={loading}>
+          {loading ? "Unlocking..." : "Unlock"}
         </button>
 
         {success && (
