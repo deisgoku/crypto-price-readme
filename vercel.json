@@ -1,16 +1,9 @@
 {
   "version": 2,
-  "builds": [
-    { "src": "pages/**/*", "use": "@vercel/node" },
-    { "src": "api/**/*", "use": "@vercel/node" }
-  ],
-  "routes": [
-    { "src": "/api/chart", "dest": "/api/chart.js" },
-    { "src": "/api/prices", "dest": "/api/prices.js" },
-    { "src": "/api/trend", "dest": "/api/trend.js" },
-    { "src": "/api/volume", "dest": "/api/volume.js" },
-    { "src": "/api/card", "dest": "/api/card.js" },
-    { "src": "/unlock", "dest": "/pages/unlock.js" },
-    { "src": "/", "status": 301, "headers": { "Location": "https://github.com/deisgoku/crypto-price-readme" } }
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "https://github.com/deisgoku/crypto-price-readme"
+    }
   ]
 }
