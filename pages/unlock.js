@@ -12,8 +12,6 @@ export default function UnlockPage() {
     }
 
     setLoading(true);
-    setStatus(null);
-
     try {
       const res = await fetch("/api/add-follower", {
         method: "POST",
@@ -22,16 +20,16 @@ export default function UnlockPage() {
       });
 
       const data = await res.json();
-      setLoading(false);
-
-      if (data.success) {
-        setStatus(data.status); // "already_verified" or "newly_verified"
+      if (res.ok && data.status) {
+        setStatus(data.status);
       } else {
-        alert("Failed to verify. " + (data.error || ""));
+        alert("Unexpected error occurred. Please try again.");
       }
     } catch (err) {
+      alert("An error occurred. Check console for details.");
+      console.error(err);
+    } finally {
       setLoading(false);
-      alert("An error occurred. Please try again.");
     }
   };
 
@@ -39,17 +37,18 @@ export default function UnlockPage() {
     <div style={styles.page}>
       <div style={styles.overlay} />
       <div style={styles.card}>
-        <h1 style={styles.heading}>Welcome Web3 Builder!</h1>
+        <h1 style={styles.heading}>Unlock Web3 Tools</h1>
         <p style={styles.subtext}>
-          Make sure you've followed my Twitter:{" "}
+          Follow{" "}
           <a href="https://x.com/Deisgoku" target="_blank" style={styles.link}>
             @Deisgoku
-          </a>
+          </a>{" "}
+          and enter your Twitter username below:
         </p>
-        <p style={styles.label}>Enter your Twitter username:</p>
+
         <input
           type="text"
-          placeholder="e.g. satoshinakamoto"
+          placeholder="e.g. vitalikbuterin"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           style={styles.input}
@@ -60,19 +59,19 @@ export default function UnlockPage() {
 
         {status === "newly_verified" && (
           <p style={styles.success}>
-            Thanks! You’re verified now. Access granted.
+            You're verified! Welcome aboard.
           </p>
         )}
         {status === "already_verified" && (
-          <p style={styles.success}>
-            Welcome back! You’re already verified.
+          <p style={styles.notice}>
+            You're already verified.
           </p>
         )}
-
-        <blockquote style={styles.quote}>
-          “Appreciation in Web3 is crucial — it keeps us connected and
-          respectful of each other’s work.”
-        </blockquote>
+        {status === "error" && (
+          <p style={styles.error}>
+            Something went wrong. Try again later.
+          </p>
+        )}
       </div>
     </div>
   );
@@ -95,7 +94,6 @@ const styles = {
     background:
       "radial-gradient(circle at top left, #1f6feb55, transparent 70%), radial-gradient(circle at bottom right, #58a6ff22, transparent 70%)",
     zIndex: 0,
-    animation: "bgPulse 10s ease-in-out infinite",
   },
   card: {
     position: "relative",
@@ -115,12 +113,6 @@ const styles = {
   subtext: {
     marginBottom: "1rem",
   },
-  label: {
-    textAlign: "left",
-    marginBottom: "0.25rem",
-    fontWeight: "bold",
-    color: "#c9d1d9",
-  },
   input: {
     width: "100%",
     padding: "0.6rem",
@@ -139,18 +131,21 @@ const styles = {
     color: "#fff",
     cursor: "pointer",
     fontWeight: "bold",
-    transition: "0.3s",
   },
   success: {
     color: "#3fb950",
     marginTop: "1rem",
     fontWeight: "bold",
   },
-  quote: {
-    marginTop: "2rem",
-    fontStyle: "italic",
-    color: "#8b949e",
-    fontSize: "0.95rem",
+  notice: {
+    color: "#d29922",
+    marginTop: "1rem",
+    fontWeight: "bold",
+  },
+  error: {
+    color: "#f85149",
+    marginTop: "1rem",
+    fontWeight: "bold",
   },
   link: {
     color: "#58a6ff",
