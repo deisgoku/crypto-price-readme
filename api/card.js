@@ -59,9 +59,9 @@ async function fetchTopCoins() {
     const primary = await fetchTopCoinsFromCoinGecko();
     const geckoSymbols = primary.map((coin) => coin.symbol);
     const map = await getCoinGeckoMap();
-    const withCorrectId = geckoSymbols.map((symbol) => ({
-      symbol,
-      id: map[symbol] || symbol.toLowerCase(),
+    const withCorrectId = primary.map(({ symbol, id }) => ({
+    symbol,
+    id,
     }));
     cachedTopCoins = withCorrectId;
     lastFetchTime = now;
