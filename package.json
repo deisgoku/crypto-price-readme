@@ -1,7 +1,7 @@
 {
   "name": "crypto-price-readme",
   "version": "1.4.1",
-  "description": "Realtime crypto badges for GitHub README (price, volume, trend, and chart) with dynamic API.",
+  "description": "Realtime crypto badges for GitHub README (price, volume, trend, chart, and card) with dynamic API.",
   "main": "api/prices.js",
   "engines": {
     "node": "18.x"
@@ -29,14 +29,19 @@
     "svg",
     "coin"
   ],
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
   "dependencies": {
     "axios": "^1.6.7",
-    "node-fetch": "^2.6.9"
-  },
-  "scripts": {
-    "lint": "eslint .",
-    "format": "prettier --write .",
-    "start": "vercel dev"
+    "node-fetch": "^2.6.9",
+    "next": "^14.1.4",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "eslint": "^9.1.0",
