@@ -1,78 +1,83 @@
+// pages/unlock.js
+
 import { useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import Head from "next/head";
 
-export default function UnlockPage() {
+export default function Unlock() {
   const [username, setUsername] = useState("");
+  const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [unlocked, setUnlocked] = useState(false);
 
-  const handleUnlock = async () => {
+  async function handleSubmit(e) {
+    e.preventDefault();
     if (!username) return;
     setLoading(true);
     try {
-      const res = await fetch("/api/add-follower", {
+      await fetch("/api/add-follower", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username }),
       });
-      const data = await res.json();
-      if (data.success) {
-        setUnlocked(true);
-      }
+      setSubmitted(true);
     } catch (err) {
-      console.error(err);
+      console.error("Failed to submit:", err);
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0f172a] to-[#1e293b] p-6">
-      <Card className="w-full max-w-md text-white border border-sky-800 bg-[#0f172a]/80 shadow-xl">
-        <CardContent className="py-6">
-          <h1 className="text-2xl font-bold mb-4 text-center">Unlock Access</h1>
-          <p className="text-sm mb-3 text-center">
-            Please visit my Twitter profile first:
-            <br />
+    <>
+      <Head>
+        <title>Unlock Card Access</title>
+      </Head>
+      <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-gradient-to-b from-gray-900 to-black text-white">
+        <div className="max-w-md w-full text-center">
+          <h1 className="text-3xl font-bold mb-4">Unlock Your Card</h1>
+          <p className="mb-2">
+            Visit my X profile first:{" "}
             <a
               href="https://x.com/Deisgoku"
               target="_blank"
-              className="text-sky-400 hover:underline"
+              className="text-blue-400 underline"
             >
               @Deisgoku
             </a>
           </p>
-          <p className="text-sm italic text-center mb-4">
-            Make sure you've followed the account before unlocking.
+          <p className="mb-6 text-sm">
+            Please make sure you already followed{" "}
+            <strong>@Deisgoku</strong> on Twitter.
           </p>
-          <div className="flex flex-col gap-3">
-            <Input
-              placeholder="Enter your Twitter username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="text-black"
-            />
-            <Button onClick={handleUnlock} disabled={loading || unlocked}>
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Unlocking...
-                </>
-              ) : unlocked ? (
-                "Unlocked!"
-              ) : (
-                "Unlock"
-              )}
-            </Button>
-          </div>
-          <blockquote className="text-xs text-center mt-6 text-slate-400 italic">
-            “Appreciating Web3 creations is essential. It keeps us connected and respectful in this decentralized journey.”
+
+          {!submitted ? (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <input
+                type="text"
+                placeholder="Your Twitter username"
+                className="w-full px-4 py-2 rounded bg-gray-800 border border-gray-700 focus:outline-none"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-2 rounded bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+              >
+                {loading ? "Unlocking..." : "Unlock"}
+              </button>
+            </form>
+          ) : (
+            <div className="bg-green-600 p-4 rounded text-white mt-4">
+              Thank you for following! You can now use the card.
+            </div>
+          )}
+
+          <blockquote className="mt-10 text-sm italic text-gray-400">
+            “Appreciation in Web3 creations is essential for staying connected
+            and valuing one another.”
           </blockquote>
-        </CardContent>
-      </Card>
-    </main>
+        </div>
+      </div>
+    </>
   );
 }
