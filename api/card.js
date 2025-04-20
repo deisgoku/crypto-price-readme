@@ -1,5 +1,4 @@
 const fetch = require('node-fetch');
-const { createCanvas } = require('canvas');
 const buildCoinIdMap = require('./coin-id-map');
 
 // Failover logic for each type of data
@@ -75,30 +74,67 @@ module.exports = async (req, res) => {
       return { symbol, price, volume, trend, chart };
     }));
 
-    const canvas = createCanvas(800, 400);
-    const ctx = canvas.getContext('2d');
+    const isDark = theme === "dark";
+  const bg = isDark ? "#0d1117" : "#ffffff";
+  const text = isDark ? "#c9d1d9" : "#ffffff";
+  const titleColor = isDark ? "#c9d1d9" : "#000000";
+  const headerText = "#ffffff";
+  const border = isDark ? "#ffffff" : "#000000";
+  const shadow = isDark ? "#00000088" : "#cccccc88";
 
-    // ==== UI Tetap: Card Tabel Mini ==== //
-    ctx.fillStyle = '#0d1117';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#fff';
-    ctx.font = '20px sans-serif';
-    ctx.fillText('Crypto Market Top 6', 30, 40);
+  const header = `
+    <g transform="translate(0, 40)">
+      <text x="300" text-anchor="middle" y="0" font-size="16" fill="${titleColor}" font-family="monospace" font-weight="bold">
+        ☍ Top 6 Popular Prices
+      </text>
+    </g>
+    <g transform="translate(0, 60)">
+      <rect x="10" y="0" width="580" height="30" rx="6" ry="6" fill="${border}" />
+      <text x="70" y="15" text-anchor="middle" font-size="13" fill="${headerText}" font-family="monospace" font-weight="bold">NAME</text>
+      <text x="190" y="15" text-anchor="middle" font-size="13" fill="${headerText}" font-family="monospace" font-weight="bold">PRICE</text>
+      <text x="300" y="15" text-anchor="middle" font-size="13" fill="${headerText}" font-family="monospace" font-weight="bold">VOL</text>
+      <text x="410" y="15" text-anchor="middle" font-size="13" fill="${headerText}" font-family="monospace" font-weight="bold">TREND</text>
+      <text x="520" y="15" text-anchor="middle" font-size="13" fill="${headerText}" font-family="monospace" font-weight="bold">CHART</text>
+    </g>
+  `;
 
-    let y = 80;
-    ctx.font = '16px monospace';
-    for (const coin of data) {
-      ctx.fillText(
-        `${coin.symbol} | Price: $${coin.price} | Vol: ${coin.volume} | Trend: ${coin.trend}`,
-        30, y
-      );
-      y += 40;
-    }
+  const coinRows = data.filter(Boolean).map((item, i) => {
+    const y = 100 + i * 60;
+    const rowBg = item.trendChange > 0 ? "#103c2d" : item.trendChange < 0 ? "#3c1010" : isDark ? "#161b22" : "#d6d6d6";
+    return `
+      <g transform="translate(10, ${y})">
+        <rect width="580" height="50" rx="6" ry="6" fill="${rowBg}" />
+        <text x="70" y="25" text-anchor="end" font-size="13" fill="${text}" font-family="monospace">${item.symbol}</text>
+        <text x="190" y="25" text-anchor="end" font-size="13" fill="${text}" font-family="monospace">${item.price}</text>
+        <text x="300" y="25" text-anchor="end" font-size="13" fill="${text}" font-family="monospace">${item.volume}</text>
+        <text x="410" y="25" text-anchor="end" font-size="13" fill="${text}" font-family="monospace">${item.trend}</text>
+        <g transform="translate(470, 5)">${item.chart.replace(/<\/?svg[^>]*>/g, "")}</g>
+        <rect width="580" height="50" fill="none" stroke="${border}" stroke-width="0.5" rx="6" ry="6" />
+      </g>
+    `;
+  }).join("");
 
-    res.setHeader('Content-Type', 'image/png');
-    res.send(canvas.toBuffer());
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Internal Error');
-  }
-};
+  const footerY = 100 + data.length * 60 + 20;
+  const footer = `<text x="300" y="${footerY}" text-anchor="middle" font-size="11" fill="${titleColor}" font-family="monospace">© crypto-price-readme v1.4.1 by github.com/deisgoku</text>`;
+  const cardHeight = footerY + 20;
+
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="600" height="${cardHeight}" viewBox="0 0 600 ${cardHeight}">
+      <style> text { dominant-baseline: middle; } </style>
+      <filter id="card-shadow">
+        <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="${shadow}" />
+      </filter>
+      <g filter="url(#card-shadow)">
+        <rect x="5" y="5" width="590" height="${cardHeight - 10}" rx="12" ry="12" fill="${bg}" />
+      </g>
+      ${header}
+      ${coinRows}
+      ${footer}
+    </svg>
+  `;
+
+  res.setHeader("Content-Type", "image/svg+xml");
+  res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate");
+  res.status(200).send(svg);
+}
+  
