@@ -2,7 +2,7 @@ import { useState } from "react";
 
 export default function UnlockPage() {
   const [username, setUsername] = useState("");
-  const [success, setSuccess] = useState(false);
+  const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const handleUnlock = async () => {
@@ -12,19 +12,26 @@ export default function UnlockPage() {
     }
 
     setLoading(true);
-    const res = await fetch("/api/add-follower", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username }),
-    });
+    setStatus(null);
 
-    const data = await res.json();
-    setLoading(false);
+    try {
+      const res = await fetch("/api/add-follower", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username }),
+      });
 
-    if (data.success) {
-      setSuccess(true);
-    } else {
-      alert("Failed to verify. Please try again.");
+      const data = await res.json();
+      setLoading(false);
+
+      if (data.success) {
+        setStatus(data.status); // "already_verified" or "newly_verified"
+      } else {
+        alert("Failed to verify. " + (data.error || ""));
+      }
+    } catch (err) {
+      setLoading(false);
+      alert("An error occurred. Please try again.");
     }
   };
 
@@ -51,9 +58,14 @@ export default function UnlockPage() {
           {loading ? "Unlocking..." : "Unlock"}
         </button>
 
-        {success && (
+        {status === "newly_verified" && (
           <p style={styles.success}>
-            Thanks! You’ve been verified. You can now access the card.
+            Thanks! You’re verified now. Access granted.
+          </p>
+        )}
+        {status === "already_verified" && (
+          <p style={styles.success}>
+            Welcome back! You’re already verified.
           </p>
         )}
 
@@ -145,9 +157,3 @@ const styles = {
     textDecoration: "underline",
   },
 };
-
-// Add this to global.css if needed
-// @keyframes bgPulse {
-//   0%, 100% { opacity: 0.6; }
-//   50% { opacity: 1; }
-// }
