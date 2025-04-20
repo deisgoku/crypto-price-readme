@@ -1,4 +1,4 @@
-import { addFollower } from "@/lib/follow-check";
+import { addFollower } from "../lib/follow-check.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -13,9 +13,14 @@ export default async function handler(req, res) {
 
   try {
     const result = await addFollower(username);
-    return res.status(200).json({ success: true, added: result });
+
+    if (result.status === "error") {
+      return res.status(500).json({ success: false, error: "Could not verify" });
+    }
+
+    return res.status(200).json({ success: true, status: result.status });
   } catch (err) {
     console.error("Add follower error:", err);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ success: false, error: "Internal server error" });
   }
 }
