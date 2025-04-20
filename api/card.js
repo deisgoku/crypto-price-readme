@@ -118,7 +118,7 @@ export default async function handler(req, res) {
   const bg = isDark ? "#0d1117" : "#ffffff";
   const text = isDark ? "#c9d1d9" : "#ffffff";
   const titleColor = isDark ? "#c9d1d9" : "#000000";
-  const headerText = isDark ? "#c9d1d9" : "#ffffff";
+  const headerText = isDark ? "#000000" : "#ffffff";
   const border = isDark ? "#ffffff" : "#000000";
   const shadow = isDark ? "#00000088" : "#cccccc88";
 
