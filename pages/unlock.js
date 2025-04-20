@@ -6,17 +6,22 @@ export default function UnlockPage() {
   const [success, setSuccess] = useState(false);
 
   const handleUnlock = async () => {
-    const res = await fetch("/api/add-follower", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username }),
-    });
+  if (!username.trim()) {
+    alert("Please enter your Twitter username first!");
+    return;
+  }
 
-    const data = await res.json();
-    if (data.success) {
-      setSuccess(true);
-    }
-  };
+  const res = await fetch("/api/add-follower", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username }),
+  });
+
+  const data = await res.json();
+  if (data.success) {
+    setSuccess(true);
+  }
+};
 
   return (
     <div style={styles.page}>
