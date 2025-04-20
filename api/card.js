@@ -1,13 +1,13 @@
 import fetch from "node-fetch";
 
-// Cache data coin
+// Konstanta cache
 let cachedTopCoins = null;
 let lastFetchTime = 0;
-const CACHE_DURATION = 60 * 1000; // 1 menit
+const CACHE_DURATION = 60 * 1000; // Cache 1 menit
 
-// Ambil dari CoinGecko (prioritas utama)
-async function fetchTopCoinsFromCoinGecko() {
-  const res = await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=6&page=1");
+// Ambil top coin dari CoinGecko (utama)
+async function fetchTopCoinsFromCoinGecko(limit = 6) {
+  const res = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${limit}&page=1`);
   const data = await res.json();
   return data.map((coin) => ({
     id: coin.id,
@@ -15,31 +15,31 @@ async function fetchTopCoinsFromCoinGecko() {
   }));
 }
 
-// Coba dari CoinMarketCap, cocokkan dengan symbol dari CoinGecko
-async function fetchTopCoinsFromCMC(geckoSymbols) {
+// Ambil top coin dari CoinMarketCap sebagai cadangan
+async function fetchTopCoinsFromCMC(geckoSymbols, limit = 6) {
   const res = await fetch("https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest?limit=100", {
     headers: { "X-CMC_PRO_API_KEY": process.env.CMC_API_KEY },
   });
   const data = await res.json();
   return data.data
     .filter((coin) => geckoSymbols.includes(coin.symbol))
-    .slice(0, 6)
+    .slice(0, limit)
     .map((coin) => ({ id: coin.slug, symbol: coin.symbol }));
 }
 
-// Coba dari Binance, cocokkan dengan symbol dari CoinGecko
-async function fetchTopCoinsFromBinance(geckoSymbols) {
+// Ambil top coin dari Binance sebagai alternatif
+async function fetchTopCoinsFromBinance(geckoSymbols, limit = 6) {
   const res = await fetch("https://api.binance.com/api/v3/ticker/24hr");
   const data = await res.json();
   return data
     .filter((coin) => coin.symbol.endsWith("USDT"))
     .map((coin) => coin.symbol.replace("USDT", ""))
     .filter((symbol) => geckoSymbols.includes(symbol))
-    .slice(0, 6)
+    .slice(0, limit)
     .map((symbol) => ({ id: symbol.toLowerCase(), symbol }));
 }
 
-// Ambil mapping symbol → id dari CoinGecko
+// Mapping symbol → id (dari CoinGecko)
 async function getCoinGeckoMap() {
   const res = await fetch("https://api.coingecko.com/api/v3/coins/list");
   const data = await res.json();
@@ -50,19 +50,15 @@ async function getCoinGeckoMap() {
   return map;
 }
 
-// Fungsi utama
-async function fetchTopCoins() {
+// Fungsi utama untuk ambil top coin dengan fallback ke CMC dan Binance
+async function fetchTopCoins(limit = 6) {
   const now = Date.now();
-  if (cachedTopCoins && now - lastFetchTime < CACHE_DURATION) return cachedTopCoins;
+  if (cachedTopCoins && now - lastFetchTime < CACHE_DURATION && cachedTopCoins.length >= limit)
+    return cachedTopCoins.slice(0, limit);
 
   try {
-    const primary = await fetchTopCoinsFromCoinGecko();
-    const geckoSymbols = primary.map((coin) => coin.symbol);
-    const map = await getCoinGeckoMap();
-    const withCorrectId = primary.map(({ symbol, id }) => ({
-    symbol,
-    id,
-    }));
+    const primary = await fetchTopCoinsFromCoinGecko(limit);
+    const withCorrectId = primary.map(({ symbol, id }) => ({ symbol, id }));
     cachedTopCoins = withCorrectId;
     lastFetchTime = now;
     console.log("Top coins diambil dari: fetchTopCoinsFromCoinGecko");
@@ -71,11 +67,10 @@ async function fetchTopCoins() {
     console.error("Gagal dari CoinGecko:", err.message);
   }
 
-  // Failover ke CMC
   try {
     const geckoMap = await getCoinGeckoMap();
-    const geckoSymbols = Object.keys(geckoMap).slice(0, 6);
-    const cmc = await fetchTopCoinsFromCMC(geckoSymbols);
+    const geckoSymbols = Object.keys(geckoMap).slice(0, limit);
+    const cmc = await fetchTopCoinsFromCMC(geckoSymbols, limit);
     const withCorrectId = cmc.map(({ symbol }) => ({
       symbol,
       id: geckoMap[symbol] || symbol.toLowerCase(),
@@ -88,11 +83,10 @@ async function fetchTopCoins() {
     console.error("Gagal dari CMC:", err.message);
   }
 
-  // Failover ke Binance
   try {
     const geckoMap = await getCoinGeckoMap();
-    const geckoSymbols = Object.keys(geckoMap).slice(0, 6);
-    const binance = await fetchTopCoinsFromBinance(geckoSymbols);
+    const geckoSymbols = Object.keys(geckoMap).slice(0, limit);
+    const binance = await fetchTopCoinsFromBinance(geckoSymbols, limit);
     const withCorrectId = binance.map(({ symbol }) => ({
       symbol,
       id: geckoMap[symbol] || symbol.toLowerCase(),
@@ -108,11 +102,17 @@ async function fetchTopCoins() {
   return [];
 }
 
+// Handler utama untuk endpoint /card
 export default async function handler(req, res) {
-  const { theme = "light" } = req.query;
-  const coins = await fetchTopCoins();
+  const { theme = "light", coin = "6" } = req.query;
+
+  // Validasi & batasi jumlah coin ditampilkan (maks 20)
+  const limit = Math.min(parseInt(coin, 10) || 6, 20);
+
+  const coins = await fetchTopCoins(limit);
   const baseUrl = `${req.headers.host.includes("localhost") ? "http" : "https"}://${req.headers.host}`;
 
+  // Ambil data harga, volume, trend, dan chart secara paralel
   const data = await Promise.all(
     coins.map(async ({ id, symbol }) => {
       try {
@@ -144,6 +144,7 @@ export default async function handler(req, res) {
     })
   );
 
+  // Konfigurasi warna berdasarkan tema
   const isDark = theme === "dark";
   const bg = isDark ? "#0d1117" : "#ffffff";
   const text = isDark ? "#c9d1d9" : "#ffffff";
@@ -152,10 +153,11 @@ export default async function handler(req, res) {
   const border = isDark ? "#ffffff" : "#000000";
   const shadow = isDark ? "#00000088" : "#cccccc88";
 
+  // Header SVG
   const header = `
     <g transform="translate(0, 40)">
       <text x="300" text-anchor="middle" y="0" font-size="16" fill="${titleColor}" font-family="monospace" font-weight="bold">
-        ☍ Top 6 Popular Prices
+        ☍ Top ${limit} Popular Prices
       </text>
     </g>
     <g transform="translate(0, 60)">
@@ -168,6 +170,7 @@ export default async function handler(req, res) {
     </g>
   `;
 
+  // Baris per coin
   const coinRows = data.filter(Boolean).map((item, i) => {
     const y = 100 + i * 60;
     const rowBg = item.trendChange > 0 ? "#103c2d" : item.trendChange < 0 ? "#3c1010" : isDark ? "#161b22" : "#d6d6d6";
@@ -184,10 +187,12 @@ export default async function handler(req, res) {
     `;
   }).join("");
 
+  // Footer
   const footerY = 100 + data.length * 60 + 20;
   const footer = `<text x="300" y="${footerY}" text-anchor="middle" font-size="11" fill="${titleColor}" font-family="monospace">© crypto-price-readme v1.4.1 by github.com/deisgoku</text>`;
   const cardHeight = footerY + 20;
 
+  // Final SVG output
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="600" height="${cardHeight}" viewBox="0 0 600 ${cardHeight}">
       <style> text { dominant-baseline: middle; } </style>
