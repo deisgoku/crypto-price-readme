@@ -1,80 +1,120 @@
-const fetch = require('node-fetch');
-const buildCoinIdMap = require('./coin-id-map');
+import fetch from "node-fetch";
 
-// Failover logic for each type of data
-async function fetchPrice(ids) {
-  try {
-    if (ids.gecko) return await getPriceFromGecko(ids.gecko);
-    if (ids.cmc) return await getPriceFromCMC(ids.cmc);
-    if (ids.binance) return await getPriceFromBinance(ids.binance);
-  } catch (err) {
-    return null;
-  }
+// Cache data coin
+let cachedTopCoins = null;
+let lastFetchTime = 0;
+const CACHE_DURATION = 60 * 1000; // 1 menit
+
+// Coba ambil dari CoinMarketCap
+async function fetchTopCoinsFromCMC() {
+  const res = await fetch("https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest?limit=6", {
+    headers: { "X-CMC_PRO_API_KEY": process.env.CMC_API_KEY },
+  });
+  const data = await res.json();
+  return data.data.map((coin) => ({ id: coin.slug, symbol: coin.symbol }));
 }
 
-async function fetchVolume(ids) {
-  try {
-    if (ids.gecko) return await getVolumeFromGecko(ids.gecko);
-    if (ids.cmc) return await getVolumeFromCMC(ids.cmc);
-    if (ids.binance) return await getVolumeFromBinance(ids.binance);
-  } catch (err) {
-    return null;
-  }
+// Coba dari Binance (berdasarkan volume)
+async function fetchTopCoinsFromBinance() {
+  const res = await fetch("https://api.binance.com/api/v3/ticker/24hr");
+  const data = await res.json();
+  return data
+    .filter((coin) => coin.symbol.endsWith("USDT"))
+    .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
+    .slice(0, 6)
+    .map((coin) => {
+      const symbol = coin.symbol.replace("USDT", "");
+      return { id: symbol.toLowerCase(), symbol };
+    });
 }
 
-async function fetchTrend(ids) {
-  try {
-    if (ids.gecko) return await getTrendFromGecko(ids.gecko);
-    if (ids.cmc) return await getTrendFromCMC(ids.cmc);
-    if (ids.binance) return await getTrendFromBinance(ids.binance);
-  } catch (err) {
-    return null;
-  }
+// Coba dari CoinGecko (dan simpan id-nya)
+async function fetchTopCoinsFromCoinGecko() {
+  const res = await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=6&page=1");
+  const data = await res.json();
+  return data.map((coin) => ({
+    id: coin.id,                // ini yang akan digunakan untuk fetch price/volume/trend/chart
+    symbol: coin.symbol.toUpperCase()
+  }));
 }
 
-async function fetchChart(ids) {
-  try {
-    if (ids.gecko) return await getChartFromGecko(ids.gecko);
-    if (ids.cmc) return await getChartFromCMC(ids.cmc);
-    if (ids.binance) return await getChartFromBinance(ids.binance);
-  } catch (err) {
-    return null;
+// Ambil mapping symbol → id dari CoinGecko
+async function getCoinGeckoMap() {
+  const res = await fetch("https://api.coingecko.com/api/v3/coins/list");
+  const data = await res.json();
+  const map = {};
+  for (const coin of data) {
+    map[coin.symbol.toUpperCase()] = coin.id;
   }
+  return map;
 }
 
-// Mocked fetchers (implementasi asli harus ganti dengan fetch dari API sebenarnya)
-async function getPriceFromGecko(id) { return 123.45; }
-async function getPriceFromCMC(id) { return 123.45; }
-async function getPriceFromBinance(id) { return 123.45; }
+// Fungsi utama dengan cache dan failover
+async function fetchTopCoins() {
+  const now = Date.now();
+  if (cachedTopCoins && now - lastFetchTime < CACHE_DURATION) return cachedTopCoins;
 
-async function getVolumeFromGecko(id) { return 987654321; }
-async function getVolumeFromCMC(id) { return 987654321; }
-async function getVolumeFromBinance(id) { return 987654321; }
+  const sources = [fetchTopCoinsFromCMC, fetchTopCoinsFromBinance, fetchTopCoinsFromCoinGecko];
 
-async function getTrendFromGecko(id) { return '+3.21%'; }
-async function getTrendFromCMC(id) { return '+3.21%'; }
-async function getTrendFromBinance(id) { return '+3.21%'; }
+  for (const source of sources) {
+    try {
+      const coins = await source();
+      if (coins?.length > 0) {
+        const map = await getCoinGeckoMap();
+        const withCorrectId = coins.map(({ symbol }) => ({
+          symbol,
+          id: map[symbol] || symbol.toLowerCase() // fallback kalau gak ada mapping
+        }));
+        cachedTopCoins = withCorrectId;
+        lastFetchTime = now;
+        console.log("Top coins diambil dari:", source.name);
+        return withCorrectId;
+      }
+    } catch (err) {
+      console.error(`Gagal dari ${source.name}:`, err.message);
+    }
+  }
 
-async function getChartFromGecko(id) { return 'chart-data'; }
-async function getChartFromCMC(id) { return 'chart-data'; }
-async function getChartFromBinance(id) { return 'chart-data'; }
+  return [];
+}
 
-module.exports = async (req, res) => {
-  try {
-    const coinList = await buildCoinIdMap();
+export default async function handler(req, res) {
+  const { theme = "light" } = req.query;
+  const coins = await fetchTopCoins();
+  const baseUrl = `${req.headers.host.includes("localhost") ? "http" : "https"}://${req.headers.host}`;
 
-    const data = await Promise.all(coinList.map(async ({ symbol, ids }) => {
-      const [price, volume, trend, chart] = await Promise.all([
-        fetchPrice(ids),
-        fetchVolume(ids),
-        fetchTrend(ids),
-        fetchChart(ids)
-      ]);
+  const data = await Promise.all(
+    coins.map(async ({ id, symbol }) => {
+      try {
+        const [priceRes, volumeRes, trendRes, chartRes] = await Promise.all([
+          fetch(`${baseUrl}/api/prices?coin=${id}`),
+          fetch(`${baseUrl}/api/volume?coin=${id}`),
+          fetch(`${baseUrl}/api/trend?coin=${id}`),
+          fetch(`${baseUrl}/api/chart?coin=${id}`),
+        ]);
 
-      return { symbol, price, volume, trend, chart };
-    }));
+        const price = await priceRes.json();
+        const volume = await volumeRes.json();
+        const trend = await trendRes.json();
+        const chart = await chartRes.text();
 
-    const isDark = theme === "dark";
+        return {
+          id,
+          symbol,
+          price: price.message,
+          volume: volume.message,
+          trend: trend.message,
+          trendChange: parseFloat(trend.message),
+          chart,
+        };
+      } catch (err) {
+        console.error(`Error fetching data for ${id} (${symbol}):`, err);
+        return null;
+      }
+    })
+  );
+
+  const isDark = theme === "dark";
   const bg = isDark ? "#0d1117" : "#ffffff";
   const text = isDark ? "#c9d1d9" : "#ffffff";
   const titleColor = isDark ? "#c9d1d9" : "#000000";
@@ -137,4 +177,3 @@ module.exports = async (req, res) => {
   res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate");
   res.status(200).send(svg);
 }
-  
