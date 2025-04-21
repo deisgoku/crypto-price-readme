@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Loader2, X } from "lucide-react";
 import Lottie from "lottie-react";
 import bgLottie from "../public/bg-lottie.json";
+import "../style/global.css"; // make sure ini bener path-nya
 
 export default function UnlockPage() {
   const [username, setUsername] = useState("");
@@ -38,14 +39,14 @@ export default function UnlockPage() {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-gray-950 text-white overflow-hidden px-4">
+    <div className="unlock-container">
       <Lottie
         animationData={bgLottie}
         loop
-        className="absolute inset-0 w-full h-full opacity-10 z-0"
+        className="unlock-lottie-bg"
       />
 
-      <div className="relative z-10 bg-gray-900 bg-opacity-80 p-8 rounded-2xl shadow-xl w-full max-w-md">
+      <div className="unlock-card">
         <h1 className="text-3xl font-bold mb-2 text-center">Card Readme Unlocker</h1>
         <p className="text-center text-sm mb-4 text-gray-300">Welcome guys,</p>
 
@@ -93,7 +94,7 @@ export default function UnlockPage() {
       </div>
 
       {showPopup && (
-        <div className="absolute top-4 right-4 bg-gray-800 border border-green-500 text-white px-6 py-4 rounded-xl shadow-lg flex items-start gap-3 z-20 max-w-xs">
+        <div className="unlock-popup">
           <div>
             <p className="font-semibold text-green-400 text-sm">
               {status === "newly_verified" && "You're Verified!"}
