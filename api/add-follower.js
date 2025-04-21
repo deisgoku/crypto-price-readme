@@ -1,16 +1,21 @@
 // api/add-follower.js
-import { redis } from '../lib/redis'
+import { addFollower } from '../lib/follow-check';
 
 export default async function handler(req, res) {
-  const { userId } = req.body
-  if (!userId) {
-    return res.status(400).json({ error: 'UserId is required' })
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
+
+  const { username } = req.body;
+  if (!username || typeof username !== 'string') {
+    return res.status(400).json({ error: 'Username is required' });
   }
 
   try {
-    await redis.set(`follower:${userId}`, true)
-    res.status(200).json({ message: 'Follower added' })
+    const result = await addFollower(username);
+    res.status(200).json(result);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to add follower' })
+    console.error('Error in add-follower:', error);
+    res.status(500).json({ status: 'error' });
   }
 }
