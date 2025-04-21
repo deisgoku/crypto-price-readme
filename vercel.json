@@ -2,7 +2,7 @@
   "version": 2,
   "rewrites": [
     {
-      "source": "/home",
+      "source": "/",
       "destination": "https://github.com/deisgoku/crypto-price-readme"
     }
   ]
