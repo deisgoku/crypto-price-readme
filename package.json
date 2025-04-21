@@ -50,7 +50,6 @@
     "@react-three/fiber": "^8.15.12",
     "@react-three/drei": "^9.84.0",
     "file-loader": "^6.2.0",
-    "react-hot-toast": "^2.4.0"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.16",
