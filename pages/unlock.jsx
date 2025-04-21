@@ -1,111 +1,98 @@
-import { useState } from 'react'
-import dynamic from 'next/dynamic'
-import Head from 'next/head'
-import bgAnimation from '../public/bg-lottie.json'
+import { useState } from 'react';
+import Head from 'next/head';
+import dynamic from 'next/dynamic';
+import axios from 'axios';
 
-const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
+// Import background planet pakai dynamic (disable SSR)
+const PlanetBackground = dynamic(() => import('@/components/PlanetBackground'), {
+  ssr: false,
+});
 
 export default function Unlock() {
-  const [username, setUsername] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [popup, setPopup] = useState({ show: false, message: '' })
+  const [username, setUsername] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [popup, setPopup] = useState({ show: false, message: '' });
 
   const handleUnlock = async () => {
-    if (!username.trim()) return
+    if (!username) {
+      return setPopup({ show: true, message: 'Please enter a Twitter username!' });
+    }
 
-    setLoading(true)
+    setLoading(true);
+
     try {
-      const res = await fetch('/api/follow-check', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username }),
-      })
-      const data = await res.json()
-      console.log('Response:', data)
+      const res = await axios.post('/api/follow-check', { username });
+      const data = res.data;
 
-      if (data.status === 'already_verified') {
+      if (data.status === 'newly_verified') {
+        setPopup({ show: true, message: 'Verification successful! Feature unlocked. Thank you!' });
+      } else if (data.status === 'already_verified') {
         setPopup({
           show: true,
           message: "You've already followed and unlocked this feature. Thanks for the support!",
-        })
-      } else if (data.status === 'newly_verified') {
-        setPopup({
-          show: true,
-          message: "You're verified now! Welcome onboard!",
-        })
+        });
       } else {
-        setPopup({
-          show: true,
-          message: 'Something went wrong. Please try again later.',
-        })
+        setPopup({ show: true, message: 'Verification failed. Please try again.' });
       }
     } catch (err) {
-      console.error('Unlock error:', err)
-      setPopup({
-        show: true,
-        message: 'Error verifying user. Please check your connection.',
-      })
+      setPopup({ show: true, message: 'Something went wrong. Please try again later.' });
     }
-    setLoading(false)
-  }
+
+    setLoading(false);
+  };
 
   return (
     <>
       <Head>
-        <title>Card Readme Unlocker</title>
+        <title>Unlock Card | Crypto Price Readme</title>
+        <meta
+          name="description"
+          content="Unlock exclusive GitHub README crypto cards by following our Twitter."
+        />
       </Head>
-      <div className="unlock-container">
-        <div className="lottie-bg">
-          <Lottie animationData={bgAnimation} loop autoplay />
-        </div>
 
-        <h1>Card Readme Unlocker</h1>
-        <p>Welcome guys,</p>
-        <p>
-          Make sure you’ve followed me on Twiter {' '}
-          <img
-            src="https://cdn-icons-png.flaticon.com/512/5968/5968958.png"
-            alt="X Logo"
-            width={16}
-            height={16}
-            style={{ display: 'inline-block', margin: '0 4px' }}
-          />
-          —{' '}
-          <a href="https://x.com/Deisgoku" target="_blank" rel="noopener noreferrer">
-            Visit x.com/Deisgoku
-          </a>
-        </p>
+      <div className="relative w-full min-h-screen flex items-center justify-center text-white">
+        <PlanetBackground />
 
-        <div>
-          <label htmlFor="username">Enter your Twitter username:</label>
-          <br />
+        <div className="z-10 text-center px-4 max-w-md">
+          <h1 className="text-3xl md:text-4xl font-bold mb-4">Card Readme Unlocker</h1>
+          <p className="mb-6 text-gray-300">
+            Welcome! Follow our Twitter to unlock exclusive GitHub README features.
+          </p>
+
           <input
             type="text"
-            id="username"
-            className="unlock-input"
-            placeholder="e.g. vitalikbuterin"
+            placeholder="Your Twitter username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            className="w-full px-4 py-2 text-black rounded-md mb-4 focus:outline-none"
           />
-          <button className="unlock-button" onClick={handleUnlock} disabled={loading}>
-            {loading ? <span className="loader"></span> : 'Unlock'}
+
+          <button
+            onClick={handleUnlock}
+            className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-md font-semibold disabled:opacity-60"
+            disabled={loading}
+          >
+            {loading ? 'Verifying...' : 'Unlock'}
           </button>
         </div>
 
-        <blockquote style={{ marginTop: '1.5rem', fontStyle: 'italic' }}>
-          "In the world of Web3, appreciating others’ work is a way of saying thank you.
-          Following helps us stay connected and build together."
-        </blockquote>
-
         {popup.show && (
-          <div className="verify-box">
-            <button className="close-btn" onClick={() => setPopup({ show: false, message: '' })}>
-              ×
+          <div className="absolute top-20 bg-black bg-opacity-80 text-white px-6 py-4 rounded-lg shadow-lg z-20 max-w-sm w-full mx-auto animate-fade-in">
+            <p className="mb-2">{popup.message}</p>
+            <button
+              onClick={() => setPopup({ show: false, message: '' })}
+              className="text-sm underline hover:text-blue-400"
+            >
+              Close
             </button>
-            <p>{popup.message}</p>
           </div>
         )}
+
+        <div className="absolute bottom-2 text-xs text-gray-400 z-10 text-center w-full">
+          "We appreciate every follow. You make open source brighter."
+        </div>
       </div>
     </>
-  )
+  );
 }
