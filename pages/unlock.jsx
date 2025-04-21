@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Lottie from 'lottie-react';
-import bgAnim from '../assets/bg-lottie.json'; // pastikan path ini benar
+import bgAnim from '../public/bg-lottie.json'; // pastikan path ini benar
 import '../styles/globals.css'; // jika pakai global style
 
 export default function UnlockPage() {
