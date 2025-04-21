@@ -49,7 +49,8 @@
     "three": "^0.160.0",
     "@react-three/fiber": "^8.15.12",
     "@react-three/drei": "^9.84.0",
-    "file-loader": "^6.2.0"
+    "file-loader": "^6.2.0",
+    "react-hot-toast": "^2.4.0" // Add this dependency
   },
   "devDependencies": {
     "autoprefixer": "^10.4.16",
