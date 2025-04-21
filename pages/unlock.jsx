@@ -1,45 +1,65 @@
 'use client';
-import { useEffect, useState } from 'react';
-import PlanetBackground from '../components/PlanetBackground';
+import { useState } from 'react';
+import Lottie from 'lottie-react';
+import bgAnimation from '../public/bg-lottie.json'; // pastikan file ini ada ya
 
 export default function UnlockPage() {
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [popup, setPopup] = useState({ show: false, message: '', success: false });
-  const [showBackground, setShowBackground] = useState(false);
-
-  useEffect(() => {
-    // Cegah render di server, baru tampilkan background setelah mount
-    setShowBackground(true);
-  }, []);
 
   const handleUnlock = async () => {
-    if (!username) {
-      return setPopup({ show: true, message: 'Please enter your Twitter username', success: false });
+    if (!username.trim()) {
+      return setPopup({
+        show: true,
+        message: 'Please enter your Twitter username',
+        success: false,
+      });
     }
+
     setLoading(true);
     try {
-      const res = await fetch(`/api/follow-check?username=${username}`);
+      const res = await fetch(`/api/follow-check?username=${username.trim()}`);
       const data = await res.json();
-      if (data.following) {
-        setPopup({ show: true, message: 'Thanks for following! Feature unlocked.', success: true });
+
+      if (res.ok && data?.following) {
+        setPopup({
+          show: true,
+          message: data?.newUser
+            ? 'Welcome! Feature unlocked for the first time.'
+            : 'Welcome back! You already unlocked this before.',
+          success: true,
+        });
       } else {
-        setPopup({ show: true, message: 'You must follow our Twitter to unlock.', success: false });
+        setPopup({
+          show: true,
+          message: 'You must follow our Twitter to unlock.',
+          success: false,
+        });
       }
     } catch (err) {
-      setPopup({ show: true, message: 'Something went wrong!', success: false });
+      setPopup({
+        show: true,
+        message: 'Something went wrong. Please try again!',
+        success: false,
+      });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center">
-      {/* Popup Notification */}
+    <div className="relative min-h-screen flex items-center justify-center bg-black overflow-hidden">
+      {/* Lottie Background */}
+      <div className="absolute inset-0 opacity-30 z-0 pointer-events-none">
+        <Lottie animationData={bgAnimation} loop autoplay />
+      </div>
+
+      {/* Popup */}
       {popup.show && (
         <div
           className={`absolute top-6 z-20 px-6 py-4 rounded-xl shadow-xl transition-all duration-300
-            ${popup.success ? 'bg-green-600' : 'bg-red-600'} text-white`}
+          ${popup.success ? 'bg-green-600' : 'bg-red-600'} text-white`}
         >
           <p className="mb-1">{popup.message}</p>
           <button
@@ -51,8 +71,8 @@ export default function UnlockPage() {
         </div>
       )}
 
-      {/* Konten Utama */}
-      <div className="relative z-10 text-center text-white px-4">
+      {/* Konten */}
+      <div className="relative z-10 text-center text-white px-4 max-w-md">
         <h1 className="text-3xl md:text-4xl font-bold drop-shadow-lg mb-3">
           Card README Unlocker
         </h1>
@@ -65,13 +85,14 @@ export default function UnlockPage() {
           placeholder="Enter your Twitter username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          className="px-4 py-2 rounded-md text-black mb-4 w-full max-w-xs"
+          className="px-4 py-2 rounded-md text-black mb-4 w-full"
         />
 
-        <br />
         <button
           onClick={handleUnlock}
-          className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg font-semibold"
+          className={`w-full bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg font-semibold ${
+            loading ? 'opacity-70 cursor-not-allowed' : ''
+          }`}
           disabled={loading}
         >
           {loading ? 'Loading...' : 'Unlock'}
@@ -81,9 +102,6 @@ export default function UnlockPage() {
           “We appreciate your support – you're helping us grow.”
         </p>
       </div>
-
-      {/* Background 3D (hanya render di client) */}
-      {showBackground && <PlanetBackground />}
     </div>
   );
 }
