@@ -1,25 +1,27 @@
 'use client';
 import { useState } from 'react';
 import PlanetBackground from '../components/PlanetBackground';
-import toast from 'react-hot-toast';
 
 export default function UnlockPage() {
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
+  const [popup, setPopup] = useState({ show: false, message: '', success: false });
 
   const handleUnlock = async () => {
-    if (!username) return toast.error('Please enter your Twitter username');
+    if (!username) {
+      return setPopup({ show: true, message: 'Please enter your Twitter username', success: false });
+    }
     setLoading(true);
     try {
       const res = await fetch(`/api/follow-check?username=${username}`);
       const data = await res.json();
       if (data.following) {
-        toast.success('Thanks for following! Feature unlocked.');
+        setPopup({ show: true, message: 'Thanks for following! Feature unlocked.', success: true });
       } else {
-        toast.error('You must follow our Twitter to unlock.');
+        setPopup({ show: true, message: 'You must follow our Twitter to unlock.', success: false });
       }
     } catch (err) {
-      toast.error('Something went wrong!');
+      setPopup({ show: true, message: 'Something went wrong!', success: false });
     } finally {
       setLoading(false);
     }
@@ -27,6 +29,22 @@ export default function UnlockPage() {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center">
+      {/* Popup Notification */}
+      {popup.show && (
+        <div
+          className={`absolute top-6 z-20 px-6 py-4 rounded-xl shadow-xl transition-all duration-300
+            ${popup.success ? 'bg-green-600' : 'bg-red-600'} text-white`}
+        >
+          <p className="mb-1">{popup.message}</p>
+          <button
+            onClick={() => setPopup({ show: false, message: '', success: false })}
+            className="text-sm underline hover:text-gray-300"
+          >
+            Close
+          </button>
+        </div>
+      )}
+
       {/* Konten Utama */}
       <div className="relative z-10 text-center text-white px-4">
         <h1 className="text-3xl md:text-4xl font-bold drop-shadow-lg mb-3">
