@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 import axios from 'axios';
 
 // Dynamic import supaya PlanetBackground gak SSR (karena pake WebGL)
-const PlanetBackground = dynamic(() => import('@/components/PlanetBackground'), {
+const PlanetBackground = dynamic(() => import('../components/PlanetBackground'), {
   ssr: false,
 });
 
