@@ -1,6 +1,6 @@
 {
   "name": "crypto-price-readme",
-  "version": "1.5.0",
+  "version": "1.4.1",
   "description": "Realtime crypto badges for GitHub README (price, volume, trend, chart, and card) with dynamic API.",
   "main": "api/prices.js",
   "engines": {
