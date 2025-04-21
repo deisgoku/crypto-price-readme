@@ -1,147 +1,95 @@
 import { useState } from 'react'
 import dynamic from 'next/dynamic'
 import Head from 'next/head'
-import Redis from 'ioredis'
+import bgAnimation from '../public/bg-lottie.json'
 
-const redis = new Redis(process.env.NEXT_PUBLIC_REDIS_URL) // Upstash Redis URL
+// Simulasi pengecekan Redis (ganti dengan real fetch ke API jika sudah live)
+const mockRedis = ['deisgoku', 'vitalik']
 
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
-import bgAnimation from '../public/bg-lottie.json'
 
 export default function Unlock() {
   const [username, setUsername] = useState('')
   const [loading, setLoading] = useState(false)
-  const [popup, setPopup] = useState({ show: false, message: '' })
+  const [message, setMessage] = useState('')
+  const [showBox, setShowBox] = useState(false)
 
   const handleUnlock = async () => {
     if (!username.trim()) {
-      setPopup({ show: true, message: 'Please input your username first' })
+      setMessage('Please input your username first')
+      setShowBox(true)
       return
     }
 
     setLoading(true)
 
-    try {
-      const exists = await fetch(`/api/follow-check?username=${username}`)
-      const result = await exists.json()
+    setTimeout(() => {
+      setLoading(false)
 
-      if (result.exists) {
-        setPopup({ show: true, message: 'Username already exists!' })
+      if (mockRedis.includes(username.toLowerCase())) {
+        setMessage('Username already exist!')
       } else {
-        await fetch(`/api/follow-check`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username }),
-        })
-        setPopup({ show: true, message: "You're newest and verified okay 👌" })
+        setMessage('You are newest and verified 👌')
       }
-    } catch (error) {
-      setPopup({ show: true, message: 'Something went wrong!' })
-    }
 
-    setLoading(false)
+      setShowBox(true)
+    }, 2000)
   }
 
   return (
     <>
       <Head>
-        <title>Card Readme Unlocker</title>
+        <title>Unlock | Card Readme</title>
       </Head>
-      <div className="unlock-container">
-        <div className="lottie-bg">
-          <Lottie animationData={bgAnimation} loop autoplay />
-        </div>
+      <div className="unlock-wrapper">
+        <Lottie animationData={bgAnimation} loop autoplay className="unlock-bg" />
+        <div className="unlock-content">
+          <h1>Card Readme Unlocker</h1>
+          <p>Welcome guys,</p>
+          <p>
+            Make sure you’ve followed me on X{' '}
+            <img
+              src="https://cdn-icons-png.flaticon.com/512/5968/5968958.png"
+              alt="X Logo"
+              width={16}
+              height={16}
+              style={{ display: 'inline-block', margin: '0 4px' }}
+            /> —{' '}
+            <a href="https://x.com/Deisgoku" target="_blank" rel="noopener noreferrer">
+              Visit x.com/Deisgoku
+            </a>
+          </p>
 
-        <h1>Card Readme Unlocker</h1>
-        <p>Welcome guys,</p>
-        <p>
-          Make sure you’ve followed me on X{' '}
-          <img
-            src="https://cdn-icons-png.flaticon.com/512/5968/5968958.png"
-            alt="X Logo"
-            width={16}
-            height={16}
-            style={{ display: 'inline-block', margin: '0 4px' }}
-          />
-          —{' '}
-          <a href="https://x.com/Deisgoku" target="_blank" rel="noopener noreferrer">
-            Visit x.com/Deisgoku
-          </a>
-        </p>
-
-        <div className="unlock-form">
-          <label htmlFor="username">Enter your Twitter username:</label>
-          <input
-            type="text"
-            id="username"
-            className="unlock-input"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="e.g. vitalikbuterin"
-          />
-          <button className="unlock-button" onClick={handleUnlock} disabled={loading}>
-            {loading ? <span className="loader"></span> : 'Unlock'}
-          </button>
-        </div>
-
-        {popup.show && (
-          <div className="popup-box">
-            <p>{popup.message}</p>
-            <button className="close-btn" onClick={() => setPopup({ show: false, message: '' })}>
-              ×
+          <div className="unlock-form">
+            <label htmlFor="username">Enter your Twitter username:</label>
+            <br />
+            <input
+              type="text"
+              id="username"
+              className="unlock-input"
+              placeholder="e.g. vitalikbuterin"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+            <button className="unlock-button" onClick={handleUnlock} disabled={loading}>
+              {loading ? <span className="loader"></span> : 'Unlock'}
             </button>
           </div>
-        )}
 
-        <blockquote style={{ marginTop: '1.5rem', fontStyle: 'italic' }}>
-          "In the world of Web3, appreciating others’ work is a way of saying thank you.
-          Following helps us stay connected and build together."
-        </blockquote>
+          <blockquote style={{ marginTop: '1.5rem', fontStyle: 'italic' }}>
+            "In the world of Web3, appreciating others’ work is a way of saying thank you.
+            Following helps us stay connected and build together."
+          </blockquote>
 
-        <style jsx>{`
-          .unlock-form {
-            position: relative;
-            margin-top: 1rem;
-            text-align: center;
-          }
-
-          .popup-box {
-            position: absolute;
-            top: 60%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: #111;
-            color: #fff;
-            padding: 1rem 2rem;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-            z-index: 10;
-            animation: fadeIn 0.3s ease-in-out;
-          }
-
-          .popup-box p {
-            margin: 0 0 0.5rem;
-          }
-
-          .close-btn {
-            background: transparent;
-            border: none;
-            color: #fff;
-            font-size: 1.2rem;
-            cursor: pointer;
-          }
-
-          @keyframes fadeIn {
-            from {
-              opacity: 0;
-              transform: translate(-50%, -60%);
-            }
-            to {
-              opacity: 1;
-              transform: translate(-50%, -50%);
-            }
-          }
-        `}</style>
+          {showBox && (
+            <div className="verify-box">
+              <button className="close-btn" onClick={() => setShowBox(false)}>
+                ×
+              </button>
+              <p>{message}</p>
+            </div>
+          )}
+        </div>
       </div>
     </>
   )
