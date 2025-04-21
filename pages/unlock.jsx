@@ -25,7 +25,7 @@ export default function Unlock() {
       const data = await res.json();
 
       if (data.exists) {
-        setPopup({ show: true, message: 'Username already exist !' });
+        setPopup({ show: true, message: 'Username already exist!' });
       } else {
         setPopup({ show: true, message: 'You are newest and verified okay 👌' });
       }
@@ -39,7 +39,7 @@ export default function Unlock() {
   return (
     <>
       <Head>
-        <title>Card Unlocker</title>
+        <title>Card Readme Unlocker</title>
       </Head>
 
       <div className="unlock-container">
