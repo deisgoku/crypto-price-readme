@@ -1,5 +1,5 @@
 // api/add-follower.js
-import { addFollower } from '../lib/follow-check';
+const { addFollower } = require('../lib/follow-check');
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
