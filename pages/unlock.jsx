@@ -3,7 +3,7 @@ import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import axios from 'axios';
 
-// Import background planet pakai dynamic (disable SSR)
+// Dynamic import supaya PlanetBackground gak SSR (karena pake WebGL)
 const PlanetBackground = dynamic(() => import('@/components/PlanetBackground'), {
   ssr: false,
 });
@@ -49,9 +49,16 @@ export default function Unlock() {
           name="description"
           content="Unlock exclusive GitHub README crypto cards by following our Twitter."
         />
+        <meta name="robots" content="index, follow" />
+        <meta property="og:title" content="Unlock Card | Crypto Price Readme" />
+        <meta
+          property="og:description"
+          content="Unlock exclusive GitHub README crypto cards by following our Twitter."
+        />
+        <meta property="og:type" content="website" />
       </Head>
 
-      <div className="relative w-full min-h-screen flex items-center justify-center text-white">
+      <div className="relative w-full min-h-screen flex items-center justify-center text-white overflow-hidden">
         <PlanetBackground />
 
         <div className="z-10 text-center px-4 max-w-md">
