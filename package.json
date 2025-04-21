@@ -1,6 +1,6 @@
 {
   "name": "crypto-price-readme",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "description": "Realtime crypto badges for GitHub README (price, volume, trend, chart, and card) with dynamic API.",
   "main": "api/prices.js",
   "engines": {
@@ -37,18 +37,21 @@
     "format": "prettier --write ."
   },
   "dependencies": {
+    "@upstash/redis": "^1.22.2",
     "axios": "^1.6.7",
-    "node-fetch": "^2.6.9",
+    "ioredis": "^5.3.2",
+    "lottie-react": "^2.3.1",
+    "lucide-react": "^0.263.0",
     "next": "^14.1.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "ioredis": "^5.3.2",
-    "@upstash/redis": "^1.22.2",
-    "lottie-react": "^2.3.1",
-    "lucide-react": "^0.263.0"
+    "node-fetch": "^2.6.9"
   },
   "devDependencies": {
+    "autoprefixer": "^10.4.16",
     "eslint": "^9.1.0",
-    "prettier": "^3.2.5"
+    "postcss": "^8.4.24",
+    "prettier": "^3.2.5",
+    "tailwindcss": "^3.4.1"
   }
 }
