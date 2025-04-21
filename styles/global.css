@@ -1,71 +1,47 @@
 
-body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #fafafa;
-  margin: 0;
-  padding: 0;
-  color: #222;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-a {
-  color: #0070f3;
-  text-decoration: none;
-}
-a:hover {
-  text-decoration: underline;
-}
-
+/* custom styling */
 .unlock-container {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  @apply flex flex-col items-center justify-center min-h-screen bg-black text-white text-center p-4 relative;
 }
 
 .lottie-bg {
-  width: 100%;
-  max-height: 300px;
-  overflow: hidden;
-  border-radius: 10px;
+  @apply absolute top-0 left-0 w-full h-full opacity-20 -z-10;
 }
 
 .unlock-input {
-  padding: 0.6rem;
-  margin-top: 1rem;
-  width: 70%;
-  max-width: 300px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font-size: 1rem;
+  @apply mt-4 px-4 py-2 rounded bg-gray-800 border border-gray-600 text-white w-64;
 }
 
 .unlock-button {
-  padding: 0.6rem 1rem;
-  margin-left: 0.5rem;
-  background-color: #0070f3;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  font-size: 1rem;
-  cursor: pointer;
+  @apply mt-4 px-6 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white font-bold;
 }
-.unlock-button:hover {
-  background-color: #005bb5;
+
+.verify-box {
+  @apply mt-6 px-6 py-4 rounded bg-green-600 text-white relative;
 }
-/* loader bulat kecil */
+
+.close-btn {
+  @apply absolute top-2 right-4 text-white text-2xl font-bold cursor-pointer;
+}
+
 .loader {
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #0070f3;
+  border: 2px solid white;
+  border-top: 2px solid transparent;
   border-radius: 50%;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   animation: spin 1s linear infinite;
   display: inline-block;
-  vertical-align: middle;
 }
+
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* verifikasi box */
