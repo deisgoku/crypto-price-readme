@@ -1,105 +1,65 @@
+'use client';
 import { useState } from 'react';
-import Head from 'next/head';
-import dynamic from 'next/dynamic';
-import axios from 'axios';
+import PlanetBackground from '../components/PlanetBackground';
+import toast from 'react-hot-toast';
 
-// Dynamic import supaya PlanetBackground gak SSR (karena pake WebGL)
-const PlanetBackground = dynamic(() => import('../components/PlanetBackground'), {
-  ssr: false,
-});
-
-export default function Unlock() {
+export default function UnlockPage() {
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
-  const [popup, setPopup] = useState({ show: false, message: '' });
 
   const handleUnlock = async () => {
-    if (!username) {
-      return setPopup({ show: true, message: 'Please enter a Twitter username!' });
-    }
-
+    if (!username) return toast.error('Please enter your Twitter username');
     setLoading(true);
-
     try {
-      const res = await axios.post('/api/follow-check', { username });
-      const data = res.data;
-
-      if (data.status === 'newly_verified') {
-        setPopup({ show: true, message: 'Verification successful! Feature unlocked. Thank you!' });
-      } else if (data.status === 'already_verified') {
-        setPopup({
-          show: true,
-          message: "You've already followed and unlocked this feature. Thanks for the support!",
-        });
+      const res = await fetch(`/api/follow-check?username=${username}`);
+      const data = await res.json();
+      if (data.following) {
+        toast.success('Thanks for following! Feature unlocked.');
       } else {
-        setPopup({ show: true, message: 'Verification failed. Please try again.' });
+        toast.error('You must follow our Twitter to unlock.');
       }
     } catch (err) {
-      setPopup({ show: true, message: 'Something went wrong. Please try again later.' });
+      toast.error('Something went wrong!');
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
-    <>
-      <Head>
-        <title>Unlock Card | Crypto Price Readme</title>
-        <meta
-          name="description"
-          content="Unlock exclusive GitHub README crypto cards by following our Twitter."
+    <div className="relative min-h-screen flex items-center justify-center">
+      {/* Konten Utama */}
+      <div className="relative z-10 text-center text-white px-4">
+        <h1 className="text-3xl md:text-4xl font-bold drop-shadow-lg mb-3">
+          Card README Unlocker
+        </h1>
+        <p className="text-gray-200 mb-6">
+          Welcome! Follow our Twitter to unlock exclusive GitHub README features.
+        </p>
+
+        <input
+          type="text"
+          placeholder="Enter your Twitter username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          className="px-4 py-2 rounded-md text-black mb-4 w-full max-w-xs"
         />
-        <meta name="robots" content="index, follow" />
-        <meta property="og:title" content="Unlock Card | Crypto Price Readme" />
-        <meta
-          property="og:description"
-          content="Unlock exclusive GitHub README crypto cards by following our Twitter."
-        />
-        <meta property="og:type" content="website" />
-      </Head>
 
-      <div className="relative w-full min-h-screen flex items-center justify-center text-white overflow-hidden">
-        <PlanetBackground />
+        <br />
+        <button
+          onClick={handleUnlock}
+          className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg font-semibold"
+          disabled={loading}
+        >
+          {loading ? 'Loading...' : 'Unlock'}
+        </button>
 
-        <div className="z-10 text-center px-4 max-w-md">
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">Card Readme Unlocker</h1>
-          <p className="mb-6 text-gray-300">
-            Welcome! Follow our Twitter to unlock exclusive GitHub README features.
-          </p>
-
-          <input
-            type="text"
-            placeholder="Your Twitter username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="w-full px-4 py-2 text-black rounded-md mb-4 focus:outline-none"
-          />
-
-          <button
-            onClick={handleUnlock}
-            className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-md font-semibold disabled:opacity-60"
-            disabled={loading}
-          >
-            {loading ? 'Verifying...' : 'Unlock'}
-          </button>
-        </div>
-
-        {popup.show && (
-          <div className="absolute top-20 bg-black bg-opacity-80 text-white px-6 py-4 rounded-lg shadow-lg z-20 max-w-sm w-full mx-auto animate-fade-in">
-            <p className="mb-2">{popup.message}</p>
-            <button
-              onClick={() => setPopup({ show: false, message: '' })}
-              className="text-sm underline hover:text-blue-400"
-            >
-              Close
-            </button>
-          </div>
-        )}
-
-        <div className="absolute bottom-2 text-xs text-gray-400 z-10 text-center w-full">
-          "We appreciate every follow. You make open source brighter."
-        </div>
+        <p className="mt-6 text-sm italic text-gray-300">
+          “We appreciate your support – you're helping us grow.”
+        </p>
       </div>
-    </>
+
+      {/* Background 3D */}
+      <PlanetBackground />
+    </div>
   );
 }
