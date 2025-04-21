@@ -47,6 +47,7 @@
     "react-dom": "^18.2.0",
     "node-fetch": "^2.6.9",
     "three": "^0.160.0",
+    "@react-three/fiber": "^8.15.12",
     "@react-three/drei": "^9.84.0",
     "file-loader": "^6.2.0"
   },
