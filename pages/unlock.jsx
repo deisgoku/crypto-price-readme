@@ -1,11 +1,17 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import PlanetBackground from '../components/PlanetBackground';
 
 export default function UnlockPage() {
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [popup, setPopup] = useState({ show: false, message: '', success: false });
+  const [showBackground, setShowBackground] = useState(false);
+
+  useEffect(() => {
+    // Cegah render di server, baru tampilkan background setelah mount
+    setShowBackground(true);
+  }, []);
 
   const handleUnlock = async () => {
     if (!username) {
@@ -76,8 +82,8 @@ export default function UnlockPage() {
         </p>
       </div>
 
-      {/* Background 3D */}
-      <PlanetBackground />
+      {/* Background 3D (hanya render di client) */}
+      {showBackground && <PlanetBackground />}
     </div>
   );
 }
