@@ -2,43 +2,100 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom base styles */
-body {
-  @apply bg-gray-950 text-white antialiased;
+/* Basic Reset */
+html, body {
+  padding: 0;
+  margin: 0;
   font-family: 'Inter', sans-serif;
+  scroll-behavior: smooth;
+  min-height: 100vh;
+  background-color: #0d0d0d;
+  color: #ffffff;
 }
 
-/* Scrollbar styling (optional) */
+/* Text smoothing for better readability */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Links */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Input and Button Styling */
+input, button {
+  font-family: inherit;
+}
+
+input:focus,
+button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5); /* blue focus ring */
+}
+
+/* Custom Scrollbar (optional) */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
   background-color: rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
+  border-radius: 9999px;
 }
 
-::-webkit-scrollbar-track {
-  background-color: transparent;
+/* Lottie container ensures full size in mobile */
+.lottie-container {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
 }
 
-/* Lottie animation container fix */
-.lottie-background {
-  @apply absolute inset-0 w-full h-full opacity-10 z-0 pointer-events-none;
-}
-
-/* Popup animation (optional smooth fade) */
-@keyframes fadeInPopup {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
+@media (prefers-color-scheme: light) {
+  html, body {
+    background-color: #f9f9f9;
+    color: #111111;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
-.popup-enter {
-  animation: fadeInPopup 0.3s ease-out forwards;
+  .dark\\:bg-black\\/70 {
+    background-color: rgba(0, 0, 0, 0.7) !important;
+  }
+
+  .dark\\:text-white {
+    color: #111 !important;
+  }
+
+  .dark\\:text-gray-300 {
+    color: #333 !important;
+  }
+
+  .dark\\:bg-green-900 {
+    background-color: #d1fae5 !important;
+  }
+
+  .dark\\:text-green-200 {
+    color: #065f46 !important;
+  }
+
+  .dark\\:bg-gray-800 {
+    background-color: #fff !important;
+  }
+
+  .dark\\:border-gray-600 {
+    border-color: #ccc !important;
+  }
 }
