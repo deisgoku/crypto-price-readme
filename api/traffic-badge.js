@@ -1,9 +1,7 @@
-// /api/traffic-badge.js
-
 const fetch = require('node-fetch');
 
 module.exports = async (req, res) => {
-
+ 
   const repoOwner = 'deisgoku';
   const repoName = 'crypto-price-readme';
 
@@ -20,15 +18,21 @@ module.exports = async (req, res) => {
   const data = await response.json();
   const cloneCount = data.count || 0;
 
-  // Format badge sebagai SVG
+  // Create a sleek SVG badge
   const badge = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="200" height="20">
-      <rect width="200" height="20" fill="#555"/>
-      <text x="10" y="14" fill="#fff" font-size="12">Cloned: ${cloneCount}x</text>
+    <svg xmlns="http://www.w3.org/2000/svg" width="270" height="35" viewBox="0 0 270 35">
+      <!-- Background with rounded corners -->
+      <rect width="270" height="35" rx="10" fill="#333" />
+      
+      <!-- Visitor number in blue, bold and slightly larger font -->
+      <text x="15" y="22" fill="#4A90E2" font-size="16" font-weight="bold">${cloneCount}</text>
+      
+      <!-- Description text in light gray, smaller font -->
+      <text x="55" y="22" fill="#B0B0B0" font-size="14" font-family="Arial, sans-serif">Visitor interested since release</text>
     </svg>
   `;
 
-  // Kirim badge sebagai SVG
+  // Send the SVG badge as a response
   res.setHeader('Content-Type', 'image/svg+xml');
   res.send(badge);
 };
