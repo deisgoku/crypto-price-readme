@@ -1,11 +1,10 @@
 const fetch = require('node-fetch');
 
 module.exports = async (req, res) => {
- 
   const repoOwner = 'deisgoku';
   const repoName = 'crypto-price-readme';
 
-  const response = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/traffic/views`, {
+  const response = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/traffic/clones`, {
     headers: {
       Authorization: `token ${process.env.GITHUB_TOKEN}`
     }
@@ -16,40 +15,26 @@ module.exports = async (req, res) => {
   }
 
   const data = await response.json();
-  const viewCount = data.count || 0; // Mendapatkan jumlah view dari GitHub API
+  const cloneCount = data.count || 0;
 
-  // Format hasil badge sebagai SVG dengan animasi, bayangan, tanpa efek blink
   const badge = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="350" height="60">
-      <style>
-        .text-blue { fill: #1E90FF; font-size: 20px; font-weight: bold; }
-        .text-white { fill: #fff; font-size: 16px; font-weight: normal; }
-        .shadow { filter: url(#f1); }
-        .color-change { animation: colorChange 3s infinite; }
-
-        @keyframes colorChange {
-          0% { fill: #1E90FF; }
-          50% { fill: #FFD700; }
-          100% { fill: #1E90FF; }
-        }
-      </style>
+    <svg xmlns="http://www.w3.org/2000/svg" width="270" height="35" viewBox="0 0 270 35">
+      <!-- Border -->
+      <rect x="0.5" y="0.5" width="269" height="34" rx="10" fill="none" stroke="#4A90E2" stroke-width="1" />
       
-      <defs>
-        <filter id="f1" x="0" y="0" width="200%" height="200%">
-          <feOffset result="offOut" in="SourceAlpha" dx="5" dy="5" />
-          <feGaussianBlur result="blurOut" in="offOut" stdDeviation="4" />
-          <feBlend in="SourceGraphic" in2="blurOut" mode="normal" />
-        </filter>
-      </defs>
-
-      <rect width="350" height="60" fill="#333" rx="10" ry="10" class="color-change"/>
+      <!-- Background -->
+      <rect x="1" y="1" width="268" height="33" rx="9" fill="#1E1E1E" />
       
-      <text x="20" y="35" class="text-blue shadow">${viewCount}</text>
-      <text x="70" y="35" class="text-white">users interested since release</text>
+      <!-- Visitor number -->
+      <text x="15" y="23" fill="#4A90E2" font-size="16" font-weight="bold" font-family="Arial, sans-serif">${cloneCount}</text>
+      
+      <!-- Description -->
+      <text x="55" y="23" fill="#FFFFFF" font-size="14" font-family="Arial, sans-serif">
+        users interested since release
+      </text>
     </svg>
   `;
 
-  // Kirim badge sebagai SVG
   res.setHeader('Content-Type', 'image/svg+xml');
   res.send(badge);
 };
