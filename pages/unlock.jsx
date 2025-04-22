@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Loader2, X } from "lucide-react";
 import Lottie from "lottie-react";
 import bgLottie from "../public/bg-lottie.json";
-import "../style/global.css"; // make sure ini bener path-nya
+import "../styles/global.css"; // make sure ini bener path-nya
 
 export default function UnlockPage() {
   const [username, setUsername] = useState("");
