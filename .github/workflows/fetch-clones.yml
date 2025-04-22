@@ -1,29 +1,37 @@
-name: Fetch GitHub Clones
+name: Generate Traffic Badge
 
 on:
   schedule:
-    - cron: '0 2 * * *'  # Setiap hari jam 09:00 WIB
-  workflow_dispatch:
+    - cron: "0 2 * * *"  # setiap hari jam 9 pagi
+  workflow_dispatch:      # bisa dijalankan manual
 
 jobs:
-  fetch:
+  build-badge:
     runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
         with:
-          token: ${{ secrets.GH_TOKEN }}  # Pastikan pakai token di sini
+          node-version: 18
 
-      - name: Get GitHub clone stats
+      - name: Install dependencies
         run: |
-          curl -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
-               https://api.github.com/repos/deisgoku/crypto-price-readme/traffic/clones \
-               -o clones.json
+          npm install puppeteer
+          sudo apt-get update && sudo apt-get install gifsicle
 
-      - name: Commit clone data
+      - name: Run script to generate GIF
+        run: node scripts/generate-badge.js
+
+      - name: Commit and push badge
         run: |
           git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git add clones.json
-          git commit -m "Update clone stats [bot]" || echo "No changes"
-          git push origin HEAD  # Cukup git push langsung
+          git config user.email "github-actions@users.noreply.github.com"
+          git add public/badge.gif
+          git commit -m "update traffic badge"
+          git push
