@@ -2,134 +2,58 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Poppins:wght@300;400;500;600&display=swap');
-
-/* Reset dan global styling */
-* {
+html, body {
   @apply m-0 p-0 box-border;
-}
-
-html {
+  font-family: 'Inter', sans-serif;
   scroll-behavior: smooth;
-  font-family: 'Poppins', sans-serif;
-}
-
-body {
-  @apply text-white min-h-screen;
-  font-family: 'Poppins', sans-serif;
-  line-height: 1.7;
   background-color: #000;
-  background-image: url('/bg-unlock.webp');
+  background-image: url(../public/bg-unlock.webp);
   background-size: cover;
   background-position: center;
-  background-repeat: no-repeat;
   color-scheme: dark;
 }
 
-/* Placeholder input styling */
-input::placeholder {
-  @apply text-gray-400;
+.unlock-container {
+  @apply flex items-center justify-center min-h-screen px-4 relative;
 }
 
-/* Header text effect */
-h1, h2, h3 {
-  text-shadow: 0 0 10px #00f0ff, 0 0 20px #00f0ff;
-}
-
-/* Glow border style */
-.glow-border {
-  box-shadow: 0 0 10px #00f0ff, 0 0 20px #00f0ff;
-  border: 1px solid #00f0ff;
-}
-
-/* Toast styling */
-.react-hot-toast {
-  font-family: 'Inter', sans-serif;
-}
-
-.react-hot-toast > div {
-  background: #111;
-  color: #00f0ff;
-  border: 1px solid #00f0ff;
-  box-shadow: 0 0 10px #00f0ff;
-}
-
-/* Animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.fade-in {
+.card {
+  @apply max-w-md w-full p-8 text-center space-y-4;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border-radius: 1rem;
+  box-shadow: 0 0 20px #00f0ff88, 0 0 40px #00f0ff33;
+  border: 1px solid #00f0ff55;
   animation: fadeIn 1s ease-out forwards;
 }
 
-/* Container utility */
-.container {
-  width: 75%;
-  margin-left: auto;
-  margin-right: auto;
+.card h1 {
+  @apply text-2xl font-bold text-cyan-300;
+  text-shadow: 0 0 8px #00f0ff;
 }
 
-@media screen and (max-width: 1024px) {
-  .container {
-    width: 86%;
-  }
+.card p {
+  @apply text-sm text-gray-300;
 }
 
-@media screen and (max-width: 600px) {
-  .container {
-    width: 90%;
-  }
+.card input {
+  @apply w-full px-4 py-2 rounded-md text-white border border-cyan-500 bg-white/10 placeholder-gray-400;
+  outline: none;
 }
 
-/* Text styling */
-.text-light {
-  color: rgba(255, 255, 255, 0.6);
+.card button {
+  @apply w-full px-4 py-2 rounded-md bg-cyan-600 hover:bg-cyan-700 flex items-center justify-center gap-2 text-white disabled:opacity-50;
 }
 
-/* Link & button */
-a {
-  color: #4db5ff;
-  transition: all 400ms ease;
-}
-a:hover {
-  color: #fff;
+.card blockquote {
+  @apply text-xs italic text-gray-400 mt-2;
 }
 
-.btn {
-  display: inline-block;
-  color: #4db5ff;
-  padding: 0.75rem 1.2rem;
-  border-radius: 0.4rem;
-  border: 1px solid #4db5ff;
-  transition: all 400ms ease;
+.icon-spin {
+  @apply w-4 h-4 animate-spin;
 }
 
-.btn:hover {
-  background: #fff;
-  color: #1f1f38;
-  border-color: transparent;
-}
-
-.btn-primary {
-  background: #4db5ff;
-  color: #1f1f38;
-}
-
-img {
-  display: block;
-  width: 100%;
-  object-fit: cover;
-}
-
-/* Scrollbar hidden */
-::-webkit-scrollbar {
-  display: none;
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
