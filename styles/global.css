@@ -8,6 +8,7 @@ html, body {
   scroll-behavior: smooth;
   background-color: #000;
   color-scheme: dark;
+  height: 100%;
 }
 
 input::placeholder {
@@ -47,4 +48,15 @@ h1, h2, h3 {
 
 .fade-in {
   animation: fadeIn 1s ease-out forwards;
+}
+
+@media screen and (max-width: 768px) {
+  .bg-unlock {
+    background-position: center;
+    background-size: cover;
+  }
+
+  .bg-unlock h1 {
+    font-size: 1.5rem;
+  }
 }
