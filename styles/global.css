@@ -11,6 +11,13 @@ html, body {
   height: 100%;
 }
 
+body {
+  background-image: url('/bg-unlock.webp');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
 input::placeholder {
   @apply text-gray-400;
 }
@@ -50,13 +57,20 @@ h1, h2, h3 {
   animation: fadeIn 1s ease-out forwards;
 }
 
+/* Mobile responsiveness */
 @media screen and (max-width: 768px) {
-  .bg-unlock {
-    background-position: center;
+  body {
+    background-image: url('/bg-unlock.webp');
     background-size: cover;
+    background-position: center;
   }
+}
 
-  .bg-unlock h1 {
-    font-size: 1.5rem;
-  }
+input, button {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+input:focus, button:focus {
+  outline: none;
+  border-color: #00f0ff;
 }
