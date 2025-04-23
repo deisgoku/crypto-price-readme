@@ -1,78 +1,75 @@
-// Hilangkan Lottie import
-// import Lottie from "lottie-react";
-// import bgLottie from "../public/bg-lottie.json";
+"use client";
+
+import { useState } from "react";
+import { toast } from "react-hot-toast";
+import Lottie from "lottie-react";
+import animationData from "@/public/bg-lottie.json";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Loader2 } from "lucide-react";
 
 export default function UnlockPage() {
-  // ...state & logic tetap sama
+  const [username, setUsername] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleUnlock = async () => {
+    if (!username.trim()) {
+      toast.error("Please enter your Twitter username.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/follow-check?username=${username}`);
+      const { isFollowing } = await res.json();
+
+      if (isFollowing) {
+        await fetch(`/api/add-follower?username=${username}`);
+        toast.success("Verified! Unlock successful.");
+      } else {
+        toast.error("Follow first before unlocking.");
+      }
+    } catch (err) {
+      toast.error("Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="unlock-container">
-      <div className="unlock-card">
-        <h1 className="text-3xl font-bold mb-2">Card Readme Unlocker</h1>
-        <p className="text-sm mb-4 text-gray-300">Welcome guys,</p>
+    <div className="relative min-h-screen bg-cover bg-center" style={{ backgroundImage: "url('/bg-unlock.webp')" }}>
+      <div className="absolute inset-0 bg-black bg-opacity-70 z-0" />
+      <div className="relative z-10 min-h-screen flex items-center justify-center">
+        <div className="w-full max-w-md bg-white/10 backdrop-blur-md rounded-2xl shadow-xl p-8 text-white text-center space-y-6">
+          <Lottie animationData={animationData} className="h-28 mx-auto" loop />
 
-        <p className="text-sm mb-6 text-gray-400">
-          Make sure you’ve followed me on X{" "}
-          <img
-            src="https://upload.wikimedia.org/wikipedia/commons/5/53/X_logo_2023.svg"
-            alt="X Logo"
-            className="inline-block h-4 mx-1"
+          <h1 className="text-2xl font-bold">Card Readme Unlocker</h1>
+          <p className="text-sm text-gray-200">
+            Please follow our Twitter account, then enter your username below to unlock.
+          </p>
+
+          <Input
+            type="text"
+            placeholder="Your Twitter username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className="bg-white/20 border-none focus:ring-2 focus:ring-blue-500 placeholder-white"
           />
-          —{" "}
-          <a
-            href="https://x.com/Deisgoku"
-            className="underline text-blue-400 hover:text-blue-300"
-            target="_blank"
+
+          <Button
+            onClick={handleUnlock}
+            className="w-full flex items-center justify-center gap-2"
+            disabled={loading}
           >
-            Visit x.com/Deisgoku
-          </a>
-        </p>
+            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+            {loading ? "Unlocking..." : "Unlock"}
+          </Button>
 
-        <label className="block text-sm text-gray-300 mb-1">
-          Enter your Twitter username:
-        </label>
-        <input
-          type="text"
-          placeholder="e.g. vitalikbuterin"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          className="w-full px-4 py-2 rounded-md bg-gray-800 border border-gray-700 text-white mb-4"
-        />
-
-        <button
-          onClick={handleUnlock}
-          disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 px-4 rounded-md font-semibold flex justify-center items-center gap-2"
-        >
-          {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-          {loading ? "Unlocking..." : "Unlock"}
-        </button>
-
-        <p className="text-xs text-gray-500 mt-6 italic">
-          "In the world of Web3, appreciating others’ work is a way of saying thank you.
-          Following helps us stay connected and build together."
-        </p>
-      </div>
-
-      {showPopup && (
-        <div className="unlock-popup">
-          <div>
-            <p className="font-semibold text-green-400 text-sm">
-              {status === "newly_verified" && "You're Verified!"}
-              {status === "already_verified" && "Already Verified!"}
-            </p>
-            <p className="text-xs text-gray-300 mt-1">
-              Thanks for connecting, enjoy the tools!
-            </p>
-          </div>
-          <button
-            onClick={() => setShowPopup(false)}
-            className="text-gray-400 hover:text-white ml-auto"
-          >
-            <X size={16} />
-          </button>
+          <blockquote className="text-xs italic text-gray-300">
+            “Thank you for supporting this project. You are awesome.”
+          </blockquote>
         </div>
-      )}
+      </div>
     </div>
   );
 }
