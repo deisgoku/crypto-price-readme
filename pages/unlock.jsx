@@ -1,87 +1,76 @@
-import { useState } from 'react';
-import Head from 'next/head';
+// pages/unlock.jsx
+import { useState } from "react";
+import { Toaster, toast } from "react-hot-toast";
 
 export default function UnlockPage() {
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
-  const [popup, setPopup] = useState('');
-
-  const showPopup = (message) => {
-    setPopup(message);
-    setTimeout(() => setPopup(''), 4000);
-  };
 
   const handleUnlock = async () => {
-    const uname = username.trim();
-    if (!uname) {
-      showPopup('Please enter your Twitter username first.');
+    if (!username.trim()) {
+      toast.error("Username cannot be empty.");
       return;
     }
 
     setLoading(true);
     try {
-      const res = await fetch('/api/follow-check', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: uname }),
+      const res = await fetch("/api/follow-check", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username }),
       });
-      const result = await res.json();
 
-      if (result.exists) {
-        showPopup(`Welcome back, @${uname}! You've already unlocked the card.`);
+      const data = await res.json();
+
+      if (data.status === "already_verified") {
+        toast.success("Welcome back, already verified!");
+      } else if (data.status === "newly_verified") {
+        toast.success("Thank you for the follow! You're now verified.");
       } else {
-        const res2 = await fetch('/api/add-follower', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: uname }),
-        });
-        const result2 = await res2.json();
-        if (result2.success) {
-          showPopup(`Success! Thanks for unlocking, @${uname}. Enjoy your card.`);
-        } else {
-          showPopup('Something went wrong. Please try again.');
-        }
+        toast.error("Follow requirement not met.");
       }
     } catch (err) {
-      showPopup('Server error. Please try again later.');
+      toast.error("Something went wrong.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
-    <>
-      <Head>
-        <title>Card Readme Unlocker</title>
-      </Head>
-      <div className="unlock-container">
-        <div className="unlock-card">
-          <h1 className="text-3xl font-bold mb-4">Card Readme Unlocker</h1>
-          <p className="mb-6">Follow on Twitter to unlock the crypto card!</p>
-          <input
-            type="text"
-            placeholder="Your Twitter username"
-            className="w-full p-3 rounded-lg bg-gray-800 border border-gray-600 text-white mb-4"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-          <button
-            onClick={handleUnlock}
-            className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-6 rounded-lg transition-all duration-200"
-            disabled={loading}
-          >
-            {loading ? 'Unlocking...' : 'Unlock'}
-          </button>
-          <p className="text-sm text-gray-400 mt-4 italic">
-            “We appreciate your support in growing open crypto tools.”
-          </p>
-        </div>
+    <div
+      className="min-h-screen bg-cover bg-center flex items-center justify-center relative"
+      style={{ backgroundImage: "url('/bg-unlock.webp')" }}
+    >
+      <Toaster position="top-center" />
 
-        {popup && (
-          <div className="unlock-popup">
-            <span>{popup}</span>
-          </div>
-        )}
+      <div className="bg-black/60 backdrop-blur-md p-8 rounded-2xl max-w-md w-full text-center shadow-xl">
+        <h1 className="text-3xl font-bold text-white mb-2">Card Readme Unlocker</h1>
+        <p className="text-white text-sm mb-6">
+          Follow us and verify your Twitter username to unlock your crypto card!
+        </p>
+
+        <input
+          type="text"
+          placeholder="Enter your Twitter username"
+          className="w-full px-4 py-2 rounded-xl mb-4 outline-none bg-white text-black"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+        />
+
+        <button
+          onClick={handleUnlock}
+          className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-xl transition-all disabled:opacity-50"
+          disabled={loading}
+        >
+          {loading ? "Verifying..." : "Unlock"}
+        </button>
+
+        <p className="text-xs text-gray-300 mt-6 italic">
+          “Thanks for your support. You're powering the future of Web3!”
+        </p>
       </div>
-    </>
+    </div>
   );
 }
