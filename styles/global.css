@@ -2,51 +2,42 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Base body style */
 body {
-  @apply m-0 p-0 box-border bg-black text-white font-sans;
-  min-height: 100vh;
-}
-
-/* Card sebagai frame full screen */
-.card {
-  @apply min-h-screen flex flex-col justify-between items-center px-4 py-6 bg-cover bg-center;
-  border-radius: 1.5rem;
-  box-shadow: 0 0 20px #00f0ff88, 0 0 40px #00f0ff33;
+  @apply m-0 p-0 w-full h-screen font-sans text-white;
   background-image: url('/bg-unlock.webp');
-  backdrop-filter: blur(10px);
-  height: 100% ;
-  weight: 100% ;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
-/* Form container di tengah card */
+.unlock-wrapper {
+  @apply flex flex-col items-center justify-between h-screen px-4 py-6 text-center;
+}
+
+.header-section {
+  @apply space-y-2;
+}
+
+.card {
+  @apply p-6 w-full max-w-sm bg-white bg-opacity-5 backdrop-blur rounded-xl border border-cyan-400 shadow-xl;
+  box-shadow: 0 0 20px #00f0ff88, 0 0 30px #00f0ff33;
+}
+
 .form-container {
-  @apply bg-white/10 p-6 rounded-xl border border-white/20 shadow-lg backdrop-blur-md w-full max-w-md;
+  @apply flex flex-col gap-4;
 }
 
-/* Input style */
-.form-container input {
-  @apply w-full px-4 py-2 rounded bg-white/20 border border-white/30 text-white placeholder-white/60;
+input {
+  @apply w-full p-2 rounded bg-gray-900 bg-opacity-50 text-white border border-cyan-400 outline-none;
 }
 
-/* Button style */
-.form-container button {
-  @apply w-full py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded font-semibold flex justify-center items-center gap-2;
+button {
+  @apply px-4 py-2 bg-cyan-500 rounded text-white hover:bg-cyan-600 transition disabled:opacity-50;
 }
 
-/* Optional: Smooth fade-in animation */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.card,
-.form-container {
-  animation: fadeIn 1s ease-out forwards;
+footer {
+  @apply text-sm text-cyan-300;
 }
