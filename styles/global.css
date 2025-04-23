@@ -2,28 +2,47 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body {
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Poppins:wght@300;400;500;600&display=swap');
+
+/* Reset dan global styling */
+* {
   @apply m-0 p-0 box-border;
-  font-family: 'Inter', sans-serif;
+}
+
+html {
   scroll-behavior: smooth;
+  font-family: 'Poppins', sans-serif;
+}
+
+body {
+  @apply text-white min-h-screen;
+  font-family: 'Poppins', sans-serif;
+  line-height: 1.7;
   background-color: #000;
-  background-image: url(../public/bg-unlock.webp);
+  background-image: url('/bg-unlock.webp');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   color-scheme: dark;
 }
 
+/* Placeholder input styling */
 input::placeholder {
   @apply text-gray-400;
 }
 
+/* Header text effect */
 h1, h2, h3 {
   text-shadow: 0 0 10px #00f0ff, 0 0 20px #00f0ff;
 }
 
+/* Glow border style */
 .glow-border {
   box-shadow: 0 0 10px #00f0ff, 0 0 20px #00f0ff;
   border: 1px solid #00f0ff;
 }
 
+/* Toast styling */
 .react-hot-toast {
   font-family: 'Inter', sans-serif;
 }
@@ -35,6 +54,7 @@ h1, h2, h3 {
   box-shadow: 0 0 10px #00f0ff;
 }
 
+/* Animations */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -48,4 +68,68 @@ h1, h2, h3 {
 
 .fade-in {
   animation: fadeIn 1s ease-out forwards;
+}
+
+/* Container utility */
+.container {
+  width: 75%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media screen and (max-width: 1024px) {
+  .container {
+    width: 86%;
+  }
+}
+
+@media screen and (max-width: 600px) {
+  .container {
+    width: 90%;
+  }
+}
+
+/* Text styling */
+.text-light {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Link & button */
+a {
+  color: #4db5ff;
+  transition: all 400ms ease;
+}
+a:hover {
+  color: #fff;
+}
+
+.btn {
+  display: inline-block;
+  color: #4db5ff;
+  padding: 0.75rem 1.2rem;
+  border-radius: 0.4rem;
+  border: 1px solid #4db5ff;
+  transition: all 400ms ease;
+}
+
+.btn:hover {
+  background: #fff;
+  color: #1f1f38;
+  border-color: transparent;
+}
+
+.btn-primary {
+  background: #4db5ff;
+  color: #1f1f38;
+}
+
+img {
+  display: block;
+  width: 100%;
+  object-fit: cover;
+}
+
+/* Scrollbar hidden */
+::-webkit-scrollbar {
+  display: none;
 }
