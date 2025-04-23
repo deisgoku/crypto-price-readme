@@ -57,13 +57,9 @@ h1, h2, h3 {
   animation: fadeIn 1s ease-out forwards;
 }
 
-/* Mobile responsiveness */
-@media screen and (max-width: 768px) {
-  body {
-    background-image: url('/bg-unlock.webp');
-    background-size: cover;
-    background-position: center;
-  }
+/* Card Box Styling */
+.w-full.max-w-md {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 input, button {
@@ -73,4 +69,18 @@ input, button {
 input:focus, button:focus {
   outline: none;
   border-color: #00f0ff;
+}
+
+footer {
+  text-align: center;
+  font-size: 0.875rem;
+}
+
+/* Mobile responsiveness */
+@media screen and (max-width: 768px) {
+  body {
+    background-image: url('/bg-unlock.webp');
+    background-size: cover;
+    background-position: center;
+  }
 }
