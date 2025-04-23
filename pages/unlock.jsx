@@ -50,12 +50,12 @@ export default function UnlockPage() {
       className="relative min-h-screen bg-cover bg-center flex items-center justify-center"
       style={{ backgroundImage: "url('/bg-unlock.webp')" }}
     >
-      <div className="bg-black/50 p-6 rounded-xl shadow-lg w-full max-w-md text-center">
+      <div className="bg-black/60 p-8 rounded-xl shadow-lg w-full max-w-md text-center">
         <h1 className="text-2xl text-white font-semibold mb-4">Card Readme Unlocker</h1>
-        <p className="text-white mb-4">
+        <p className="text-white mb-6">
           Please follow our Twitter account, then enter your username below to unlock.
         </p>
-        <div className="space-y-4">
+        <div className="space-y-6">
           <input
             type="text"
             placeholder="Your Twitter username"
