@@ -57,3 +57,18 @@ h1, h2, h3 {
 .fade-in {
   animation: fadeIn 1s ease-out forwards;
 }
+
+
+ .glass-box {
+  @apply bg-white/5 backdrop-blur-md rounded-2xl shadow-xl border border-white/10;
+}
+
+.bg-dark-blue {
+  background-color: #0a0f2c;
+}
+
+.text-glow {
+  text-shadow: 0 0 8px rgba(0, 255, 255, 0.7);
+}
+
+    
