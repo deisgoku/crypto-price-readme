@@ -18,6 +18,7 @@ body {
   background-repeat: no-repeat;
 }
 
+
 input::placeholder {
   @apply text-gray-400;
 }
@@ -55,32 +56,4 @@ h1, h2, h3 {
 
 .fade-in {
   animation: fadeIn 1s ease-out forwards;
-}
-
-/* Card Box Styling */
-.w-full.max-w-md {
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
-}
-
-input, button {
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
-}
-
-input:focus, button:focus {
-  outline: none;
-  border-color: #00f0ff;
-}
-
-footer {
-  text-align: center;
-  font-size: 0.875rem;
-}
-
-/* Mobile responsiveness */
-@media screen and (max-width: 768px) {
-  body {
-    background-image: url('/bg-unlock.webp');
-    background-size: cover;
-    background-position: center;
-  }
 }
