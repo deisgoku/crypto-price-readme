@@ -18,7 +18,7 @@ html, body {
 }
 
 .card {
-  @apply max-w-md w-full p-8 text-center space-y-4;
+  @apply w-full h-screen p-8 text-center space-y-4 flex flex-col justify-center items-center;
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(10px);
   border-radius: 1rem;
