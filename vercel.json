@@ -1,9 +1,10 @@
 {
   "version": 2,
-  "rewrites": [
+  "redirects": [
     {
       "source": "/",
-      "destination": "https://github.com/deisgoku/crypto-price-readme"
+      "destination": "https://github.com/deisgoku/crypto-price-readme",
+      "permanent": true
     }
   ]
 }
