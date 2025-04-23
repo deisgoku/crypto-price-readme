@@ -10,13 +10,30 @@ export default function UnlockPage() {
 
   const handleUnlock = async () => {
     if (!username.trim()) {
-      toast.error("Please enter your Twitter username.");
+      toast.error("❗Masukin username Twitter dulu, bro.");
+      return;
+    }
+
+    if (username.includes("@")) {
+      toast("Cukup masukin nama aja ya, tanpa @", {
+        icon: "⚠️",
+        style: {
+          borderRadius: "10px",
+          background: "#333",
+          color: "#fff",
+        },
+      });
+      return;
+    }
+
+    // Easter egg
+    if (username.toLowerCase() === "deisgoku") {
+      toast.success("Wah, sang founder masuk nih! Silakan langsung lewat aja, bro!");
       return;
     }
 
     setLoading(true);
     try {
-      // Check if already followed
       const checkRes = await fetch(`/api/follow-check`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -26,38 +43,42 @@ export default function UnlockPage() {
       const { status } = await checkRes.json();
 
       if (status === "already_verified") {
-        toast.success(`Welcome back, @${username}! You already unlocked it.`);
+        toast.success(`✅ Welcome back, @${username}! Kamu udah unlock sebelumnya.`);
       } else if (status === "newly_verified") {
-        // Save to Redis
         await fetch(`/api/add-follower`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ username }),
         });
-        toast.success(`Welcome, @${username}! Unlock successful.`);
+        toast.success(`✨ Sip! @${username}, unlock sukses bro!`);
       } else {
-        toast.error("Verification failed. Please make sure you've followed us.");
+        toast.error("Gagal verifikasi. Pastikan kamu udah follow ya!");
       }
     } catch (err) {
-      toast.error("Something went wrong. Please try again.");
+      toast.error("Ada error nih. Coba ulang lagi ya.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="relative min-h-screen bg-black text-white bg-cover bg-center" style={{ backgroundImage: "url('/bg-unlock.webp')" }}>
+    <div
+      className="relative min-h-screen bg-black text-white bg-cover bg-center"
+      style={{ backgroundImage: "url('/bg-unlock.webp')" }}
+    >
       <div className="absolute inset-0 bg-black/70 z-0" />
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4">
-        <div className="w-full max-w-md bg-white/10 backdrop-blur-md rounded-2xl p-8 shadow-2xl glow-border fade-in text-center space-y-6">
-          <h1 className="text-2xl font-bold text-cyan-300">Card Readme Unlocker</h1>
+        <div className="w-full max-w-md bg-white/10 backdrop-blur-md rounded-2xl p-8 shadow-2xl glow-border text-center space-y-6 animate-fade-in">
+          <h1 className="text-2xl font-bold text-cyan-300 font-orbitron">
+            Card Readme Unlocker
+          </h1>
           <p className="text-sm text-gray-300">
-            Please follow our Twitter account, then enter your username below to unlock.
+            Follow dulu Twitter kita, abis itu masukin username kamu di bawah ya.
           </p>
 
           <input
             type="text"
-            placeholder="Your Twitter username"
+            placeholder="Username Twitter kamu"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             className="w-full px-4 py-2 rounded-md bg-white/10 border border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-400 text-white placeholder-gray-400"
