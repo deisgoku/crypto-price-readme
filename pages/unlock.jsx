@@ -1,68 +1,65 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Toaster, toast } from 'react-hot-toast';
-import { Loader2, Unlock } from 'lucide-react';
+import { useState } from "react";
+import { toast } from "react-hot-toast";
+import { Loader2 } from "lucide-react";
 
 export default function UnlockPage() {
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleUnlock = async () => {
-    if (!username) {
-      toast.error('Please enter a Twitter username!');
+    if (!username.trim()) {
+      toast.error("Please enter your Twitter username.");
       return;
     }
 
     setLoading(true);
-
     try {
-      const res = await fetch(`/api/follow-check?username=${username}`);
-      const data = await res.json();
+      const checkRes = await fetch(`/api/follow-check`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username }),
+      });
 
-      if (data.following) {
-        toast.success('You are verified. Unlocking card...');
+      const { status } = await checkRes.json();
+
+      if (status === "already_verified") {
+        toast.success(`Welcome back, @${username}! You already unlocked it.`);
+      } else if (status === "newly_verified") {
+        await fetch(`/api/add-follower`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username }),
+        });
+        toast.success(`Welcome, @${username}! Unlock successful.`);
       } else {
-        toast.error('You must follow @deisgoku to unlock!');
+        toast.error("Verification failed. Please make sure you've followed us.");
       }
-    } catch (error) {
-      toast.error('Something went wrong!');
+    } catch (err) {
+      toast.error("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="min-h-screen flex flex-col justify-center items-center text-center container fade-in">
-      <Toaster />
-
-      <div className="bg-black bg-opacity-50 p-6 rounded-2xl glow-border shadow-xl max-w-lg w-full">
-        <h1 className="text-3xl sm:text-4xl font-semibold mb-3 text-white">Card Readme Unlocker</h1>
-        <p className="text-light mb-6">
-          Follow <a href="https://twitter.com/deisgoku" className="underline text-cyan-400" target="_blank">@deisgoku</a> on Twitter to unlock access to your crypto card readme.
-        </p>
-
+    <div className="unlock-container">
+      <div className="card">
+        <h1>Card Readme Unlocker</h1>
+        <p>Please follow our Twitter account, then enter your username below to unlock.</p>
         <input
           type="text"
-          placeholder="Enter your Twitter username"
+          placeholder="Your Twitter username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          className="w-full px-4 py-3 rounded-md bg-gray-900 border border-cyan-400 text-white mb-4 focus:outline-none focus:ring-2 focus:ring-cyan-500"
         />
-
-        <button
-          onClick={handleUnlock}
-          disabled={loading}
-          className="w-full flex justify-center items-center gap-2 px-4 py-3 rounded-md btn btn-primary transition-all"
-        >
-          {loading ? <Loader2 className="animate-spin h-5 w-5" /> : <Unlock className="h-5 w-5" />}
-          {loading ? 'Verifying...' : 'Unlock'}
+        <button onClick={handleUnlock} disabled={loading}>
+          {loading && <Loader2 className="icon-spin" />}
+          {loading ? "Unlocking..." : "Unlock"}
         </button>
-
-        <p className="text-xs mt-6 text-light italic">
-          “Appreciate the effort, honor the process.”
-        </p>
+        <blockquote>“Thank you for supporting this project. You are awesome.”</blockquote>
       </div>
-    </main>
+    </div>
   );
 }
