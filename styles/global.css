@@ -2,65 +2,50 @@
 @tailwind components;
 @tailwind utilities;
 
-/* -------------------------------
-   Custom Global Styles
----------------------------------*/
-
-html,
-body {
-  @apply min-h-screen bg-black text-white font-sans antialiased;
+html, body {
+  @apply m-0 p-0 box-border;
+  font-family: 'Inter', sans-serif;
+  scroll-behavior: smooth;
+  background-color: #000;
+  background-image: url(../public/bg-unkock.webp);
+  color-scheme: dark;
 }
 
-body {
-  background-image: url('/bg-unlock.webp');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  position: relative;
-  z-index: 0;
+input::placeholder {
+  @apply text-gray-400;
 }
 
-/* Overlay layer */
-body::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.7);
-  z-index: -1;
+h1, h2, h3 {
+  text-shadow: 0 0 10px #00f0ff, 0 0 20px #00f0ff;
 }
 
-/* Input & button shared styles */
-.input-style,
-.button-style {
-  @apply w-full px-4 py-2 rounded-md transition-all duration-200;
+.glow-border {
+  box-shadow: 0 0 10px #00f0ff, 0 0 20px #00f0ff;
+  border: 1px solid #00f0ff;
 }
 
-/* Input field */
-.input-style {
-  @apply bg-white/10 border border-cyan-500 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-400;
+.react-hot-toast {
+  font-family: 'Inter', sans-serif;
 }
 
-/* Button */
-.button-style {
-  @apply bg-cyan-600 hover:bg-cyan-700 flex items-center justify-center gap-2 disabled:opacity-50;
+.react-hot-toast > div {
+  background: #111;
+  color: #00f0ff;
+  border: 1px solid #00f0ff;
+  box-shadow: 0 0 10px #00f0ff;
 }
 
-/* Card Box */
-.card-box {
-  @apply w-full max-w-md bg-white/10 backdrop-blur-md rounded-2xl p-8 shadow-2xl text-center space-y-6;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-/* Heading */
-.card-title {
-  @apply text-2xl font-bold text-cyan-300;
-}
-
-/* Description Text */
-.card-description {
-  @apply text-sm text-gray-300;
-}
-
-/* Quote at bottom */
-.bottom-quote {
-  @apply absolute bottom-4 w-full text-center text-xs italic text-gray-400 px-4;
+.fade-in {
+  animation: fadeIn 1s ease-out forwards;
 }
