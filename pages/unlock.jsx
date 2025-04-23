@@ -44,15 +44,15 @@ export default function UnlockPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-between items-center text-white px-4 py-8">
+    <div className="min-h-screen flex flex-col justify-center items-center text-white px-4 py-8">
       {/* HEADER */}
       <div className="text-center mt-6">
-        <h1 className="text-3xl font-bold mb-2">Welcome</h1>
+        <h1 className="text-4xl font-bold mb-2">Welcome</h1>
         <h2 className="text-xl font-semibold">Unlocker Card</h2>
       </div>
 
       {/* FORM BOX */}
-      <div className="w-full max-w-md bg-black/70 border border-cyan-500 rounded-xl shadow-xl p-6 text-center backdrop-blur-md mt-10">
+      <div className="w-full max-w-md bg-black/70 border border-cyan-500 rounded-xl shadow-2xl p-8 mt-10 backdrop-blur-md">
         <p className="text-sm mb-4">Input your Twitter Username</p>
         <input
           type="text"
