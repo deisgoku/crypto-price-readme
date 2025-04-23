@@ -46,36 +46,35 @@ export default function UnlockPage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-black text-white bg-cover bg-center" style={{ backgroundImage: "url('/bg-unlock.webp')" }}>
-      <div className="absolute inset-0 bg-black/70 z-0" />
-      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4">
-        <div className="w-full max-w-md bg-white/10 backdrop-blur-md rounded-2xl p-8 shadow-2xl glow-border fade-in text-center space-y-6">
-          <h1 className="text-2xl font-bold text-cyan-300">Card Readme Unlocker</h1>
-          <p className="text-sm text-gray-300">
-            Please follow our Twitter account, then enter your username below to unlock.
-          </p>
-
+    <div
+      className="relative min-h-screen bg-cover bg-center flex items-center justify-center"
+      style={{ backgroundImage: "url('/bg-unlock.webp')" }}
+    >
+      <div className="bg-black/50 p-6 rounded-xl shadow-lg w-full max-w-md text-center">
+        <h1 className="text-2xl text-white font-semibold mb-4">Card Readme Unlocker</h1>
+        <p className="text-white mb-4">
+          Please follow our Twitter account, then enter your username below to unlock.
+        </p>
+        <div className="space-y-4">
           <input
             type="text"
             placeholder="Your Twitter username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full px-4 py-2 rounded-md bg-white/10 border border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-400 text-white placeholder-gray-400"
+            className="w-full px-4 py-2 rounded-md bg-white/10 border border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-400 text-white placeholder-gray-400 shadow-lg"
           />
-
           <button
             onClick={handleUnlock}
             disabled={loading}
-            className="w-full px-4 py-2 rounded-md bg-cyan-600 hover:bg-cyan-700 flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full px-4 py-2 rounded-md bg-cyan-600 hover:bg-cyan-700 flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg"
           >
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
             {loading ? "Unlocking..." : "Unlock"}
           </button>
-
-          <blockquote className="text-xs italic text-gray-400">
-            “Thank you for supporting this project. You are awesome.”
-          </blockquote>
         </div>
+        <blockquote className="text-xs italic text-gray-400 mt-4">
+          “Thank you for supporting this project. You are awesome.”
+        </blockquote>
       </div>
     </div>
   );
