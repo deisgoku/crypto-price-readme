@@ -1,69 +1,87 @@
-"use client";
-
-import { useState } from "react";
-import { toast } from "react-hot-toast";
-import { Loader2 } from "lucide-react";
+import { useState } from 'react';
+import Head from 'next/head';
 
 export default function UnlockPage() {
-  const [username, setUsername] = useState("");
+  const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
+  const [popup, setPopup] = useState('');
+
+  const showPopup = (message) => {
+    setPopup(message);
+    setTimeout(() => setPopup(''), 4000);
+  };
 
   const handleUnlock = async () => {
-    if (!username.trim()) {
-      toast.error("Please enter your Twitter username.");
+    const uname = username.trim();
+    if (!uname) {
+      showPopup('Please enter your Twitter username first.');
       return;
     }
 
     setLoading(true);
     try {
-      const res = await fetch(`/api/follow-check?username=${username}`);
-      const { isFollowing } = await res.json();
+      const res = await fetch('/api/follow-check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: uname }),
+      });
+      const result = await res.json();
 
-      if (isFollowing) {
-        await fetch(`/api/add-follower?username=${username}`);
-        toast.success("Verified! Unlock successful.");
+      if (result.exists) {
+        showPopup(`Welcome back, @${uname}! You've already unlocked the card.`);
       } else {
-        toast.error("Follow first before unlocking.");
+        const res2 = await fetch('/api/add-follower', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: uname }),
+        });
+        const result2 = await res2.json();
+        if (result2.success) {
+          showPopup(`Success! Thanks for unlocking, @${uname}. Enjoy your card.`);
+        } else {
+          showPopup('Something went wrong. Please try again.');
+        }
       }
     } catch (err) {
-      toast.error("Something went wrong.");
-    } finally {
-      setLoading(false);
+      showPopup('Server error. Please try again later.');
     }
+    setLoading(false);
   };
 
   return (
-    <div className="relative min-h-screen bg-cover bg-center" style={{ backgroundImage: "url('/bg-unlock.webp')" }}>
-      <div className="absolute inset-0 bg-black bg-opacity-70 z-0" />
-      <div className="relative z-10 min-h-screen flex items-center justify-center px-4">
-        <div className="w-full max-w-md bg-white/10 backdrop-blur-md rounded-2xl shadow-xl p-8 text-white text-center space-y-6">
-          <h1 className="text-2xl font-bold">Card Readme Unlocker</h1>
-          <p className="text-sm text-gray-200">
-            Please follow our Twitter account, then enter your username below to unlock.
-          </p>
-
+    <>
+      <Head>
+        <title>Card Readme Unlocker</title>
+      </Head>
+      <div className="unlock-container">
+        <div className="unlock-card">
+          <h1 className="text-3xl font-bold mb-4">Card Readme Unlocker</h1>
+          <p className="mb-6">Follow on Twitter to unlock the crypto card!</p>
           <input
             type="text"
             placeholder="Your Twitter username"
+            className="w-full p-3 rounded-lg bg-gray-800 border border-gray-600 text-white mb-4"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full px-4 py-2 rounded-md bg-white/20 border-none focus:ring-2 focus:ring-blue-500 placeholder-white text-white"
           />
-
           <button
             onClick={handleUnlock}
+            className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-6 rounded-lg transition-all duration-200"
             disabled={loading}
-            className="w-full px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 flex items-center justify-center gap-2 disabled:opacity-50"
           >
-            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-            {loading ? "Unlocking..." : "Unlock"}
+            {loading ? 'Unlocking...' : 'Unlock'}
           </button>
-
-          <blockquote className="text-xs italic text-gray-300">
-            “Thank you for supporting this project. You are awesome.”
-          </blockquote>
+          <p className="text-sm text-gray-400 mt-4 italic">
+            “We appreciate your support in growing open crypto tools.”
+          </p>
         </div>
+
+        {popup && (
+          <div className="unlock-popup">
+            <span>{popup}</span>
+          </div>
+        )}
       </div>
-    </div>
+    </>
   );
 }
