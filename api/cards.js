@@ -1,5 +1,5 @@
 const fetch = require('node-fetch');
-const { renderModern } = require('./modern');
+const { renderModern } = require('../lib/sertings/model/modern');
 
 const cache = new Map();
 
