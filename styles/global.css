@@ -2,58 +2,49 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body {
-  @apply m-0 p-0 box-border;
-  font-family: 'Inter', sans-serif;
-  scroll-behavior: smooth;
-  background-color: #000;
-  background-image: url(../public/bg-unlock.webp);
-  background-size: cover;
-  background-position: center;
-  color-scheme: dark;
+/* Base body style */
+body {
+  @apply m-0 p-0 box-border bg-black text-white font-sans;
+  min-height: 100vh;
 }
 
-.unlock-container {
-  @apply flex items-center justify-center min-h-screen px-4 relative;
-}
-
+/* Card sebagai frame full screen */
 .card {
-  @apply w-full h-screen p-8 text-center space-y-4 flex flex-col justify-center items-center;
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  border-radius: 1rem;
+  @apply min-h-screen flex flex-col justify-between items-center px-4 py-6 bg-cover bg-center;
+  border-radius: 1.5rem;
   box-shadow: 0 0 20px #00f0ff88, 0 0 40px #00f0ff33;
-  border: 1px solid #00f0ff55;
-  animation: fadeIn 1s ease-out forwards;
+  background-image: url('/bg-unlock.webp');
+  backdrop-filter: blur(10px);
 }
 
-.card h1 {
-  @apply text-2xl font-bold text-cyan-300;
-  text-shadow: 0 0 8px #00f0ff;
+/* Form container di tengah card */
+.form-container {
+  @apply bg-white/10 p-6 rounded-xl border border-white/20 shadow-lg backdrop-blur-md w-full max-w-md;
 }
 
-.card p {
-  @apply text-sm text-gray-300;
+/* Input style */
+.form-container input {
+  @apply w-full px-4 py-2 rounded bg-white/20 border border-white/30 text-white placeholder-white/60;
 }
 
-.card input {
-  @apply w-full px-4 py-2 rounded-md text-white border border-cyan-500 bg-white/10 placeholder-gray-400;
-  outline: none;
+/* Button style */
+.form-container button {
+  @apply w-full py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded font-semibold flex justify-center items-center gap-2;
 }
 
-.card button {
-  @apply w-full px-4 py-2 rounded-md bg-cyan-600 hover:bg-cyan-700 flex items-center justify-center gap-2 text-white disabled:opacity-50;
-}
-
-.card blockquote {
-  @apply text-xs italic text-gray-400 mt-2;
-}
-
-.icon-spin {
-  @apply w-4 h-4 animate-spin;
-}
-
+/* Optional: Smooth fade-in animation */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card,
+.form-container {
+  animation: fadeIn 1s ease-out forwards;
 }
