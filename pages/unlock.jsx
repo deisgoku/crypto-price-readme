@@ -50,12 +50,13 @@ export default function UnlockPage() {
       style={{ backgroundImage: "url('/bg-unlock.webp')" }}
     >
       <div className="absolute inset-0 bg-black/70 z-0" />
+
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 30 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.6, ease: 'easeOut' }}
-          className="w-full max-w-md bg-white/10 backdrop-blur-md rounded-2xl p-8 shadow-2xl glow-border fade-in text-center space-y-6"
+          className="w-full max-w-md bg-white/10 backdrop-blur-md rounded-2xl p-8 shadow-2xl text-center space-y-6"
         >
           <motion.h1
             initial={{ opacity: 0, y: -20 }}
@@ -70,27 +71,30 @@ export default function UnlockPage() {
             Please follow our Twitter account, then enter your username below to unlock.
           </p>
 
-          <input
-            type="text"
-            placeholder="Your Twitter username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="w-full px-4 py-2 rounded-md bg-white/10 border border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-400 text-white placeholder-gray-400"
-          />
+          <div className="space-y-4">
+            <input
+              type="text"
+              placeholder="Your Twitter username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full px-4 py-2 rounded-md bg-white/10 border border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-400 text-white placeholder-gray-400"
+            />
 
-          <button
-            onClick={handleUnlock}
-            disabled={loading}
-            className="w-full px-4 py-2 rounded-md bg-cyan-600 hover:bg-cyan-700 flex items-center justify-center gap-2 disabled:opacity-50"
-          >
-            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-            {loading ? 'Unlocking...' : 'Unlock'}
-          </button>
-
-          <blockquote className="text-xs italic text-gray-400">
-            “Thank you for supporting this project. You are awesome.”
-          </blockquote>
+            <button
+              onClick={handleUnlock}
+              disabled={loading}
+              className="w-full px-4 py-2 rounded-md bg-cyan-600 hover:bg-cyan-700 flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+              {loading ? 'Unlocking...' : 'Unlock'}
+            </button>
+          </div>
         </motion.div>
+
+        {/* Quote di bagian bawah layar */}
+        <div className="absolute bottom-4 text-center text-xs italic text-gray-400 px-4">
+          “Thank you for supporting this project. You are awesome.”
+        </div>
       </div>
     </div>
   );
