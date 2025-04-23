@@ -51,20 +51,28 @@ const fetchCMC = async (category, limit) => {
 };
 
 const fetchBinanceTop = async (limit) => {
-  const res = await fetch(BINANCE_API);
-  if (!res.ok) throw new Error('Binance failed');
-  const data = await res.json();
-  return data
-    .filter(d => d.symbol.endsWith('USDT') && d.symbol.length <= 10)
-    .sort((a, b) => b.quoteVolume - a.quoteVolume)
-    .slice(0, limit)
-    .map(d => ({
-      symbol: d.symbol.replace('USDT', ''),
-      price: parseFloat(d.lastPrice).toFixed(2),
-      volume: `$${(parseFloat(d.quoteVolume) / 1e6).toFixed(1)}M`,
-      trend: parseFloat(d.priceChangePercent),
-      chart: ''
-    }));
+  try {
+    const res = await fetch(BINANCE_API);
+    if (!res.ok) {
+      const text = await res.text();
+      console.log('Binance response:', text);
+      throw new Error('Binance failed');
+    }
+    const data = await res.json();
+    return data
+      .filter(d => d.symbol.endsWith('USDT') && d.symbol.length <= 10)
+      .map(d => ({
+        symbol: d.symbol.replace('USDT', ''),
+        price: parseFloat(d.lastPrice || 0).toFixed(2),
+        volume: `$${(parseFloat(d.quoteVolume || 0) / 1e6).toFixed(1)}M`,
+        trend: parseFloat(d.priceChangePercent || 0),
+        chart: ''
+      }))
+      .slice(0, limit);
+  } catch (err) {
+    console.log('Binance fetch error:', err.message);
+    throw new Error('Binance failed');
+  }
 };
 
 // Generate SVG path for sparkline
