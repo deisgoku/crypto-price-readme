@@ -44,22 +44,37 @@ export default function UnlockPage() {
   };
 
   return (
-    <div className="unlock-container">
-      <div className="card">
-        <h1>Card Readme Unlocker</h1>
-        <p>Please follow our Twitter account, then enter your username below to unlock.</p>
-        <input
-          type="text"
-          placeholder="Your Twitter username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
-        <button onClick={handleUnlock} disabled={loading}>
-          {loading && <Loader2 className="icon-spin" />}
-          {loading ? "Unlocking..." : "Unlock"}
-        </button>
-        <blockquote>“Thank you for supporting this project. You are awesome.”</blockquote>
-      </div>
+    <div className="unlock-wrapper">
+  {/* Header */}
+  <div className="header-section">
+    <h1 className="text-2xl font-bold">Welcome</h1>
+    <p className="text-sm">Unlocker Card</p>
+    <p className="text-xs text-cyan-200 mt-2">
+      Please follow our Twitter account and input your username below
+    </p>
+  </div>
+
+  {/* Card untuk form input + button */}
+  <div className="card">
+    <div className="form-container">
+      <label htmlFor="username" className="text-sm text-left">Twitter Username</label>
+      <input
+        type="text"
+        id="username"
+        placeholder="@yourhandle"
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+      />
+      <button onClick={handleUnlock} disabled={loading}>
+        {loading ? "Unlocking..." : "Unlock"}
+      </button>
     </div>
+  </div>
+
+  {/* Footer */}
+  <footer>
+    “Thank you for supporting this project. You are awesome.”
+  </footer>
+</div>
   );
 }
