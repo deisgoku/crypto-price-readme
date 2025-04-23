@@ -3,18 +3,8 @@
 @tailwind utilities;
 
 .unlock-container {
-  @apply relative flex min-h-screen w-screen items-center justify-center overflow-hidden bg-gray-950 px-4 text-white;
-}
-
-.unlock-lottie-bg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 0;
-  opacity: 0.08;
-  object-fit: cover;
+  @apply relative min-h-screen w-screen flex items-center justify-center px-4 text-white bg-cover bg-center;
+  background-image: url('../public/bg-unlock.webp'); /* Ganti setelah file PNG-nya diupload */
 }
 
 .unlock-card {
