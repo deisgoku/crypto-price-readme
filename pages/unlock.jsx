@@ -16,7 +16,6 @@ export default function UnlockPage() {
 
     setLoading(true);
     try {
-      // Check if already followed
       const checkRes = await fetch(`/api/follow-check`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -28,7 +27,6 @@ export default function UnlockPage() {
       if (status === "already_verified") {
         toast.success(`Welcome back, @${username}! You already unlocked it.`);
       } else if (status === "newly_verified") {
-        // Save to Redis
         await fetch(`/api/add-follower`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -36,7 +34,7 @@ export default function UnlockPage() {
         });
         toast.success(`Welcome, @${username}! Unlock successful.`);
       } else {
-        toast.error("Verification failed. Please make sure you've followed us.");
+        toast.error("Verification failed. Please follow our Twitter first.");
       }
     } catch (err) {
       toast.error("Something went wrong. Please try again.");
@@ -46,36 +44,41 @@ export default function UnlockPage() {
   };
 
   return (
-    <div
-      className="relative min-h-screen bg-cover bg-center flex items-center justify-center"
-      style={{ backgroundImage: "url('/bg-unlock.webp')" }}
-    >
-      <div className="bg-black/60 p-8 rounded-xl shadow-lg w-full max-w-md text-center">
-        <h1 className="text-2xl text-white font-semibold mb-4">Card Readme Unlocker</h1>
-        <p className="text-white mb-6">
-          Please follow our Twitter account, then enter your username below to unlock.
-        </p>
-        <div className="space-y-6">
+    <div className="min-h-screen flex flex-col justify-between items-center bg-unlock bg-cover bg-center text-white p-4">
+      {/* Header */}
+      <div className="text-center mt-6">
+        <h1 className="text-3xl font-bold mb-2">Welcome</h1>
+        <h2 className="text-xl font-semibold">Unlocker Card</h2>
+      </div>
+
+      {/* Form Box */}
+      <div className="bg-black/70 border border-cyan-400 rounded-xl shadow-xl p-6 w-full max-w-md text-center space-y-4">
+        <p className="text-sm font-medium">Input your Twitter Username</p>
+        <div className="text-left">
+          <label htmlFor="username" className="block text-sm mb-1">Twitter Username</label>
           <input
+            id="username"
             type="text"
-            placeholder="Your Twitter username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full px-4 py-2 rounded-md bg-white/10 border border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-400 text-white placeholder-gray-400 shadow-lg"
+            placeholder="@yourhandle"
+            className="w-full px-4 py-2 rounded-md bg-white/10 border border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-400 text-white placeholder-gray-400"
           />
-          <button
-            onClick={handleUnlock}
-            disabled={loading}
-            className="w-full px-4 py-2 rounded-md bg-cyan-600 hover:bg-cyan-700 flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg"
-          >
-            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-            {loading ? "Unlocking..." : "Unlock"}
-          </button>
         </div>
-        <blockquote className="text-xs italic text-gray-400 mt-4">
-          “Thank you for supporting this project. You are awesome.”
-        </blockquote>
+        <button
+          onClick={handleUnlock}
+          disabled={loading}
+          className="w-full px-4 py-2 rounded-md bg-cyan-600 hover:bg-cyan-700 flex items-center justify-center gap-2 disabled:opacity-50"
+        >
+          {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+          {loading ? "Unlocking..." : "Unlock"}
+        </button>
       </div>
+
+      {/* Footer */}
+      <footer className="text-center text-xs text-gray-400 mt-6 mb-4">
+        “Thanks for supporting this project. You’re awesome.”
+      </footer>
     </div>
   );
 }
