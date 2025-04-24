@@ -117,8 +117,8 @@ module.exports = async (req, res) => {
       res.setHeader('Content-Type', 'image/svg+xml');
       return res.status(200).send(svg);
     }
-    else (model === 'legacy') {
-      const svg = renderModern(coinData, theme, limit);
+    if (model === 'legacy') {
+      const svg = renderLegacy(coinData, theme, limit);
       res.setHeader('Content-Type', 'image/svg+xml');
       return res.status(200).send(svg);
     }
