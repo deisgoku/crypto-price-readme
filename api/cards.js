@@ -1,5 +1,5 @@
 const fetch = require('node-fetch');
-const { renderModern } = require('../lib/settings/model/modern');
+const { renderModern, renderLegacy } = require('../lib/settings/model/modern');
 
 const cache = new Map();
 
@@ -113,6 +113,11 @@ module.exports = async (req, res) => {
     const coinData = cache.get(cacheKey);
 
     if (model === 'modern') {
+      const svg = renderModern(coinData, theme, limit);
+      res.setHeader('Content-Type', 'image/svg+xml');
+      return res.status(200).send(svg);
+    }
+    else (model === 'legacy') {
       const svg = renderModern(coinData, theme, limit);
       res.setHeader('Content-Type', 'image/svg+xml');
       return res.status(200).send(svg);
