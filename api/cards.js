@@ -1,16 +1,29 @@
-const fetch = require('node-fetch');
+const fetch = require('node-fetch'); // Jangan lupa import node-fetch
 const { renderModern } = require('../lib/settings/model/modern');
 
 const cache = new Map();
 
 const COINGECKO_API = 'https://api.coingecko.com/api/v3';
-const CMC_API = 'https://pro-api.coinmarketcap.com';
+const CMC_API = 'https://pro-api.coinmarketcap.com/api/v1';
 const BINANCE_API = 'https://api.binance.com/api/v3/ticker/24hr';
 
 const CMC_KEY = process.env.CMC_API_KEY;
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
+// Cache kategori
+let categoryMap = null;
+
+const fetchCategoryMap = async () => {
+  if (categoryMap) return categoryMap;
+  const res = await fetch(`${COINGECKO_API}/coins/categories/list`);
+  if (!res.ok) throw new Error('Failed to fetch category list');
+  const list = await res.json();
+  categoryMap = new Map(list.map(c => [c.category_id, c.name]));
+  return categoryMap;
+};
+
+// Fetch data dari API CoinGecko berdasarkan category_id
 const fetchGeckoCategory = async (category, limit) => {
   const url = `${COINGECKO_API}/coins/markets?vs_currency=usd&category=${category}&order=market_cap_desc&per_page=${limit}&sparkline=true`;
   const res = await fetch(url);
@@ -29,6 +42,7 @@ const fetchGeckoCategory = async (category, limit) => {
   }));
 };
 
+// Fetch CoinMarketCap
 const fetchCMC = async (category, limit) => {
   const slugRes = await fetch(`${CMC_API}/cryptocurrency/category`, {
     headers: { 'X-CMC_PRO_API_KEY': CMC_KEY }
@@ -53,6 +67,7 @@ const fetchCMC = async (category, limit) => {
   }));
 };
 
+// Fetch data dari Binance
 const fetchBinanceTop = async (limit) => {
   try {
     const res = await fetch(BINANCE_API);
@@ -76,6 +91,7 @@ const fetchBinanceTop = async (limit) => {
   }
 };
 
+// Function to generate the chart path (sparkline)
 function genChartPath(data) {
   const max = Math.max(...data);
   const min = Math.min(...data);
@@ -95,7 +111,12 @@ module.exports = async (req, res) => {
   try {
     if (!cache.has(cacheKey)) {
       let data;
+      let categoryName = category.replace(/-/g, ' '); // Default fallback if no category name found
       try {
+        // Fetch category name dynamically
+        const categoryMap = await fetchCategoryMap();
+        categoryName = categoryMap.get(category) || categoryName;
+        
         data = await fetchGeckoCategory(category, limit);
       } catch (err1) {
         console.log(`Gecko failed for category "${category}", fallback to CMC`);
@@ -106,19 +127,19 @@ module.exports = async (req, res) => {
           data = await fetchBinanceTop(limit);
         }
       }
-      cache.set(cacheKey, data);
+      cache.set(cacheKey, { data, categoryName });
       setTimeout(() => cache.delete(cacheKey), 5 * 60 * 1000); // cache 5 menit
     }
 
-    const coinData = cache.get(cacheKey);
+    const { data: coinData, categoryName } = cache.get(cacheKey);
 
     if (model === 'modern') {
-      const svg = renderModern(coinData, theme, limit);
+      const svg = renderModern(coinData, theme, limit, categoryName); // Pass categoryName to render
       res.setHeader('Content-Type', 'image/svg+xml');
       return res.status(200).send(svg);
     }
     if (model === 'legacy') {
-      const svg = renderLegacy(coinData, theme, limit);
+      const svg = renderLegacy(coinData, theme, limit, categoryName); // Pass categoryName to render
       res.setHeader('Content-Type', 'image/svg+xml');
       return res.status(200).send(svg);
     }
