@@ -7,19 +7,20 @@ const COINGECKO_API = 'https://api.coingecko.com/api/v3';
 const CMC_API = 'https://pro-api.coinmarketcap.com';
 const BINANCE_API = 'https://api.binance.com/api/v3/ticker/24hr';
 
-const CMC_KEY = process.env.CMC_API_KEY; // Pastikan sudah ada
+const CMC_KEY = process.env.CMC_API_KEY;
 
-// Utils
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 const fetchGeckoCategory = async (category, limit) => {
-  const url = `${COINGECKO_API}/coins/markets?vs_currency=usd&category=${category}&order=market_cap_desc&per_page=${limit}`;
+  const url = `${COINGECKO_API}/coins/markets?vs_currency=usd&category=${category}&order=market_cap_desc&per_page=${limit}&sparkline=true`;
   const res = await fetch(url);
   if (!res.ok) throw new Error('Gecko failed');
   const coins = await res.json();
   return coins.map(coin => ({
     symbol: coin.symbol.toUpperCase(),
-    price: coin.current_price.toFixed(2),
+    price: coin.current_price < 0.01
+      ? coin.current_price.toFixed(8)
+      : coin.current_price.toFixed(2),
     volume: `$${(coin.total_volume / 1e6).toFixed(1)}M`,
     trend: coin.price_change_percentage_24h,
     chart: coin.sparkline_in_7d?.price
@@ -43,27 +44,27 @@ const fetchCMC = async (category, limit) => {
   const data = await dataRes.json();
   return Object.values(data.data).map(coin => ({
     symbol: coin.symbol,
-    price: coin.quote.USD.price.toFixed(2),
+    price: coin.quote.USD.price < 0.01
+      ? coin.quote.USD.price.toFixed(8)
+      : coin.quote.USD.price.toFixed(2),
     volume: `$${(coin.quote.USD.volume_24h / 1e6).toFixed(1)}M`,
     trend: coin.quote.USD.percent_change_24h,
-    chart: '' // Optional: add sparkline if needed
+    chart: '' // Optional
   }));
 };
 
 const fetchBinanceTop = async (limit) => {
   try {
     const res = await fetch(BINANCE_API);
-    if (!res.ok) {
-      const text = await res.text();
-      console.log('Binance response:', text);
-      throw new Error('Binance failed');
-    }
+    if (!res.ok) throw new Error('Binance failed');
     const data = await res.json();
     return data
       .filter(d => d.symbol.endsWith('USDT') && d.symbol.length <= 10)
       .map(d => ({
         symbol: d.symbol.replace('USDT', ''),
-        price: parseFloat(d.lastPrice || 0).toFixed(2),
+        price: parseFloat(d.lastPrice) < 0.01
+          ? parseFloat(d.lastPrice).toFixed(8)
+          : parseFloat(d.lastPrice).toFixed(2),
         volume: `$${(parseFloat(d.quoteVolume || 0) / 1e6).toFixed(1)}M`,
         trend: parseFloat(d.priceChangePercent || 0),
         chart: ''
@@ -75,7 +76,6 @@ const fetchBinanceTop = async (limit) => {
   }
 };
 
-// Generate SVG path for sparkline
 function genChartPath(data) {
   const max = Math.max(...data);
   const min = Math.min(...data);
@@ -87,7 +87,6 @@ function genChartPath(data) {
   return 'M' + norm.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' L');
 }
 
-// API handler
 module.exports = async (req, res) => {
   const { model = 'modern', theme = 'dark', coin = '6', category = 'layer1' } = req.query;
   const limit = Math.min(Math.max(parseInt(coin), 1), 20);
