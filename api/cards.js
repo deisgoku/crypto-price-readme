@@ -1,5 +1,5 @@
 const fetch = require('node-fetch');
-const { renderModern, renderLegacy } = require('../lib/settings/model/modern');
+const { renderModern } = require('../lib/settings/model/modern');
 
 const cache = new Map();
 
