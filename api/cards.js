@@ -9,6 +9,7 @@ const CMC_KEY = process.env.CMC_API_KEY;
 const cache = new Map();
 let categoryMap = null;
 
+// Delay helper
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 // Format Volume (M, B, K)
@@ -19,7 +20,21 @@ function formatVolume(value) {
   return value.toFixed(0);
 }
 
-// Ambil mapping category_id → name dari CoinGecko
+// Format Price (Smart for micin coin)
+function formatPrice(value) {
+  if (value >= 0.01) {
+    const str = value.toFixed(8);
+    return { price: parseFloat(str).toString(), micin: false };
+  }
+
+  const str = value.toFixed(18);
+  const match = str.match(/^0\.0+(?=\d)/);
+  const zeroCount = match ? match[0].length - 2 : 0;
+  const rest = str.slice(match ? match[0].length : 2).replace(/0+$/, '').slice(0, 4);
+  return { price: `0.0{${zeroCount}}${rest}`, micin: true };
+}
+
+// Fetch category name map from CoinGecko
 const fetchCategoryMap = async () => {
   if (categoryMap) return categoryMap;
   const res = await fetch(`${COINGECKO_API}/coins/categories/list`);
@@ -29,7 +44,7 @@ const fetchCategoryMap = async () => {
   return categoryMap;
 };
 
-// Sparkline generator (SVG path)
+// Generate SVG path for sparkline chart
 function genChartPath(data) {
   const max = Math.max(...data);
   const min = Math.min(...data);
@@ -47,13 +62,17 @@ const fetchGecko = async (category, limit) => {
   const res = await fetch(url);
   if (!res.ok) throw new Error('Gecko failed');
   const coins = await res.json();
-  return coins.map(coin => ({
-    symbol: coin.symbol.toUpperCase(),
-    price: coin.current_price < 0.01 ? coin.current_price.toFixed(8) : coin.current_price.toFixed(2),
-    volume: formatVolume(coin.total_volume),  // Use formatVolume here
-    trend: coin.price_change_percentage_24h,
-    chart: genChartPath(coin.sparkline_in_7d?.price || [])
-  }));
+  return coins.map(coin => {
+    const { price, micin } = formatPrice(coin.current_price);
+    return {
+      symbol: coin.symbol.toUpperCase(),
+      price,
+      micin,
+      volume: formatVolume(coin.total_volume),
+      trend: coin.price_change_percentage_24h,
+      chart: genChartPath(coin.sparkline_in_7d?.price || [])
+    };
+  });
 };
 
 // CoinMarketCap source
@@ -70,33 +89,41 @@ const fetchCMC = async (category, limit) => {
     headers: { 'X-CMC_PRO_API_KEY': CMC_KEY }
   });
   const data = await dataRes.json();
-  return Object.values(data.data).map(coin => ({
-    symbol: coin.symbol,
-    price: coin.quote.USD.price < 0.01 ? coin.quote.USD.price.toFixed(8) : coin.quote.USD.price.toFixed(2),
-    volume: formatVolume(coin.quote.USD.volume_24h),  // Use formatVolume here
-    trend: coin.quote.USD.percent_change_24h,
-    chart: ''
-  }));
+  return Object.values(data.data).map(coin => {
+    const { price, micin } = formatPrice(coin.quote.USD.price);
+    return {
+      symbol: coin.symbol,
+      price,
+      micin,
+      volume: formatVolume(coin.quote.USD.volume_24h),
+      trend: coin.quote.USD.percent_change_24h,
+      chart: ''
+    };
+  });
 };
 
-// Binance source (tanpa kategori)
+// Binance source
 const fetchBinance = async (limit) => {
   const res = await fetch(BINANCE_API);
   if (!res.ok) throw new Error('Binance failed');
   const data = await res.json();
   return data
     .filter(d => d.symbol.endsWith('USDT') && d.symbol.length <= 10)
-    .map(d => ({
-      symbol: d.symbol.replace('USDT', ''),
-      price: parseFloat(d.lastPrice) < 0.01 ? parseFloat(d.lastPrice).toFixed(8) : parseFloat(d.lastPrice).toFixed(2),
-      volume: formatVolume(parseFloat(d.quoteVolume)),  // Use formatVolume here
-      trend: parseFloat(d.priceChangePercent),
-      chart: ''
-    }))
+    .map(d => {
+      const { price, micin } = formatPrice(parseFloat(d.lastPrice));
+      return {
+        symbol: d.symbol.replace('USDT', ''),
+        price,
+        micin,
+        volume: formatVolume(parseFloat(d.quoteVolume)),
+        trend: parseFloat(d.priceChangePercent),
+        chart: ''
+      };
+    })
     .slice(0, limit);
 };
 
-// MAIN API HANDLER
+// MAIN HANDLER
 module.exports = async (req, res) => {
   const { model = 'modern', theme = 'dark', coin = '6', category = 'layer1' } = req.query;
   const limit = Math.min(Math.max(parseInt(coin), 1), 20);
@@ -120,7 +147,6 @@ module.exports = async (req, res) => {
         }
       }
 
-      // Tambahkan kategori ke data[0] untuk renderModern
       if (data[0]) data[0].category = categoryName;
       cache.set(cacheKey, data);
     }
