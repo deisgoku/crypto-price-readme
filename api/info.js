@@ -1,4 +1,4 @@
-const cardInfo = require("../../lib/settings/data/info");
+const cardInfo = require("../lib/settings/data/info");
 
 module.exports = (req, res) => {
   const tableRows = cardInfo.themes.map(theme => {
