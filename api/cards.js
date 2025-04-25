@@ -11,6 +11,14 @@ let categoryMap = null;
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
+// Format Volume (M, B, K)
+function formatVolume(value) {
+  if (value >= 1e9) return (value / 1e9).toFixed(1) + "B";
+  if (value >= 1e6) return (value / 1e6).toFixed(1) + "M";
+  if (value >= 1e3) return (value / 1e3).toFixed(1) + "K";
+  return value.toFixed(0);
+}
+
 // Ambil mapping category_id → name dari CoinGecko
 const fetchCategoryMap = async () => {
   if (categoryMap) return categoryMap;
@@ -42,7 +50,7 @@ const fetchGecko = async (category, limit) => {
   return coins.map(coin => ({
     symbol: coin.symbol.toUpperCase(),
     price: coin.current_price < 0.01 ? coin.current_price.toFixed(8) : coin.current_price.toFixed(2),
-    volume: `$${(coin.total_volume / 1e6).toFixed(1)}M`,
+    volume: formatVolume(coin.total_volume),  // Use formatVolume here
     trend: coin.price_change_percentage_24h,
     chart: genChartPath(coin.sparkline_in_7d?.price || [])
   }));
@@ -65,7 +73,7 @@ const fetchCMC = async (category, limit) => {
   return Object.values(data.data).map(coin => ({
     symbol: coin.symbol,
     price: coin.quote.USD.price < 0.01 ? coin.quote.USD.price.toFixed(8) : coin.quote.USD.price.toFixed(2),
-    volume: `$${(coin.quote.USD.volume_24h / 1e6).toFixed(1)}M`,
+    volume: formatVolume(coin.quote.USD.volume_24h),  // Use formatVolume here
     trend: coin.quote.USD.percent_change_24h,
     chart: ''
   }));
@@ -81,7 +89,7 @@ const fetchBinance = async (limit) => {
     .map(d => ({
       symbol: d.symbol.replace('USDT', ''),
       price: parseFloat(d.lastPrice) < 0.01 ? parseFloat(d.lastPrice).toFixed(8) : parseFloat(d.lastPrice).toFixed(2),
-      volume: `$${(parseFloat(d.quoteVolume) / 1e6).toFixed(1)}M`,
+      volume: formatVolume(parseFloat(d.quoteVolume)),  // Use formatVolume here
       trend: parseFloat(d.priceChangePercent),
       chart: ''
     }))
