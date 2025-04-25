@@ -1,5 +1,7 @@
 const fetch = require('node-fetch');
 const { renderModern } = require('../lib/settings/model/modern');
+const renderLocked = require('../lib/settings/data/locked');
+const { isFollowing } = require('../lib/follow-check');
 
 const COINGECKO_API = 'https://api.coingecko.com/api/v3';
 const CMC_API = 'https://pro-api.coinmarketcap.com/v1';
@@ -12,7 +14,6 @@ let categoryMap = null;
 // Delay helper
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
-// Format Volume (M, B, K)
 function formatVolume(value) {
   if (value >= 1e9) return (value / 1e9).toFixed(1) + "B";
   if (value >= 1e6) return (value / 1e6).toFixed(1) + "M";
@@ -20,7 +21,6 @@ function formatVolume(value) {
   return value.toFixed(0);
 }
 
-// Format Price (Smart for micin coin)
 function formatPrice(value) {
   if (value >= 0.01) {
     const str = value.toFixed(8);
@@ -34,7 +34,6 @@ function formatPrice(value) {
   return { price: `0.0{${zeroCount}}${rest}`, micin: true };
 }
 
-// Fetch category name map from CoinGecko
 const fetchCategoryMap = async () => {
   if (categoryMap) return categoryMap;
   const res = await fetch(`${COINGECKO_API}/coins/categories/list`);
@@ -44,7 +43,6 @@ const fetchCategoryMap = async () => {
   return categoryMap;
 };
 
-// Generate SVG path for sparkline chart
 function genChartPath(data) {
   const max = Math.max(...data);
   const min = Math.min(...data);
@@ -56,7 +54,6 @@ function genChartPath(data) {
   return 'M' + norm.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' L');
 }
 
-// CoinGecko source
 const fetchGecko = async (category, limit) => {
   const url = `${COINGECKO_API}/coins/markets?vs_currency=usd&category=${category}&order=market_cap_desc&per_page=${limit}&sparkline=true`;
   const res = await fetch(url);
@@ -75,7 +72,6 @@ const fetchGecko = async (category, limit) => {
   });
 };
 
-// CoinMarketCap source
 const fetchCMC = async (category, limit) => {
   const slugRes = await fetch(`${CMC_API}/cryptocurrency/category`, {
     headers: { 'X-CMC_PRO_API_KEY': CMC_KEY }
@@ -102,7 +98,6 @@ const fetchCMC = async (category, limit) => {
   });
 };
 
-// Binance source
 const fetchBinance = async (limit) => {
   const res = await fetch(BINANCE_API);
   if (!res.ok) throw new Error('Binance failed');
@@ -125,11 +120,24 @@ const fetchBinance = async (limit) => {
 
 // MAIN HANDLER
 module.exports = async (req, res) => {
-  const { model = 'modern', theme = 'dark', coin = '6', category = 'layer1' } = req.query;
+  const { user, model = 'modern', theme = 'dark', coin = '6', category = 'layer1' } = req.query;
   const limit = Math.min(Math.max(parseInt(coin), 1), 20);
   const cacheKey = `${category}_${limit}_${theme}`;
 
+  res.setHeader('Content-Type', 'image/svg+xml');
+  res.setHeader('Cache-Control', 'no-store');
+
   try {
+    // Verifikasi follow jika ada user
+    if (!user || typeof user !== 'string') {
+      return res.status(200).send(renderLocked('Guest'));
+    }
+
+    const verified = await isFollowing(user.toLowerCase());
+    if (!verified) {
+      return res.status(200).send(renderLocked(user));
+    }
+
     if (!cache.has(cacheKey)) {
       let data;
       let categoryName = 'General';
@@ -153,9 +161,6 @@ module.exports = async (req, res) => {
 
     const data = cache.get(cacheKey);
     const svg = renderModern(data, theme, limit);
-
-    res.setHeader('Content-Type', 'image/svg+xml');
-    res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate');
     return res.status(200).send(svg);
   } catch (err) {
     return res.status(500).send(`<svg xmlns="http://www.w3.org/2000/svg" width="600" height="100"><text x="50%" y="50%" font-size="16" text-anchor="middle" fill="red">Error: ${err.message}</text></svg>`);
