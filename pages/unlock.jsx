@@ -132,23 +132,24 @@ export default function UnlockPage() {
           </button>
         </div>
 
+        {/* Hanya tampil kalau unlockedUrl sudah ada */}
         {unlockedUrl && (
           <div className="form-group mt-6 text-center">
-            <p className="subtitle">Your README URL:</p>
+            <p className="subtitle">Your Card URL:</p>
             <code className="block my-2 p-2 bg-gray-100 rounded break-all text-xs">
               {unlockedUrl}
             </code>
             <div className="flex justify-center gap-4 mt-2">
               <button
                 onClick={handleCopyUrl}
-                className="button flex items-center gap-2 px-3 py-2"
+                className="button flex items-center gap-2 px-3 py-2 hover:bg-gray-200"
               >
                 <ClipboardCopy className="w-4 h-4" />
                 Copy URL
               </button>
               <button
                 onClick={handleCopyHtml}
-                className="button flex items-center gap-2 px-3 py-2"
+                className="button flex items-center gap-2 px-3 py-2 hover:bg-gray-200"
               >
                 <ClipboardCopy className="w-4 h-4" />
                 Copy HTML
