@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { toast } from "react-hot-toast";
 import { Loader2, ClipboardCopy } from "lucide-react";
+import { motion } from "framer-motion"; // <-- Tambah ini
 import Turnstile from "react-turnstile";
 
 export default function UnlockPage() {
@@ -15,11 +16,11 @@ export default function UnlockPage() {
 
   useEffect(() => {
     if (ref === "github") {
-      toast.success("Selamat datang pejuang GitHub!");
+      toast.success("Welcome, GitHub warrior! 😊");
     } else if (ref === "twitter") {
-      toast.success("Halo teman Twitter!");
+      toast.success("Hello, Twitter X friends! 😊");
     } else if (ref) {
-      toast.success(`Welcome from ${ref}!`);
+      toast.success(`Welcome from ${ref}! 😊`);
     }
   }, [ref]);
 
@@ -94,11 +95,18 @@ export default function UnlockPage() {
   };
 
   return (
-    <div className="unlock-wrapper">
+    <motion.div
+      className="unlock-wrapper"
+      initial={{ opacity: 0, y: 50 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.8, ease: "easeOut" }}
+    >
       <div className="unlock-card">
-        <h1 className="title">Unlock Card Tools</h1>
+        <h1 className="title text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent animate-gradient">
+          Unlock Card Tools
+        </h1>
 
-        <p className="subtitle">
+        <p className="subtitle mt-4">
           Follow{" "}
           <a
             href="https://twitter.com/Deisgoku"
@@ -174,6 +182,6 @@ export default function UnlockPage() {
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
