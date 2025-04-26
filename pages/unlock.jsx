@@ -1,8 +1,9 @@
+
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { toast } from "react-hot-toast";
 import { Loader2, ClipboardCopy } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion } from "framer-motion"; // <-- Motion ada
 import Turnstile from "react-turnstile";
 
 export default function UnlockPage() {
@@ -96,40 +97,40 @@ export default function UnlockPage() {
 
   return (
     <motion.div
-      className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-black via-blue-900 to-black p-4"
+      className="unlock-wrapper"
       initial={{ opacity: 0, y: 50 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8, ease: "easeOut" }}
     >
-      <div className="bg-black/60 p-8 rounded-2xl shadow-2xl max-w-2xl w-full">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent text-center mb-6 animate-gradient">
+      <div className="unlock-card">
+        <h1 className="title text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent animate-gradient">
           Unlock Card Tools
         </h1>
 
-        <p className="text-white text-center mb-4">
+        <p className="subtitle mt-4">
           Follow{" "}
           <a
             href="https://twitter.com/Deisgoku"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-400 underline"
+            className="link"
           >
             @Deisgoku
           </a>{" "}
           and enter your Twitter username below:
         </p>
 
-        <div className="w-full max-w-md mx-auto">
+        <div className="form-group">
           <input
             type="text"
             placeholder="e.g. vitalikbutterin"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full p-3 rounded-lg bg-blue-950 text-white text-center mb-4"
+            className="input flex items-center justify-center gap-2"
           />
         </div>
 
-        <div className="flex justify-center my-4">
+        <div className="form-group flex justify-center my-4">
           <Turnstile
             sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
             onSuccess={(token) => setToken(token)}
@@ -137,11 +138,11 @@ export default function UnlockPage() {
           />
         </div>
 
-        <div className="flex justify-center">
+        <div className="form-group">
           <button
             onClick={handleUnlock}
             disabled={loading}
-            className="w-full max-w-md px-4 py-3 bg-blue-950 text-white rounded-lg shadow-lg hover:shadow-blue-500/70 transition-all flex items-center justify-center gap-2"
+            className="button flex items-center justify-center gap-2"
           >
             {loading ? (
               <>
@@ -161,19 +162,19 @@ export default function UnlockPage() {
             transition={{ duration: 0.5, ease: "easeOut" }}
             className="w-full max-w-md mx-auto mt-6 text-center"
           >
-            <p className="text-white mb-2">Your Card URL:</p>
+            <p className="subtitle mb-2">Your Card URL:</p>
 
             <textarea
               value={unlockedUrl}
               readOnly
               rows={3}
-              className="w-full max-w-md p-2 bg-blue-950 text-white rounded-lg shadow-md text-xs break-words overflow-x-auto resize-none text-center"
+              className="w-full max-w-md p-2 bg-white text-black rounded-md scale-90 shadow-sm text-xs break-words overflow-x-auto resize-none text-center"
             />
 
-            <div className="flex flex-col items-center mt-2">
+            <div className="flex justify-center gap-4 mt-2">
               <button
                 onClick={handleCopyUrl}
-                className="w-full px-4 py-2 bg-blue-950 text-white rounded-lg shadow-lg hover:shadow-blue-500/70 transition-all flex items-center justify-center gap-2"
+                className="button flex items-center gap-2 px-3 py-2 hover:bg-gray-200"
               >
                 <ClipboardCopy className="w-4 h-4" />
                 Copy URL
@@ -181,7 +182,7 @@ export default function UnlockPage() {
 
               <button
                 onClick={handleCopyHtml}
-                className="w-full m-4 px-4 py-2 bg-blue-950 text-white rounded-lg shadow-lg hover:shadow-blue-500/70 transition-all flex items-center justify-center gap-2"
+                className="button flex items-center gap-4 px-3 py-2 hover:bg-gray-200"
               >
                 <ClipboardCopy className="w-4 h-4" />
                 Copy HTML
