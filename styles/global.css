@@ -23,8 +23,8 @@ body {
 }
 
 .unlock-card {
-  background: #000; /* bg-black */
   background: rgba(0, 0, 0, 0.7); /* bg-black/70 */
+  background: #000; /* bg-black */
   padding: 40px 30px; 
   padding: 2rem; /* p-8 */
   border-radius: 20px;
