@@ -82,8 +82,11 @@ export default function UnlockPage() {
   return (
     <div className="unlock-wrapper p-4">
       <div className="unlock-card bg-white p-6 rounded-xl shadow-lg max-w-md mx-auto">
+
+        {/* Title */}
         <h1 className="title text-2xl font-bold text-center mb-4">Unlock Card Tools</h1>
 
+        {/* Subtitle */}
         <p className="subtitle text-center text-gray-600 mb-6">
           Follow{" "}
           <a
@@ -97,52 +100,62 @@ export default function UnlockPage() {
           and enter your Twitter username below:
         </p>
 
-        <div className="form-group mb-4">
-          <input
-            type="text"
-            placeholder="e.g. vitalikbutterin"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="input w-full p-3 rounded-md bg-gray-100 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
+        {/* Form Section */}
+        <div className="w-full max-w-md mx-auto space-y-4">
+
+          {/* Input Username */}
+          <div className="form-group">
+            <input
+              type="text"
+              placeholder="e.g. vitalikbutterin"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full p-3 rounded-md bg-gray-100 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+          </div>
+
+          {/* Captcha */}
+          <div className="form-group flex justify-center my-4">
+            <Turnstile
+              sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+              onSuccess={(token) => setToken(token)}
+              className="rounded-md scale-90 shadow-sm"
+            />
+          </div>
+
+          {/* Unlock Button */}
+          <div className="form-group">
+            <button
+              onClick={handleUnlock}
+              disabled={loading}
+              className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-md flex items-center justify-center gap-2 transition active:scale-95"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Unlocking...
+                </>
+              ) : (
+                "Unlock"
+              )}
+            </button>
+          </div>
+
         </div>
 
-        <div className="form-group flex justify-center my-4">
-          <Turnstile
-            sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-            onSuccess={(token) => setToken(token)}
-            className="rounded-md scale-90 shadow-sm"
-          />
-        </div>
-
-        <div className="form-group">
-          <button
-            onClick={handleUnlock}
-            disabled={loading}
-            className="button w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-md flex items-center justify-center gap-2 transition active:scale-95"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Unlocking...
-              </>
-            ) : (
-              "Unlock"
-            )}
-          </button>
-        </div>
-
-        {/* Jika URL sudah didapat */}
+        {/* Hasil Unlock */}
         {unlockedUrl && (
           <div className="form-group mt-6 text-center">
+
+            {/* Subtitle */}
             <p className="subtitle text-gray-700 font-semibold mb-2">Your Card URL:</p>
 
-            {/* Kotak putih untuk URL */}
-            <div className="bg-gray-100 text-gray-800 text-sm p-4 rounded-md break-words w-full max-w-full overflow-x-auto">
+            {/* Box URL */}
+            <div className="bg-gray-100 text-gray-800 text-sm p-4 rounded-md break-words break-all w-full text-left">
               {unlockedUrl}
             </div>
 
-            {/* Tombol copy dengan jarak */}
+            {/* Copy Buttons */}
             <div className="flex flex-col sm:flex-row justify-center gap-3 mt-4">
               <button
                 onClick={handleCopyUrl}
@@ -151,6 +164,7 @@ export default function UnlockPage() {
                 <ClipboardCopy className="w-5 h-5" />
                 Copy URL
               </button>
+
               <button
                 onClick={handleCopyHtml}
                 className="button flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-md transition active:scale-95"
@@ -159,8 +173,10 @@ export default function UnlockPage() {
                 Copy HTML
               </button>
             </div>
+
           </div>
         )}
+
       </div>
     </div>
   );
