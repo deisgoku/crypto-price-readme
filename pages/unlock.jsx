@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { toast } from "react-hot-toast";
 import { Loader2, ClipboardCopy } from "lucide-react";
-import { motion } from "framer-motion"; // <-- Tambah ini
+import { motion } from "framer-motion"; // <-- Motion ada
 import Turnstile from "react-turnstile";
 
 export default function UnlockPage() {
@@ -16,11 +16,11 @@ export default function UnlockPage() {
 
   useEffect(() => {
     if (ref === "github") {
-      toast.success("Welcome, GitHub warrior! 😊");
+      toast.success("Welcome, GitHub warrior!");
     } else if (ref === "twitter") {
-      toast.success("Hello, Twitter X friends! 😊");
+      toast.success("Hello, Twitter X friends!");
     } else if (ref) {
-      toast.success(`Welcome from ${ref}! 😊`);
+      toast.success(`Welcome from ${ref}!`);
     }
   }, [ref]);
 
@@ -155,12 +155,20 @@ export default function UnlockPage() {
         </div>
 
         {unlockedUrl && (
-          <div className="w-full max-w-md mx-auto mt-6 text-center">
-            <p className="subtitle">Your Card URL:</p>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="w-full max-w-md mx-auto mt-6 text-center"
+          >
+            <p className="subtitle mb-2">Your Card URL:</p>
 
-            <code className="block my-2 p-2 bg-white rounded-md scale-90 shadow-sm break-all max-w-md text-xs text-gray-800 overflow-hidden">
-              {unlockedUrl}
-            </code>
+            <textarea
+              value={unlockedUrl}
+              readOnly
+              rows={3}
+              className="w-full max-w-md p-2 bg-white text-black rounded-md scale-90 shadow-sm text-xs break-words overflow-x-auto resize-none text-center"
+            />
 
             <div className="flex justify-center gap-4 mt-2">
               <button
@@ -179,7 +187,7 @@ export default function UnlockPage() {
                 Copy HTML
               </button>
             </div>
-          </div>
+          </motion.div>
         )}
       </div>
     </motion.div>
