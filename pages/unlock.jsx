@@ -25,14 +25,9 @@ export default function UnlockPage() {
       const { status } = await checkRes.json();
 
       if (status === "already_verified") {
-        toast.success(`Welcome back, @${username}! You already unlocked it.`);
+        toast.success(`You're verified! Welcome back, @${username}.`);
       } else if (status === "newly_verified") {
-        await fetch(`/api/add-follower`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username }),
-        });
-        toast.success(`Welcome, @${username}! Unlock successful.`);
+        toast.success(`You're verified! Welcome aboard, @${username}.`);
       } else {
         toast.error("Verification failed. Please make sure you've followed us.");
       }
@@ -44,37 +39,42 @@ export default function UnlockPage() {
   };
 
   return (
-    <div className="unlock-wrapper">
-  {/* Header */}
-  <div className="header-section">
-    <h1 className="text-2xl font-bold">Welcome</h1>
-    <p className="text-sm">Unlocker Card</p>
-    <p className="text-xs text-cyan-200 mt-2">
-      Please follow our Twitter account and input your username below
-    </p>
-  </div>
+    <div className="unlock-page">
+      <div className="unlock-card">
+        <h1 className="text-3xl font-bold mb-4">Unlock Web3 Tools</h1>
+        <p className="mb-6 text-sm">
+          Follow{" "}
+          <a
+            href="https://twitter.com/Deisgoku"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-cyan-400 hover:underline"
+          >
+            @Deisgoku
+          </a>{" "}
+          and enter your Twitter username below:
+        </p>
 
-  {/* Card untuk form input + button */}
-  <div className="card">
-    <div className="form-container">
-      <label htmlFor="username" className="text-sm text-left">Twitter Username</label>
-      <input
-        type="text"
-        id="username"
-        placeholder="@yourhandle"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-      />
-      <button onClick={handleUnlock} disabled={loading}>
-        {loading ? "Unlocking..." : "Unlock"}
-      </button>
+        <input
+          type="text"
+          placeholder="@yourhandle"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          className="unlock-input mb-4"
+        />
+
+        <button
+          onClick={handleUnlock}
+          disabled={loading}
+          className="unlock-button"
+        >
+          {loading ? (
+            <Loader2 className="animate-spin h-5 w-5 mx-auto" />
+          ) : (
+            "Unlock"
+          )}
+        </button>
+      </div>
     </div>
-  </div>
-
-  {/* Footer */}
-  <footer>
-    “Thank you for supporting this project. You are awesome.”
-  </footer>
-</div>
   );
 }
