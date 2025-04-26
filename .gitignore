@@ -1,0 +1,48 @@
+# Node modules
+node_modules/
+
+# Vercel / Next.js Build output
+.next/
+out/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Sistem sampah
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# File Environment (AMANKAN API KEY LU!!)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Hasil Build
+dist/
+build/
+public/build/
+
+# Cache2an
+.cache/
+vercel/
+.purgecss/
+
+# Coverage Test
+coverage/
+
+# Storybook Output
+storybook-static/
+
+# File sementara
+*.bak
+*.tmp
+
+# Unlock Image
+public/bg-unlock.webp
