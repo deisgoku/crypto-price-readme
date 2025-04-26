@@ -1,10 +1,10 @@
 {
   "name": "crypto-price-readme",
-  "version": "1.4.1",
+  "version": "1.5.8",
   "description": "Realtime crypto badges for GitHub README (price, volume, trend, chart, and card) with dynamic API.",
   "main": "api/prices.js",
   "engines": {
-    "node": "18.x"
+    "node": "23.x"
   },
   "author": "deisgoku",
   "license": "MIT",
@@ -47,7 +47,8 @@
     "lottie-react": "^2.3.1",
     "lucide-react": "^0.263.0",
     "react-hot-toast": "^2.4.0",
-    "framer-motion": "^10.16.3"
+    "framer-motion": "^10.16.3",
+    "react-turnstile": "^1.0.7"
   },
   "devDependencies": {
     "eslint": "^9.1.0",
