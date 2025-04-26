@@ -1,38 +1,83 @@
 @tailwind base;
 @tailwind components;
-@tailwind utilities;
+@tailwind utilities
 
 body {
-  @apply m-0 p-0 w-full h-screen font-sans text-white;
-  background-image: url('/bg-unlock.webp');
+  background: url('/bg-unlock.webp') no-repeat center center fixed;
   background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
+  font-family: 'Poppins', sans-serif;
+  margin: 0;
+  padding: 0;
 }
 
-/* Unlock Page Styling */
-.unlock-page {
-  @apply flex items-center justify-center min-h-screen w-full px-4;
+.unlock-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
 }
 
 .unlock-card {
-  @apply bg-dark bg-opacity-80 backdrop-blur p-8 rounded-2xl shadow-2xl text-center w-full max-w-sm border border-cyan-400;
-  box-shadow: 0 0 20px #00f0ff88, 0 0 30px #00f0ff33;
+  background: rgba(0, 0, 0, 0.85);
+  padding: 40px 30px;
+  border-radius: 20px;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
 }
 
-.unlock-input {
-  @apply w-full p-3 rounded-lg bg-gray-900 bg-opacity-60 text-white border border-cyan-400 outline-none focus:ring-2 focus:ring-cyan-400 transition;
+.title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 20px;
 }
 
-.unlock-button {
-  @apply w-full px-4 py-3 rounded-lg text-white bg-primary hover:bg-emerald-600 transition font-semibold mt-2;
-  box-shadow: 0 0 10px #10b981aa;
+.subtitle {
+  font-size: 1rem;
+  color: white;
+  margin-bottom: 20px;
 }
 
-.unlock-button:hover {
-  box-shadow: 0 0 15px #10b981cc, 0 0 20px #10b981aa;
+.link {
+  color: #00bfff;
+  text-decoration: underline;
+}
+
+.input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  margin-bottom: 20px;
+  font-size: 1rem;
+}
+
+.button {
+  width: 100%;
+  padding: 12px;
+  background: #22c55e;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: bold;
+  color: white;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.button:hover {
+  background: #16a34a;
+}
+
+.success-text {
+  margin-top: 20px;
+  color: #22c55e;
+  font-weight: bold;
+}
+
+.form-group {
+  margin-bottom: 20px;
 }
