@@ -1,12 +1,12 @@
-"use client";
-
-import React, { useState } from "react";
-import toast from "react-hot-toast";
+import { useState } from "react";
+import { toast } from "react-hot-toast";
+import { Loader2 } from "lucide-react";
 
 export default function UnlockPage() {
   const [username, setUsername] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleUnlock = () => {
+  const handleUnlock = async () => {
     if (!username.trim()) {
       toast.error("Please enter your Twitter username.");
       return;
@@ -17,41 +17,81 @@ export default function UnlockPage() {
       return;
     }
 
-    toast.success(`Welcome, @${username}! Unlock successful.`);
-    // Lanjut ke API logic di sini
+    setLoading(true);
+
+    try {
+      const checkRes = await fetch("/api/follow-check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username }),
+      });
+
+      const { status } = await checkRes.json();
+
+      if (status === "already_verified") {
+        toast.success(`Welcome back, @${username}! You already unlocked it.`);
+      } else if (status === "newly_verified") {
+        await fetch("/api/add-follower", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username }),
+        });
+
+        toast.success(`Welcome, @${username}! Unlock Card Successfully.`);
+      } else {
+        toast.error("Verification failed. Please make sure you've followed us.");
+      }
+    } catch (err) {
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="unlock-wrapper">
-      
-      <h1 className="title text-3xl font-bold mb-6">Unlock Web3 Tools</h1>
-
-      {/* Card */}
       <div className="unlock-card">
-        <p className="subtitle text-sm mb-4">
+        <h1 className="title">Unlock Card Tools</h1>
+
+        <p className="subtitle">
           Follow{" "}
           <a
             href="https://twitter.com/Deisgoku"
             target="_blank"
             rel="noopener noreferrer"
-            className="link text-cyan-300 underline hover:text-cyan-400"
+            className="link"
           >
             @Deisgoku
           </a>{" "}
-          on Twitter and enter your username below:
+          and enter your Twitter username below:
         </p>
 
-        <input
-          type="text"
-          placeholder="yourhandle"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          className="input"
-        />
+        <div className="form-group">
+          <input
+            type="text"
+            placeholder="e.g. vitalkbutterin"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className="input"
+          />
+        </div>
 
-        <button onClick={handleUnlock} className="button mt-4">
-          Unlock
-        </button>
+        <div className="form-group">
+          <button
+            onClick={handleUnlock}
+            disabled={loading}
+            className="button flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Unlocking...
+              </>
+            ) : (
+              "Unlock"
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
