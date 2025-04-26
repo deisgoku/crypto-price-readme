@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { Loader2 } from "lucide-react";
+import Turnstile from "react-turnstile";
 
 export default function UnlockPage() {
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
+  const [token, setToken] = useState("");
 
   const handleUnlock = async () => {
     if (!username.trim()) {
@@ -17,13 +19,18 @@ export default function UnlockPage() {
       return;
     }
 
+    if (!token) {
+      toast.error("Please complete the CAPTCHA first.");
+      return;
+    }
+
     setLoading(true);
 
     try {
       const checkRes = await fetch("/api/follow-check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username }),
+        body: JSON.stringify({ username, token }),
       });
 
       const { status } = await checkRes.json();
@@ -73,6 +80,15 @@ export default function UnlockPage() {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             className="input"
+          />
+        </div>
+
+        {/* CAPTCHA in the center */}
+        <div className="form-group flex justify-center my-4">
+          <Turnstile
+            sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+            onSuccess={(token) => setToken(token)}
+            className="rounded-md scale-90 shadow-sm"
           />
         </div>
 
