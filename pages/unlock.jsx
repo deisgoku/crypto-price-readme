@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { toast } from "react-hot-toast";
-import { Loader2, Copy } from "lucide-react";
+import { Loader2, ClipboardCopy } from "lucide-react";
 import Turnstile from "react-turnstile";
 
 export default function UnlockPage() {
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
   const [token, setToken] = useState("");
-  const [url, setUrl] = useState("");
+  const [unlockedUrl, setUnlockedUrl] = useState("");
 
   const handleUnlock = async () => {
     if (!username.trim()) {
@@ -37,17 +37,17 @@ export default function UnlockPage() {
       const { status } = await checkRes.json();
 
       if (status === "already_verified" || status === "newly_verified") {
-        await fetch("/api/add-follower", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username }),
-        });
+        if (status === "newly_verified") {
+          await fetch("/api/add-follower", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username }),
+          });
+        }
 
-        toast.success(`Welcome, @${username}! Unlock Success.`);
-        
-        setUrl(
-          `https://crypto-price-on.vercel.app/api/card?user=${username}&model=modern&theme=dark&coin=5&category=layer-1`
-        );
+        toast.success(`Welcome, @${username}! Unlock Successful.`);
+        const url = `https://crypto-price-on.vercel.app/api/card?user=${username}&model=modern&theme=dark&coin=5&category=layer-1`;
+        setUnlockedUrl(url);
       } else {
         toast.error("Verification failed. Please make sure you've followed us.");
       }
@@ -58,31 +58,39 @@ export default function UnlockPage() {
     }
   };
 
-  const handleCopyUrl = () => {
-    if (!url) return;
-    navigator.clipboard.writeText(url);
-    toast.success("URL copied!");
+  const handleCopyUrl = async () => {
+    if (!unlockedUrl) return;
+    try {
+      await navigator.clipboard.writeText(unlockedUrl);
+      toast.success("URL copied!");
+    } catch {
+      toast.error("Failed to copy URL.");
+    }
   };
 
-  const handleCopyHtml = () => {
-    if (!url) return;
-    const html = `<img src="${url}" alt="Crypto Card" />`;
-    navigator.clipboard.writeText(html);
-    toast.success("HTML copied!");
+  const handleCopyHtml = async () => {
+    if (!unlockedUrl) return;
+    const html = `<p align="left">\n  <img src="${unlockedUrl}" />\n</p>`;
+    try {
+      await navigator.clipboard.writeText(html);
+      toast.success("HTML snippet copied!");
+    } catch {
+      toast.error("Failed to copy HTML.");
+    }
   };
 
   return (
-    <div className="unlock-wrapper min-h-screen flex justify-center items-center p-4 bg-black">
-      <div className="unlock-card bg-[#1e1e1e] p-8 rounded-2xl shadow-lg max-w-md w-full">
-        <h1 className="text-2xl font-bold text-white text-center mb-4">Unlock Card Tools</h1>
+    <div className="unlock-wrapper p-4">
+      <div className="unlock-card bg-white p-6 rounded-xl shadow-lg max-w-md mx-auto">
+        <h1 className="title text-2xl font-bold text-center mb-4">Unlock Card Tools</h1>
 
-        <p className="text-center text-gray-300 mb-6">
+        <p className="subtitle text-center text-gray-600 mb-6">
           Follow{" "}
           <a
             href="https://twitter.com/Deisgoku"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-400 hover:underline"
+            className="text-blue-500 hover:underline"
           >
             @Deisgoku
           </a>{" "}
@@ -95,11 +103,10 @@ export default function UnlockPage() {
             placeholder="e.g. vitalikbutterin"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full p-3 rounded-md bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="input w-full p-3 rounded-md bg-gray-100 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
         </div>
 
-        {/* CAPTCHA */}
         <div className="form-group flex justify-center my-4">
           <Turnstile
             sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
@@ -112,7 +119,7 @@ export default function UnlockPage() {
           <button
             onClick={handleUnlock}
             disabled={loading}
-            className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-md flex items-center justify-center gap-2 transition active:scale-95"
+            className="button w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-md flex items-center justify-center gap-2 transition active:scale-95"
           >
             {loading ? (
               <>
@@ -125,33 +132,34 @@ export default function UnlockPage() {
           </button>
         </div>
 
-        {url && (
-          <>
-            <div className="mt-6 px-4">
-              <h2 className="text-white font-semibold mb-2 text-center">Your Card URL:</h2>
-              <div className="bg-gray-800 text-white text-sm p-4 rounded-md break-words text-center w-full overflow-x-auto">
-                {url}
-              </div>
+        {/* Jika URL sudah didapat */}
+        {unlockedUrl && (
+          <div className="form-group mt-6 text-center">
+            <p className="subtitle text-gray-700 font-semibold mb-2">Your Card URL:</p>
+
+            {/* Kotak putih untuk URL */}
+            <div className="bg-gray-100 text-gray-800 text-sm p-4 rounded-md break-words w-full max-w-full overflow-x-auto">
+              {unlockedUrl}
             </div>
 
-            <div className="flex flex-col gap-3 mt-4 px-4">
+            {/* Tombol copy dengan jarak */}
+            <div className="flex flex-col sm:flex-row justify-center gap-3 mt-4">
               <button
                 onClick={handleCopyUrl}
-                className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-md flex items-center justify-center gap-2 transition active:scale-95"
+                className="button flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-md transition active:scale-95"
               >
-                <Copy className="h-5 w-5" />
+                <ClipboardCopy className="w-5 h-5" />
                 Copy URL
               </button>
-
               <button
                 onClick={handleCopyHtml}
-                className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-md flex items-center justify-center gap-2 transition active:scale-95"
+                className="button flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-md transition active:scale-95"
               >
-                <Copy className="h-5 w-5" />
+                <ClipboardCopy className="w-5 h-5" />
                 Copy HTML
               </button>
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>
