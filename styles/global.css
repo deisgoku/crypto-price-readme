@@ -35,6 +35,63 @@ body {
   margin-bottom: 20px;
 }
 
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient 5s ease infinite;
+}
+
+.unlock-card {
+  background: #000; /* tetap hitam */
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.1), 0 0 40px rgba(0, 255, 255, 0.05);
+}
+
+.title {
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.6); /* glow tipis di teks */
+}
+
+.input {
+  background: #111;
+  border: 1px solid #333;
+  color: #eee;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.input:hover, .input:focus {
+  border-color: #00ffff;
+  box-shadow: 0 0 8px #00ffff55;
+}
+
+.button {
+  background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+  color: white;
+  font-weight: bold;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 210, 255, 0.5);
+}
+
+
 .subtitle {
   font-size: 1rem;
   color: white;
