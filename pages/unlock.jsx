@@ -45,7 +45,6 @@ export default function UnlockPage() {
 
         toast.success(`Welcome, @${username}! Unlock Success.`);
         
-        // Generate URL (optional: bisa dikembangkan dinamis)
         setUrl(
           `https://crypto-price-on.vercel.app/api/card?user=${username}&model=modern&theme=dark&coin=5&category=layer-1`
         );
@@ -73,11 +72,11 @@ export default function UnlockPage() {
   };
 
   return (
-    <div className="unlock-wrapper min-h-screen flex justify-center items-center p-4">
+    <div className="unlock-wrapper min-h-screen flex justify-center items-center p-4 bg-black">
       <div className="unlock-card bg-[#1e1e1e] p-8 rounded-2xl shadow-lg max-w-md w-full">
-        <h1 className="title text-2xl font-bold text-white text-center mb-4">Unlock Card Tools</h1>
+        <h1 className="text-2xl font-bold text-white text-center mb-4">Unlock Card Tools</h1>
 
-        <p className="subtitle text-center text-gray-300 mb-6">
+        <p className="text-center text-gray-300 mb-6">
           Follow{" "}
           <a
             href="https://twitter.com/Deisgoku"
@@ -96,11 +95,11 @@ export default function UnlockPage() {
             placeholder="e.g. vitalikbutterin"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="input w-full p-3 rounded-md bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="w-full p-3 rounded-md bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
         </div>
 
-        {/* CAPTCHA in the center */}
+        {/* CAPTCHA */}
         <div className="form-group flex justify-center my-4">
           <Turnstile
             sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
@@ -113,7 +112,7 @@ export default function UnlockPage() {
           <button
             onClick={handleUnlock}
             disabled={loading}
-            className="button w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-md flex items-center justify-center gap-2 transition active:scale-95"
+            className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-md flex items-center justify-center gap-2 transition active:scale-95"
           >
             {loading ? (
               <>
@@ -128,17 +127,17 @@ export default function UnlockPage() {
 
         {url && (
           <>
-            <div className="form-group mt-6">
+            <div className="mt-6 px-4">
               <h2 className="text-white font-semibold mb-2 text-center">Your Card URL:</h2>
-              <div className="bg-gray-800 text-white text-sm p-4 rounded-md break-words text-center">
+              <div className="bg-gray-800 text-white text-sm p-4 rounded-md break-words text-center w-full overflow-x-auto">
                 {url}
               </div>
             </div>
 
-            <div className="form-group flex flex-col gap-3 mt-4">
+            <div className="flex flex-col gap-3 mt-4 px-4">
               <button
                 onClick={handleCopyUrl}
-                className="button w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-md flex items-center justify-center gap-2 transition active:scale-95"
+                className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-md flex items-center justify-center gap-2 transition active:scale-95"
               >
                 <Copy className="h-5 w-5" />
                 Copy URL
@@ -146,7 +145,7 @@ export default function UnlockPage() {
 
               <button
                 onClick={handleCopyHtml}
-                className="button w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-md flex items-center justify-center gap-2 transition active:scale-95"
+                className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-md flex items-center justify-center gap-2 transition active:scale-95"
               >
                 <Copy className="h-5 w-5" />
                 Copy HTML
