@@ -10,34 +10,29 @@ body {
   background-repeat: no-repeat;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: center;
+  align-items: center;
 }
 
-.unlock-wrapper {
-  @apply flex flex-col items-center justify-between h-screen px-4 py-6 text-center;
+/* Unlock Page Styling */
+.unlock-page {
+  @apply flex items-center justify-center min-h-screen w-full px-4;
 }
 
-.header-section {
-  @apply space-y-2;
-}
-
-.card {
-  @apply p-6 w-full max-w-sm bg-white bg-opacity-5 backdrop-blur rounded-xl border border-cyan-400 shadow-xl;
+.unlock-card {
+  @apply bg-dark bg-opacity-80 backdrop-blur p-8 rounded-2xl shadow-2xl text-center w-full max-w-sm border border-cyan-400;
   box-shadow: 0 0 20px #00f0ff88, 0 0 30px #00f0ff33;
 }
 
-.form-container {
-  @apply flex flex-col gap-4;
+.unlock-input {
+  @apply w-full p-3 rounded-lg bg-gray-900 bg-opacity-60 text-white border border-cyan-400 outline-none focus:ring-2 focus:ring-cyan-400 transition;
 }
 
-input {
-  @apply w-full p-2 rounded bg-gray-900 bg-opacity-50 text-white border border-cyan-400 outline-none;
+.unlock-button {
+  @apply w-full px-4 py-3 rounded-lg text-white bg-primary hover:bg-emerald-600 transition font-semibold mt-2;
+  box-shadow: 0 0 10px #10b981aa;
 }
 
-button {
-  @apply px-4 py-2 bg-cyan-500 rounded text-white hover:bg-cyan-600 transition disabled:opacity-50;
-}
-
-footer {
-  @apply text-sm text-cyan-300;
+.unlock-button:hover {
+  box-shadow: 0 0 15px #10b981cc, 0 0 20px #10b981aa;
 }
