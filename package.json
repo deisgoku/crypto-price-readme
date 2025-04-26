@@ -4,7 +4,7 @@
   "description": "Realtime crypto badges for GitHub README (price, volume, trend, chart, and card) with dynamic API.",
   "main": "api/prices.js",
   "engines": {
-    "node": "23.x"
+    "node": "20.x"
   },
   "author": "deisgoku",
   "license": "MIT",
