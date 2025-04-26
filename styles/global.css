@@ -23,8 +23,8 @@ body {
 }
 
 .unlock-card {
-  background: rgba(0, 0, 0, 0.7); /* bg-black/70 */
   background: #000; /* bg-black */
+  background: rgba(0, 0, 0, 0.9); /* bg-black/70 */
   padding: 40px 30px; 
   padding: 2rem; /* p-8 */
   border-radius: 20px;
@@ -71,33 +71,57 @@ body {
   box-shadow: 0 0 8px #00ffff55; /* custom shadow glow biru muda */
 }
 
+
 .button {
-  background: linear-gradient(90deg, #00d2ff, #3a7bd5); /* sebelumnya gradasi */
-  background: #22c55e; /* bg-green-500 (tapi kemudian diubah lagi) */
-  background-color: #0f172a; /* bg-blue-950 */
-  color: white; /* text-white */
+  background-color: #0f172a; /* dasar gelap */
   font-weight: bold; /* font-bold */
-  padding: 0.75rem 1.5rem; /* px-6 py-3 */
-  font-size: 1rem; /* text-base */
-  cursor: pointer; /* cursor-pointer */
-  transition: all 0.3s ease; /* transition-all duration-300 ease-in-out */
-  border: none; /* border-0 */
-  border-radius: 10px;
-  border-radius: 0.5rem; /* rounded-lg */
+  color: white;
   width: 100%; /* w-full */
   padding: 12px; /* p-3 */
-  box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3); /* shadow soft blue (custom) */
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.8); /* shadow biru terang (custom) */
+  padding: 12px 24px;
+  border: 1px solid #00d8ff; /* border biru terang */
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 
+    0 0 5px #00ccff, /* glow biru muda kecil */
+    0 0 10px #00ccff, /* glow biru muda besar */
+    0 0 2px #ffffff inset; /* highlight putih di sudut */
+  animation: pulse 2s infinite ease-in-out;
+  transition: all 0.3s ease;
 }
 
 .button:hover {
-  transform: translateY(-2px); /* hover:-translate-y-0.5 (manual) */
-  box-shadow: 0 4px 20px rgba(0, 210, 255, 0.5); /* glow lebih kuat saat hover */
-  background: #16a34a; /* bg-green-600 */
-  background-color: #2563eb; /* bg-blue-600 */
+  transform: translateY(-3px);
+  box-shadow:
+    0 0 20px #00ccff,
+    0 0 40px #00ccff,
+    0 0 10px #ffffff inset;
+  background-color: #2563eb; /* biru terang pas hover */
 }
 
+
+
 /* Animasi di bawah */
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 5px #00ccff,
+      0 0 10px #00ccff,
+      0 0 2px #ffffff inset;
+    background-color: #0f172a;
+  }
+  50% {
+    box-shadow:
+      0 0 10px #00ccff,
+      0 0 20px #00ccff,
+      0 0 5px #ffffff inset;
+    background-color: #1e293b;
+  }
+}
+
 
 @keyframes spin {
   to {
