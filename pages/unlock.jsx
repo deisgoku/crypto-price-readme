@@ -103,7 +103,7 @@ export default function UnlockPage() {
             placeholder="e.g. vitalikbutterin"  
             value={username}  
             onChange={(e) => setUsername(e.target.value)}  
-            className="input"  
+            className="input  flex items-center justify-center gap-2" 
           />  
         </div>  
   
@@ -134,12 +134,15 @@ export default function UnlockPage() {
   
         {/* Hanya tampil kalau unlockedUrl sudah ada */}  
         {unlockedUrl && (  
-          <div className="form-group mt-6 text-center">  
+          <div className="w-full max-w-md mx-auto mt-6 text-center">  
             <p className="subtitle">Your Card URL:</p>  
-            <code className="block my-2 p-2 bg-gray-100 rounded break-all text-xs">  
-              {unlockedUrl}  
-            </code>  
+            
+            <code className="block my-2 p-2 bg-white rounded-md scale-90 shadow-sm break-all  max-w-md text-xs text-gray-800 overflow-hidden">
+            {unlockedUrl}
+           </code>
+            
             <div className="flex justify-center gap-4 mt-2">  
+            
               <button  
                 onClick={handleCopyUrl}  
                 className="button flex items-center gap-2 px-3 py-2 hover:bg-gray-200"  
@@ -147,9 +150,10 @@ export default function UnlockPage() {
                 <ClipboardCopy className="w-4 h-4" />  
                 Copy URL  
               </button>  
+              
               <button  
                 onClick={handleCopyHtml}  
-                className="button flex items-center gap-2 px-3 py-2 hover:bg-gray-200"  
+                className="button flex items-center gap-4 px-3 py-2 hover:bg-gray-200"  
               >  
                 <ClipboardCopy className="w-4 h-4" />  
                 Copy HTML  
