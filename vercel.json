@@ -3,7 +3,7 @@
   "redirects": [
     {
       "source": "/",
-      "destination": "https://crypto-price-on.vercel.app/unlock",
+      "destination": "https://crypto-price-on.vercel.app/unlock?ref=github",
       "permanent": true
     }
   ]
