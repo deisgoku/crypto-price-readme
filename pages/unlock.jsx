@@ -1,9 +1,8 @@
-
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { toast } from "react-hot-toast";
 import { Loader2, ClipboardCopy } from "lucide-react";
-import { motion } from "framer-motion"; // <-- Motion ada
+import { motion } from "framer-motion";
 import Turnstile from "react-turnstile";
 
 export default function UnlockPage() {
@@ -120,16 +119,20 @@ export default function UnlockPage() {
           and enter your Twitter username below:
         </p>
 
-        <div className="form-group mx-auto w-full mx-w-[300px] flex items-center justify-center">
-          <input
-            type="text"
-            placeholder="e.g. vitalikbutterin"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="input w-full"
-          />
+        {/* INPUT USERNAME */}
+        <div className="form-group flex justify-center my-4">
+          <div className="w-full max-w-[300px]">
+            <input
+              type="text"
+              placeholder="e.g. vitalikbutterin"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="input w-full"
+            />
+          </div>
         </div>
 
+        {/* CAPTCHA */}
         <div className="form-group flex justify-center my-4">
           <Turnstile
             sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
@@ -138,7 +141,8 @@ export default function UnlockPage() {
           />
         </div>
 
-        <div className="form-group">
+        {/* BUTTON UNLOCK */}
+        <div className="form-group flex justify-center">
           <button
             onClick={handleUnlock}
             disabled={loading}
@@ -155,6 +159,7 @@ export default function UnlockPage() {
           </button>
         </div>
 
+        {/* CARD URL RESULT */}
         {unlockedUrl && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -168,13 +173,13 @@ export default function UnlockPage() {
               value={unlockedUrl}
               readOnly
               rows={3}
-              className="w-full max-w-md p-2 bg-white text-black rounded-md border-[#00ccff] text-xs break-words overflow-x-auto resize-none text-center"
+              className="textarea w-full"
             />
 
             <div className="flex justify-center gap-4 mt-4">
               <button
                 onClick={handleCopyUrl}
-                className="button flex items-center gap-2 px-3 py-2 hover:bg-gray-200"
+                className="button flex items-center gap-2 px-3 py-2 "
               >
                 <ClipboardCopy className="w-4 h-4" />
                 Copy URL
@@ -182,7 +187,7 @@ export default function UnlockPage() {
 
               <button
                 onClick={handleCopyHtml}
-                className="button flex mt-4 items-center gap-4 px-3 py-2 hover:bg-gray-200"
+                className="button flex items-center gap-2 px-3 py-2 "
               >
                 <ClipboardCopy className="w-4 h-4" />
                 Copy HTML
