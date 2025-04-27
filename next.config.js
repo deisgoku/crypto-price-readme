@@ -1,4 +1,3 @@
-
 // next.config.js
 module.exports = {
   async rewrites() {
@@ -12,7 +11,7 @@ module.exports = {
         destination: '/api/cards',
       },
       {
-        source: '/prices,
+        source: '/prices',
         destination: '/api/prices',
       },
     ]
