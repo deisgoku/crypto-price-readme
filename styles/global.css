@@ -66,7 +66,7 @@ body {
   background: #ffffff;  
   font-size: 1rem;  
   color: #000;  
-  padding: 12px 24px;  
+  padding: 12px 16px;  
   border: 1px solid #00bfff;  
   border-radius: 0.5rem;  
   transition: all 0.3s ease;  
@@ -81,7 +81,7 @@ body {
   background: #ffffff;  
   font-size: 1rem;  
   color: #000;  
-  padding: 12px 24px;  
+  padding: 12px 16px;  
   border: 1px solid #00bfff;  
   border-radius: 0.5rem;  
   resize: none;  
