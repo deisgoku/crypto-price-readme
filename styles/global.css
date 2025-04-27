@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Tetap background body */
+/* Background + font */
 body {
   background: url('/bg-unlock.webp') no-repeat center center fixed;
   background-size: cover;
@@ -11,42 +11,13 @@ body {
   padding: 0;
 }
 
-/* Animasi tambahan buat spin, pulse, gradient */
-@keyframes pulse {
-  0%, 100% {
-    box-shadow:
-      0 0 5px #00ccff,
-      0 0 10px #00ccff,
-      0 0 2px #ffffff inset;
-    background-color: #0f172a;
-  }
-  50% {
-    box-shadow:
-      0 0 10px #00ccff,
-      0 0 20px #00ccff,
-      0 0 5px #ffffff inset;
-    background-color: #1e293b;
-  }
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes gradient {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-/* Utility classes */
-.animate-spin {
-  animation: spin 1s linear infinite;
-}
-
-.animate-gradient {
-  background-size: 200% 200%;
-  animation: gradient 5s ease infinite;
+/* Unlock Card (kotak tengah) */
+.unlock-card {
+  background: rgba(0, 0, 0, 0.9);
+  padding: 2rem;
+  border-radius: 1rem;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.1), 0 0 40px rgba(0, 255, 255, 0.05);
 }
