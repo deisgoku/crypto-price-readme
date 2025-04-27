@@ -60,10 +60,11 @@ body {
   font-size: 1rem; /* text-base */
   color: #000; /* text-black */
   margin-bottom: 20px; /* mb-5 */
-  padding: 0.75rem 1rem 12px; /* pt-3 pb-3 pl-4 pr-4 kurang lebih */
-  border: 1px solid #333; /* border border-gray-800 */
+  padding: 12px 24px;
+  border: 1px solid #00bfff; /* border biru sky */
   border-radius: 0.5rem 10px; /* custom radius (Tailwind default: rounded-lg) */
   transition: all 0.3s ease; /* transition-all duration-300 ease-in-out */
+  animation: pulsetext 2s infinite ease-in-out;
 }
 
 .input:hover, .input:focus {
@@ -79,7 +80,7 @@ body {
   width: 100%; /* w-full */
   padding: 12px; /* p-3 */
   padding: 12px 24px;
-  border: 1px solid #00d8ff; /* border biru terang */
+  border: 1px solid #00bfff; /* border biru sky text link */
   border-radius: 0.5rem;
   font-size: 1rem;
   font-weight: bold;
@@ -88,7 +89,7 @@ body {
     0 0 5px #00ccff, /* glow biru muda kecil */
     0 0 10px #00ccff, /* glow biru muda besar */
     0 0 2px #ffffff inset; /* highlight putih di sudut */
-  animation: pulse 2s infinite ease-in-out;
+  animation: pulse 5s infinite ease-in-out;
   transition: all 0.3s ease;
 }
 
@@ -101,9 +102,45 @@ body {
   background-color: #2563eb; /* biru terang pas hover */
 }
 
+.textarea {
+  background: #ffffff;
+  width: 100%;
+  max-width: 300px;
+  font-size: 1rem;
+  color: #000;
+  padding: 12px 24px;
+  border: 1px solid #00bfff;
+  border-radius: 0.5rem;
+  animation: pulsetext 5s infinite ease-in-out;
+  transition: all 0.3s ease;
+  resize: none;
+  text-align: center;
+  overflow-x: auto;
+  word-break: break-word;
+}
+.textarea:hover, .textarea:focus {
+  border-color: #00ffff; /* border-cyan-400 saat hover/focus */
+  box-shadow: 0 0 8px #00ffff55; /* custom shadow glow biru muda */
+}
+
 
 
 /* Animasi di bawah */
+
+@keyframes pulsetext {
+  0%, 100% {
+    box-shadow:
+      0 0 5px #00ccff,
+      0 0 10px #00ccff,
+      0 0 2px #ffffff inset;
+  }
+  50% {
+    box-shadow:
+      0 0 10px #00ccff,
+      0 0 20px #00ccff,
+      0 0 5px #ffffff inset;
+  }
+}
 
 @keyframes pulse {
   0%, 100% {
@@ -128,7 +165,6 @@ body {
     transform: rotate(360deg); /* muter 360 derajat */
   }
 }
-
 .animate-spin {
   animation: spin 1s linear infinite; /* animate-spin di Tailwind default sama */
 }
@@ -138,7 +174,6 @@ body {
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
-
 .animate-gradient {
   background-size: 200% 200%; /* bg-size-200% */
   animation: gradient 5s ease infinite; /* custom animate gerak gradient */
