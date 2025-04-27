@@ -3,91 +3,107 @@
 @tailwind utilities;
 
 body {
-  background: url('/bg-unlock.webp') no-repeat center center fixed; /* bg-center bg-fixed no-repeat */
-  background-size: cover; /* bg-cover */
-  font-family: 'Poppins', sans-serif; /* font-poppins (kalau custom) */
+  background: url('/bg-unlock.webp') no-repeat center center fixed;
+  background-size: cover;
+  font-family: 'Poppins', sans-serif;
   margin: 0;
   padding: 0;
 }
 
 .unlock-wrapper {
-  display: flex; /* flex */
-  justify-content: center; /* justify-center */
-  align-items: center; /* items-center */
-  min-height: 100vh; /* min-h-screen */
-  padding: 20px; /* p-5 */
-}
-
-.form-group {
-  margin-bottom: 20px; /* mb-5 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
 }
 
 .unlock-card {
-  background: #000; /* bg-black */
-  background: rgba(0, 0, 0, 0.9); /* bg-black/70 */
-  padding: 40px 30px; 
-  padding: 2rem; /* p-8 */
-  border-radius: 20px;
-  border-radius: 1rem; /* rounded-2xl */
-  max-width: 400px; /* max-w-sm (Tailwind 384px) atau custom */
-  width: 100%; /* w-full */
-  text-align: center; /* text-center */
-  box-shadow: 0 0 20px rgba(0, 255, 255, 0.1), 0 0 40px rgba(0, 255, 255, 0.05); /* custom shadow, mirip shadow-lg tapi custom warna */
+  background: rgba(0, 0, 0, 0.9);
+  padding: 2rem;
+  border-radius: 1rem;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.1), 0 0 40px rgba(0, 255, 255, 0.05);
 }
 
 .title {
-  font-size: 2rem; /* text-4xl */
-  font-weight: bold; /* font-bold */
-  color: white; /* text-white */
-  margin-bottom: 20px; /* mb-5 */
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.6); /* custom text-shadow (tidak ada default di Tailwind) */
+  font-size: 2rem;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 20px;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
 }
 
 .subtitle {
-  font-size: 1rem; /* text-base */
-  color: white; /* text-white */
-  margin-bottom: 20px; /* mb-5 */
+  font-size: 1rem;
+  color: white;
+  margin-bottom: 20px;
 }
 
 .link {
-  color: #00bfff; /* text-sky-400 */
-  text-decoration: underline; /* underline */
+  color: #00bfff;
+  text-decoration: underline;
+}
+
+.form-control {
+  width: 100%;
+  max-width: 300px;
+  margin: 0 auto 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.input, .textarea, .button {
+  width: 100%;
 }
 
 .input {
-  background: #ffffff; /* bg-white */
-  width: 100%; /* w-full */
-  font-size: 1rem; /* text-base */
-  color: #000; /* text-black */
-  margin-bottom: 20px; /* mb-5 */
+  background: #ffffff;
+  font-size: 1rem;
+  color: #000;
   padding: 12px 24px;
-  border: 1px solid #00bfff; /* border biru sky */
-  border-radius: 0.5rem 10px; /* custom radius (Tailwind default: rounded-lg) */
-  transition: all 0.3s ease; /* transition-all duration-300 ease-in-out */
+  border: 1px solid #00bfff;
+  border-radius: 0.5rem;
+  transition: all 0.3s ease;
 }
 
 .input:hover, .input:focus {
-  border-color: #00ffff; /* border-cyan-400 saat hover/focus */
-  box-shadow: 0 0 8px #00ffff55; /* custom shadow glow biru muda */
+  border-color: #00ffff;
+  box-shadow: 0 0 8px #00ffff55;
 }
 
+.textarea {
+  background: #ffffff;
+  font-size: 1rem;
+  color: #000;
+  padding: 12px 24px;
+  border: 1px solid #00bfff;
+  border-radius: 0.5rem;
+  resize: none;
+  transition: all 0.3s ease;
+}
+
+.textarea:hover, .textarea:focus {
+  border-color: #00ffff;
+  box-shadow: 0 0 8px #00ffff55;
+}
 
 .button {
-  background-color: #0f172a; /* dasar gelap */
-  font-weight: bold; /* font-bold */
+  background-color: #0f172a;
+  font-weight: bold;
   color: white;
-  width: 100%; /* w-full */
-  padding: 12px; /* p-3 */
   padding: 12px 24px;
-  border: 1px solid #00bfff; /* border biru sky text link */
+  border: 1px solid #00bfff;
   border-radius: 0.5rem;
   font-size: 1rem;
-  font-weight: bold;
   cursor: pointer;
-  box-shadow: 
-    0 0 5px #00ccff, /* glow biru muda kecil */
-    0 0 10px #00ccff, /* glow biru muda besar */
-    0 0 2px #ffffff inset; /* highlight putih di sudut */
+  box-shadow:
+    0 0 5px #00ccff,
+    0 0 10px #00ccff,
+    0 0 2px #ffffff inset;
   animation: pulse 5s infinite ease-in-out;
   transition: all 0.3s ease;
 }
@@ -98,49 +114,10 @@ body {
     0 0 20px #00ccff,
     0 0 40px #00ccff,
     0 0 10px #ffffff inset;
-  background-color: #2563eb; /* biru terang pas hover */
+  background-color: #2563eb;
 }
 
-.textarea {
-  background: #ffffff;
-  width: 100%;
-  max-width: 300px;
-  font-size: 1rem;
-  color: #000;
-  padding: 12px 24px;
-  border: 1px solid #00bfff;
-  border-radius: 0.5rem;
-  animation: pulsetext 5s infinite ease-in-out;
-  transition: all 0.3s ease;
-  resize: none;
-  text-align: center;
-  overflow-x: auto;
-  word-break: break-word;
-}
-.textarea:hover, .textarea:focus {
-  border-color: #00ffff; /* border-cyan-400 saat hover/focus */
-  box-shadow: 0 0 8px #00ffff55; /* custom shadow glow biru muda */
-}
-
-
-
-/* Animasi di bawah */
-
-@keyframes pulsetext {
-  0%, 100% {
-    box-shadow:
-      0 0 5px #00ccff,
-      0 0 10px #00ccff,
-      0 0 2px #ffffff inset;
-  }
-  50% {
-    box-shadow:
-      0 0 10px #00ccff,
-      0 0 20px #00ccff,
-      0 0 5px #ffffff inset;
-  }
-}
-
+/* Animations */
 @keyframes pulse {
   0%, 100% {
     box-shadow:
@@ -158,14 +135,14 @@ body {
   }
 }
 
-
 @keyframes spin {
   to {
-    transform: rotate(360deg); /* muter 360 derajat */
+    transform: rotate(360deg);
   }
 }
+
 .animate-spin {
-  animation: spin 1s linear infinite; /* animate-spin di Tailwind default sama */
+  animation: spin 1s linear infinite;
 }
 
 @keyframes gradient {
@@ -173,7 +150,8 @@ body {
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
+
 .animate-gradient {
-  background-size: 200% 200%; /* bg-size-200% */
-  animation: gradient 5s ease infinite; /* custom animate gerak gradient */
+  background-size: 200% 200%;
+  animation: gradient 5s ease infinite;
 }
