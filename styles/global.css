@@ -9,6 +9,7 @@ body {
   font-family: 'Poppins', sans-serif;  
   margin: 0;  
   padding: 0;  
+  min-height: 100vh;  
 }  
   
 .unlock-wrapper {  
@@ -16,18 +17,21 @@ body {
   justify-content: center;  
   align-items: center;  
   min-height: 100vh;  
-  padding: 20px;  
+  padding: 1rem;  
 }  
   
 .unlock-card {  
   background: rgba(0, 0, 0, 0.9);  
   padding: 2rem;  
+  margin-inline: 1rem;
+  border: 2px solid #00bfff; /* neon listrik biru cerah */
   border-radius: 1rem;  
   max-width: 400px;  
   width: 100%;  
   text-align: center;  
-  box-shadow: 0 0 20px rgba(0, 255, 255, 0.1), 0 0 40px rgba(0, 255, 255, 0.05);  
+  box-shadow: 0 0 15px #00f0ff, 0 0 30px #00f0ff, 0 0 45px #00f0ff; /* efek neon */
 }  
+  
   
 .title {  
   font-size: 2rem;  
