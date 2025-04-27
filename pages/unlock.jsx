@@ -27,25 +27,15 @@ export default function UnlockPage() {
   }, [ref]);
 
   useEffect(() => {
-    // Inject .cube background
-    const cubeDiv = document.createElement("div");
-    cubeDiv.className = "cube absolute inset-0 z-0";
-    document.body.appendChild(cubeDiv);
-
-    // Inject .particles background
-    const particlesDiv = document.createElement("div");
-    particlesDiv.className = "particles absolute inset-0 z-10";
-    for (let i = 0; i < 10; i++) {
-      const span = document.createElement("span");
-      particlesDiv.appendChild(span);
-    }
-    document.body.appendChild(particlesDiv);
-
-    // Cleanup: remove when unmount
-    return () => {
-      document.body.removeChild(cubeDiv);
-      document.body.removeChild(particlesDiv);
-    };
+    // INJECT PARTICLES SPAN STYLE
+    const particles = document.querySelectorAll(".particles span");
+    particles.forEach((particle) => {
+      particle.style.top = `${Math.random() * 100}%`;
+      particle.style.left = `${Math.random() * 100}%`;
+      particle.style.animationDelay = `${Math.random() * 5}s`;
+      particle.style.width = `${Math.random() * 4 + 2}px`;
+      particle.style.height = `${Math.random() * 4 + 2}px`;
+    });
   }, []);
 
   const handleUnlock = async () => {
@@ -120,7 +110,47 @@ export default function UnlockPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden">
-      {/* Main Content Unlock (z-20) */}
+      {/* KUBUS Background */}
+      <div className="cubes absolute inset-0 z-0">
+        {[...Array(8)].map((_, i) => (
+          <span
+            key={i}
+            className="cube"
+            style={{
+              top: `${Math.random() * 80}%`,
+              left: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 5}s`,
+              width: `${Math.random() * 15 + 10}px`,
+              height: `${Math.random() * 15 + 10}px`,
+            }}
+          ></span>
+        ))}
+      </div>
+
+      {/* API Background */}
+      <div className="fires absolute inset-0 z-0">
+        {[...Array(20)].map((_, i) => (
+          <span
+            key={i}
+            className="fire"
+            style={{
+              left: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 5}s`,
+              width: `${Math.random() * 2 + 2}px`,
+              height: `${Math.random() * 8 + 4}px`,
+            }}
+          ></span>
+        ))}
+      </div>
+
+      {/* Particles */}
+      <div className="particles absolute inset-0 z-10">
+        {[...Array(10)].map((_, i) => (
+          <span key={i}></span>
+        ))}
+      </div>
+
+      {/* Main Content */}
       <motion.div
         className="unlock-wrapper relative z-20 flex items-center justify-center min-h-screen"
         initial={{ opacity: 0, y: 50 }}
@@ -145,7 +175,7 @@ export default function UnlockPage() {
             and enter your Twitter username below:
           </p>
 
-          {/* Input Username */}
+          {/* Input */}
           <div className="form-control mt-6">
             <input
               type="text"
@@ -190,7 +220,7 @@ export default function UnlockPage() {
             </button>
           </div>
 
-          {/* Card URL Result */}
+          {/* Card URL */}
           {unlockedUrl && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
