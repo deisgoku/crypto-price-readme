@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { toast } from "react-hot-toast";
-import { Loader2, ClipboardCopy } from "lucide-react";
+import { Loader2, ClipboardCopy, CheckCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import Turnstile from "react-turnstile";
 
@@ -10,6 +10,8 @@ export default function UnlockPage() {
   const [loading, setLoading] = useState(false);
   const [token, setToken] = useState("");
   const [unlockedUrl, setUnlockedUrl] = useState("");
+  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [copiedHtml, setCopiedHtml] = useState(false);
 
   const router = useRouter();
   const ref = router.query.ref;
@@ -74,6 +76,8 @@ export default function UnlockPage() {
     try {
       await navigator.clipboard.writeText(unlockedUrl);
       toast.success("URL copied!");
+      setCopiedUrl(true);
+      setTimeout(() => setCopiedUrl(false), 1500);
     } catch {
       toast.error("Failed to copy URL.");
     }
@@ -85,6 +89,8 @@ export default function UnlockPage() {
     try {
       await navigator.clipboard.writeText(html);
       toast.success("HTML snippet copied!");
+      setCopiedHtml(true);
+      setTimeout(() => setCopiedHtml(false), 1500);
     } catch {
       toast.error("Failed to copy HTML.");
     }
@@ -139,13 +145,18 @@ export default function UnlockPage() {
         <div className="form-control">
           <button
             onClick={handleUnlock}
-            disabled={loading}
-            className="button flex items-center justify-center gap-2"
+            disabled={loading || unlockedUrl !== ""}
+            className={`button flex items-center justify-center gap-2 transition-all duration-300 ${unlockedUrl !== "" ? 'opacity-60 cursor-not-allowed' : ''}`}
           >
             {loading ? (
               <>
                 <Loader2 className="h-5 w-5 animate-spin" />
                 Unlocking...
+              </>
+            ) : unlockedUrl !== "" ? (
+              <>
+                <span className="text-xl animate-fade">🚫</span>
+                <span>Unlock</span>
               </>
             ) : (
               "Unlock"
@@ -171,21 +182,43 @@ export default function UnlockPage() {
                 className="textarea"
               />
 
-              <button
+              {/* BUTTON COPY URL */}
+              <motion.button
                 onClick={handleCopyUrl}
+                whileTap={{ scale: 0.95 }}
                 className="button flex items-center gap-2 justify-center px-3 py-2"
               >
-                <ClipboardCopy className="w-4 h-4" />
-                Copy URL
-              </button>
+                {copiedUrl ? (
+                  <>
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span>Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <ClipboardCopy className="w-4 h-4" />
+                    <span>Copy URL</span>
+                  </>
+                )}
+              </motion.button>
 
-              <button
+              {/* BUTTON COPY HTML */}
+              <motion.button
                 onClick={handleCopyHtml}
+                whileTap={{ scale: 0.95 }}
                 className="button flex items-center gap-2 justify-center px-3 py-2"
               >
-                <ClipboardCopy className="w-4 h-4" />
-                Copy HTML
-              </button>
+                {copiedHtml ? (
+                  <>
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span>Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <ClipboardCopy className="w-4 h-4" />
+                    <span>Copy HTML</span>
+                  </>
+                )}
+              </motion.button>
             </div>
           </motion.div>
         )}
