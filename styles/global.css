@@ -2,6 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Tetap background body */
 body {
   background: url('/bg-unlock.webp') no-repeat center center fixed;
   background-size: cover;
@@ -10,115 +11,7 @@ body {
   padding: 0;
 }
 
-.unlock-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  padding: 20px;
-}
-
-.unlock-card {
-  background: rgba(0, 0, 0, 0.9);
-  padding: 2rem;
-  border-radius: 1rem;
-  max-width: 400px;
-  width: 100%;
-  text-align: center;
-  box-shadow: 0 0 20px rgba(0, 255, 255, 0.1), 0 0 40px rgba(0, 255, 255, 0.05);
-}
-
-.title {
-  font-size: 2rem;
-  font-weight: bold;
-  color: white;
-  margin-bottom: 20px;
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
-}
-
-.subtitle {
-  font-size: 1rem;
-  color: white;
-  margin-bottom: 20px;
-}
-
-.link {
-  color: #00bfff;
-  text-decoration: underline;
-}
-
-.form-control {
-  width: 100%;
-  max-width: 300px;
-  margin: 0 auto 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.input, .textarea, .button {
-  width: 100%;
-  max-width: 100%;
-}
-
-.input {
-  background: #ffffff;
-  font-size: 1rem;
-  color: #000;
-  padding: 12px 24px;
-  border: 1px solid #00bfff;
-  border-radius: 0.5rem;
-  transition: all 0.3s ease;
-}
-
-.input:hover, .input:focus {
-  border-color: #00ffff;
-  box-shadow: 0 0 8px #00ffff55;
-}
-
-.textarea {
-  background: #ffffff;
-  font-size: 1rem;
-  color: #000;
-  padding: 12px 24px;
-  border: 1px solid #00bfff;
-  border-radius: 0.5rem;
-  resize: none;
-  transition: all 0.3s ease;
-}
-
-.textarea:hover, .textarea:focus {
-  border-color: #00ffff;
-  box-shadow: 0 0 8px #00ffff55;
-}
-
-.button {
-  background-color: #0f172a;
-  font-weight: bold;
-  color: white;
-  padding: 12px 24px;
-  border: 1px solid #00bfff;
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  cursor: pointer;
-  box-shadow:
-    0 0 5px #00ccff,
-    0 0 10px #00ccff,
-    0 0 2px #ffffff inset;
-  animation: pulse 5s infinite ease-in-out;
-  transition: all 0.3s ease;
-}
-
-.button:hover {
-  transform: translateY(-3px);
-  box-shadow:
-    0 0 20px #00ccff,
-    0 0 40px #00ccff,
-    0 0 10px #ffffff inset;
-  background-color: #2563eb;
-}
-
-/* Animations */
+/* Animasi tambahan buat spin, pulse, gradient */
 @keyframes pulse {
   0%, 100% {
     box-shadow:
@@ -142,14 +35,15 @@ body {
   }
 }
 
-.animate-spin {
-  animation: spin 1s linear infinite;
-}
-
 @keyframes gradient {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
+}
+
+/* Utility classes */
+.animate-spin {
+  animation: spin 1s linear infinite;
 }
 
 .animate-gradient {
