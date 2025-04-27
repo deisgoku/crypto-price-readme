@@ -126,7 +126,7 @@ export default function UnlockPage() {
             placeholder="e.g. vitalikbutterin"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="input flex items-center justify-center gap-2 w-full max-w-[300]"
+            className="input flex items-center justify-center gap-2 w-full max-w-[300px]"
           />
         </div>
 
@@ -168,7 +168,7 @@ export default function UnlockPage() {
               value={unlockedUrl}
               readOnly
               rows={3}
-              className="w-full max-w-[300px] p-2 bg-white text-black rounded-md border-[#00ccff] text-xs break-words overflow-x-auto resize-none text-center"
+              className="w-full max-w-md p-2 bg-white text-black rounded-md border-[#00ccff] text-xs break-words overflow-x-auto resize-none text-center"
             />
 
             <div className="flex justify-center gap-4 mt-4">
