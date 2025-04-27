@@ -92,55 +92,51 @@ export default function UnlockPage() {
 
   return (
     <motion.div
-      className="unlock-wrapper"
+      className="flex items-center justify-center min-h-screen p-6"
       initial={{ opacity: 0, y: 50 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8, ease: "easeOut" }}
     >
-      <div className="unlock-card">
-        <h1 className="title text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent animate-gradient">
+      <div className="bg-black/90 p-8 rounded-2xl max-w-md w-full text-center shadow-lg">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent animate-gradient">
           Unlock Card Tools
         </h1>
 
-        <p className="subtitle mt-4">
+        <p className="text-white mt-4">
           Follow{" "}
           <a
             href="https://twitter.com/Deisgoku"
             target="_blank"
             rel="noopener noreferrer"
-            className="link"
+            className="text-blue-400 underline"
           >
             @Deisgoku
           </a>{" "}
           and enter your Twitter username below:
         </p>
 
-        {/* INPUT USERNAME */}
-        <div className="form-control">
+        <form className="flex flex-col gap-4 w-full max-w-xs mx-auto mt-6">
           <input
             type="text"
             placeholder="e.g. vitalikbutterin"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="input"
+            className="w-full px-4 py-2 rounded-md border border-blue-400 text-black text-sm focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-300 transition"
           />
-        </div>
 
-        {/* CAPTCHA */}
-        <div className="form-control">
-          <Turnstile
-            sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-            onSuccess={(token) => setToken(token)}
-            className="rounded-md scale-90 shadow-sm"
-          />
-        </div>
+          <div className="bg-gray-800 p-2 rounded-md">
+            <Turnstile
+              sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+              onSuccess={(token) => setToken(token)}
+              className="scale-90"
+            />
+          </div>
 
-        {/* BUTTON UNLOCK */}
-        <div className="form-control">
           <button
+            type="button"
             onClick={handleUnlock}
             disabled={loading}
-            className="button flex items-center justify-center gap-2"
+            className="w-full px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-bold transition flex items-center justify-center gap-2"
           >
             {loading ? (
               <>
@@ -151,9 +147,8 @@ export default function UnlockPage() {
               "Unlock"
             )}
           </button>
-        </div>
+        </form>
 
-        {/* CARD URL RESULT */}
         {unlockedUrl && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -161,32 +156,30 @@ export default function UnlockPage() {
             transition={{ duration: 0.5, ease: "easeOut" }}
             className="w-full flex flex-col items-center mt-6"
           >
-            <p className="subtitle mb-2">Your Card URL:</p>
+            <p className="text-white mb-2">Your Card URL:</p>
 
-            <div className="form-control">
-              <textarea
-                value={unlockedUrl}
-                readOnly
-                rows={3}
-                className="textarea"
-              />
+            <textarea
+              value={unlockedUrl}
+              readOnly
+              rows={3}
+              className="w-full max-w-xs mx-auto px-4 py-2 rounded-md border border-blue-400 text-black text-sm resize-none focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-300 transition"
+            />
 
-              <button
-                onClick={handleCopyUrl}
-                className="button flex items-center gap-2 justify-center px-3 py-2"
-              >
-                <ClipboardCopy className="w-4 h-4" />
-                Copy URL
-              </button>
+            <button
+              onClick={handleCopyUrl}
+              className="w-full max-w-xs mt-3 px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-bold transition flex items-center justify-center gap-2"
+            >
+              <ClipboardCopy className="w-4 h-4" />
+              Copy URL
+            </button>
 
-              <button
-                onClick={handleCopyHtml}
-                className="button flex items-center gap-2 justify-center px-3 py-2"
-              >
-                <ClipboardCopy className="w-4 h-4" />
-                Copy HTML
-              </button>
-            </div>
+            <button
+              onClick={handleCopyHtml}
+              className="w-full max-w-xs mt-2 px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-bold transition flex items-center justify-center gap-2"
+            >
+              <ClipboardCopy className="w-4 h-4" />
+              Copy HTML
+            </button>
           </motion.div>
         )}
       </div>
