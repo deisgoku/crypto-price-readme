@@ -58,6 +58,7 @@ body {
 
 .input, .textarea, .button {
   width: 100%;
+  max-width: 100%;
 }
 
 .input {
