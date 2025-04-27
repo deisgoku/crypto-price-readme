@@ -2,8 +2,8 @@
 @tailwind base;  
 @tailwind components;  
 @tailwind utilities;  
-
-.body, .html {  
+  
+body, .html {  
   background: url('/bg-unlock.webp') no-repeat center center fixed;  
   background-size: cover;  
   font-family: 'Poppins', sans-serif;  
@@ -15,6 +15,7 @@
   overflow-x: hidden;
   background-attachment: fixed;
 }  
+
   
 .unlock-wrapper {  
   display: flex;  
