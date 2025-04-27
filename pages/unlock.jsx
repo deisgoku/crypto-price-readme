@@ -103,6 +103,14 @@ export default function UnlockPage() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8, ease: "easeOut" }}
     >
+      {/* Particle Effect */}
+      <div className="particles">
+        {[...Array(10)].map((_, i) => (
+          <span key={i}></span>
+        ))}
+      </div>
+
+      {/* Unlock Card */}
       <div className="unlock-card">
         <h1 className="title text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent animate-gradient">
           Unlock Card Tools
@@ -121,7 +129,7 @@ export default function UnlockPage() {
           and enter your Twitter username below:
         </p>
 
-        {/* INPUT USERNAME */}
+        {/* Input Username */}
         <div className="form-control">
           <input
             type="text"
@@ -141,12 +149,14 @@ export default function UnlockPage() {
           />
         </div>
 
-        {/* BUTTON UNLOCK */}
+        {/* Unlock Button */}
         <div className="form-control">
           <button
             onClick={handleUnlock}
             disabled={loading || unlockedUrl !== ""}
-            className={`button flex items-center justify-center gap-2 transition-all duration-300 ${unlockedUrl !== "" ? 'opacity-60 cursor-not-allowed' : ''}`}
+            className={`button flex items-center justify-center gap-2 transition-all duration-300 ${
+              unlockedUrl !== "" ? "opacity-60 cursor-not-allowed" : ""
+            }`}
           >
             {loading ? (
               <>
@@ -164,7 +174,7 @@ export default function UnlockPage() {
           </button>
         </div>
 
-        {/* CARD URL RESULT */}
+        {/* Card URL Result */}
         {unlockedUrl && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -182,7 +192,7 @@ export default function UnlockPage() {
                 className="textarea"
               />
 
-              {/* BUTTON COPY URL */}
+              {/* Copy URL */}
               <motion.button
                 onClick={handleCopyUrl}
                 whileTap={{ scale: 0.95 }}
@@ -201,7 +211,7 @@ export default function UnlockPage() {
                 )}
               </motion.button>
 
-              {/* BUTTON COPY HTML */}
+              {/* Copy HTML */}
               <motion.button
                 onClick={handleCopyHtml}
                 whileTap={{ scale: 0.95 }}
