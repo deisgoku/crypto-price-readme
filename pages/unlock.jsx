@@ -26,6 +26,28 @@ export default function UnlockPage() {
     }
   }, [ref]);
 
+  useEffect(() => {
+    // Inject .cube background
+    const cubeDiv = document.createElement("div");
+    cubeDiv.className = "cube absolute inset-0 z-0";
+    document.body.appendChild(cubeDiv);
+
+    // Inject .particles background
+    const particlesDiv = document.createElement("div");
+    particlesDiv.className = "particles absolute inset-0 z-10";
+    for (let i = 0; i < 10; i++) {
+      const span = document.createElement("span");
+      particlesDiv.appendChild(span);
+    }
+    document.body.appendChild(particlesDiv);
+
+    // Cleanup: remove when unmount
+    return () => {
+      document.body.removeChild(cubeDiv);
+      document.body.removeChild(particlesDiv);
+    };
+  }, []);
+
   const handleUnlock = async () => {
     if (!username.trim()) {
       toast.error("Please enter your Twitter username.");
@@ -98,16 +120,6 @@ export default function UnlockPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden">
-      {/* Cube Background (z-0) */}
-      <div className="cube absolute inset-0 z-0"></div>
-
-      {/* Particles Background (z-10) */}
-      <div className="particles absolute inset-0 z-10">
-        {[...Array(10)].map((_, i) => (
-          <span key={i}></span>
-        ))}
-      </div>
-
       {/* Main Content Unlock (z-20) */}
       <motion.div
         className="unlock-wrapper relative z-20 flex items-center justify-center min-h-screen"
@@ -204,12 +216,12 @@ export default function UnlockPage() {
                 {copiedUrl ? (
                   <>
                     <CheckCircle className="w-4 h-4 text-white" />
-                    <span> Copied!</span>
+                    <span>Copied!</span>
                   </>
                 ) : (
                   <>
                     <ClipboardCopy className="w-4 h-4 text-white" />
-                    <span> Copy URL</span>
+                    <span>Copy URL</span>
                   </>
                 )}
               </motion.button>
@@ -223,12 +235,12 @@ export default function UnlockPage() {
                 {copiedHtml ? (
                   <>
                     <CheckCircle className="w-4 h-4 text-white" />
-                    <span> Copied!</span>
+                    <span>Copied!</span>
                   </>
                 ) : (
                   <>
                     <ClipboardCopy className="w-4 h-4 text-white" />
-                    <span> Copy HTML</span>
+                    <span>Copy HTML</span>
                   </>
                 )}
               </motion.button>
