@@ -64,7 +64,6 @@ body {
   border: 1px solid #00bfff; /* border biru sky */
   border-radius: 0.5rem 10px; /* custom radius (Tailwind default: rounded-lg) */
   transition: all 0.3s ease; /* transition-all duration-300 ease-in-out */
-  animation: pulsetext 2s infinite ease-in-out;
 }
 
 .input:hover, .input:focus {
