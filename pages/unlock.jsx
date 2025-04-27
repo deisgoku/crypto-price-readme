@@ -126,7 +126,7 @@ export default function UnlockPage() {
             placeholder="e.g. vitalikbutterin"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="input flex items-center justify-center gap-2"
+            className="input flex items-center justify-center gap-2 w-full max-w-[300]"
           />
         </div>
 
@@ -168,10 +168,10 @@ export default function UnlockPage() {
               value={unlockedUrl}
               readOnly
               rows={3}
-              className="w-full max-w-md p-2 bg-white text-black rounded-md scale-90 shadow-sm text-xs break-words overflow-x-auto resize-none text-center"
+              className="w-full max-w-[300px] p-2 bg-white text-black rounded-md border-[#00ccff] text-xs break-words overflow-x-auto resize-none text-center"
             />
 
-            <div className="flex justify-center gap-4 mt-2">
+            <div className="flex justify-center gap-4 mt-4">
               <button
                 onClick={handleCopyUrl}
                 className="button flex items-center gap-2 px-3 py-2 hover:bg-gray-200"
@@ -182,7 +182,7 @@ export default function UnlockPage() {
 
               <button
                 onClick={handleCopyHtml}
-                className="button flex items-center gap-4 px-3 py-2 hover:bg-gray-200"
+                className="button flex mt-4 items-center gap-4 px-3 py-2 hover:bg-gray-200"
               >
                 <ClipboardCopy className="w-4 h-4" />
                 Copy HTML
