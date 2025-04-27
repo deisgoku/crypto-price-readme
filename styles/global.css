@@ -60,7 +60,11 @@ body {
 .input, .textarea, .button {  
   width: 100%;  
   max-width: 100%;  
-}  
+}
+
+.input, .textarea {
+  box-sizing: border-box;
+}
   
 .input {  
   background: #ffffff;  
