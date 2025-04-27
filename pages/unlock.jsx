@@ -29,19 +29,16 @@ export default function UnlockPage() {
       toast.error("Please enter your Twitter username.");
       return;
     }
-
     if (username.includes("@")) {
       toast.error("Don't include '@' in your username.");
       return;
     }
-
     if (!token) {
       toast.error("Please complete the CAPTCHA first.");
       return;
     }
 
     setLoading(true);
-
     try {
       const checkRes = await fetch("/api/follow-check", {
         method: "POST",
@@ -59,7 +56,6 @@ export default function UnlockPage() {
             body: JSON.stringify({ username }),
           });
         }
-
         toast.success(`Welcome, @${username}! Unlock Successful.`);
         const url = `https://crypto-price-on.vercel.app/api/card?user=${username}&model=modern&theme=dark&coin=5&category=layer-1`;
         setUnlockedUrl(url);
@@ -120,20 +116,18 @@ export default function UnlockPage() {
         </p>
 
         {/* INPUT USERNAME */}
-        <div className="form-group flex justify-center my-4">
-          <div className="w-full max-w-[300px]">
-            <input
-              type="text"
-              placeholder="e.g. vitalikbutterin"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="input w-full"
-            />
-          </div>
+        <div className="form-control">
+          <input
+            type="text"
+            placeholder="e.g. vitalikbutterin"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className="input"
+          />
         </div>
 
         {/* CAPTCHA */}
-        <div className="form-group flex justify-center my-4">
+        <div className="form-control">
           <Turnstile
             sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
             onSuccess={(token) => setToken(token)}
@@ -142,7 +136,7 @@ export default function UnlockPage() {
         </div>
 
         {/* BUTTON UNLOCK */}
-        <div className="form-group flex justify-center">
+        <div className="form-control">
           <button
             onClick={handleUnlock}
             disabled={loading}
@@ -165,21 +159,21 @@ export default function UnlockPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
-            className="w-full max-w-md mx-auto mt-6 text-center"
+            className="w-full flex flex-col items-center mt-6"
           >
             <p className="subtitle mb-2">Your Card URL:</p>
 
-            <textarea
-              value={unlockedUrl}
-              readOnly
-              rows={3}
-              className="textarea w-full"
-            />
+            <div className="form-control">
+              <textarea
+                value={unlockedUrl}
+                readOnly
+                rows={3}
+                className="textarea"
+              />
 
-            <div className="flex justify-center gap-4 mt-4">
               <button
                 onClick={handleCopyUrl}
-                className="button flex items-center gap-2 px-3 py-2 "
+                className="button flex items-center gap-2 justify-center px-3 py-2"
               >
                 <ClipboardCopy className="w-4 h-4" />
                 Copy URL
@@ -187,7 +181,7 @@ export default function UnlockPage() {
 
               <button
                 onClick={handleCopyHtml}
-                className="button flex items-center gap-2 px-3 py-2 "
+                className="button flex items-center gap-2 justify-center px-3 py-2"
               >
                 <ClipboardCopy className="w-4 h-4" />
                 Copy HTML
