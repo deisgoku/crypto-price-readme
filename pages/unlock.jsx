@@ -120,13 +120,13 @@ export default function UnlockPage() {
           and enter your Twitter username below:
         </p>
 
-        <div className="form-group">
+        <div className="form-group mx-auto w-full mx-w-[300px] flex items-center justify-center">
           <input
             type="text"
             placeholder="e.g. vitalikbutterin"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="input flex items-center justify-center gap-2 w-full max-w-[300px]"
+            className="input w-full"
           />
         </div>
 
