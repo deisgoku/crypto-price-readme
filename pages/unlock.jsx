@@ -19,6 +19,7 @@ export default function UnlockPage() {
   const [theme, setTheme] = useState("dark");
   const [coin, setCoin] = useState(5);
   const [category, setCategory] = useState("layer-1");
+  const [categoryOptions, setCategoryOptions] = useState([]);
 
   const router = useRouter();
   const ref = router.query.ref;
@@ -32,6 +33,19 @@ export default function UnlockPage() {
       toast.success(`Welcome from ${ref}!`);
     }
   }, [ref]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch("https://api.coingecko.com/api/v3/coins/categories/list");
+        const data = await res.json();
+        setCategoryOptions(data);
+      } catch (err) {
+        toast.error("Failed to load categories from CoinGecko.");
+      }
+    };
+    fetchCategories();
+  }, []);
 
   const handleUnlock = async () => {
     if (!username.trim()) {
@@ -224,11 +238,15 @@ export default function UnlockPage() {
             <div className="form-control">
               <label className="label">Category:</label>
               <select value={category} onChange={(e) => setCategory(e.target.value)} className="select">
-                <option value="layer-1">Layer-1</option>
-                <option value="layer-2">Layer-2</option>
-                <option value="meme-token">Meme Token</option>
-                <option value="depin">Depin</option>
-                <option value="sui-ecosystem">Sui Ecosystem</option>
+                {categoryOptions.length > 0 ? (
+                  categoryOptions.map((cat) => (
+                    <option key={cat.category_id} value={cat.category_id}>
+                      {cat.name}
+                    </option>
+                  ))
+                ) : (
+                  <option>Loading categories...</option>
+                )}
               </select>
             </div>
 
