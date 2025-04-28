@@ -18,7 +18,8 @@ export default function UnlockPage() {
   const [model, setModel] = useState("modern");
   const [theme, setTheme] = useState("dark");
   const [coin, setCoin] = useState(5);
-  const [category, setCategory] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState("");
 
   const router = useRouter();
   const ref = router.query.ref;
@@ -38,7 +39,7 @@ export default function UnlockPage() {
       try {
         const res = await fetch("https://api.coingecko.com/api/v3/coins/categories/list");
         const data = await res.json();
-        setCategory(data);
+        setCategories(data);
       } catch (err) {
         toast.error("Failed to load categories from server.");
       }
@@ -95,7 +96,7 @@ export default function UnlockPage() {
       toast.error("Username missing.");
       return;
     }
-    const url = `https://crypto-price-on.vercel.app/card?user=${username}&model=${model}&theme=${theme}&coin=${coin}&category=${category}`;
+    const url = `https://crypto-price-on.vercel.app/card?user=${username}&model=${model}&theme=${theme}&coin=${coin}${selectedCategory ? `&category=${selectedCategory}` : ""}`;
     setFinalUrl(url);
   };
 
@@ -228,7 +229,7 @@ export default function UnlockPage() {
                 type="number"
                 min={1}
                 value={coin}
-                onChange={(e) => setCoin(e.target.value)}
+                onChange={(e) => setCoin(Number(e.target.value))}
                 className="input"
               />
             </div>
@@ -236,9 +237,10 @@ export default function UnlockPage() {
             {/* Category */}
             <div className="form-control">
               <label className="label">Category:</label>
-              <select value={category} onChange={(e) => setCategory(e.target.value)} className="select">
-                {categoryOptions.length > 0 ? (
-                  categoryOptions.map((cat) => (
+              <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="select">
+                <option value="">-- Select Category --</option>
+                {categories.length > 0 ? (
+                  categories.map((cat) => (
                     <option key={cat.category_id} value={cat.category_id}>
                       {cat.name}
                     </option>
