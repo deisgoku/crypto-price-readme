@@ -273,16 +273,32 @@ export default function UnlockPage() {
                 menuPosition="fixed"
                 menuPlacement="top"
                 styles={{
-                  control: (base) => ({
+                  control: (base, state) => ({
                     ...base,
-                    borderColor: "#00bfff",
-                    borderWidth: 2,
+                    borderWidth: 1,
+                    borderColor: state.isFocused ? "#00bfff" : "#ccc",
+                    boxShadow: state.isFocused ? "0 0 0 2px rgba(0, 191, 255, 0.3)" : "none",
                     borderRadius: "0.5rem",
                     backgroundColor: "white",
                     color: "black",
+                    '&:hover': { borderColor: "#00bfff" }
+                  }),
+                  menu: (base) => ({
+                    ...base,
+                    border: "2px solid #00bfff",
+                    borderRadius: "0.5rem",
+                    backgroundColor: "white",
+                    padding: "0.5rem 0",
+                    animation: "fadeSlide 0.3s ease",
                   }),
                   menuPortal: (base) => ({ ...base, zIndex: 9999 }),
-                  menu: (provided) => ({ ...provided, marginBottom: 8 }),
+                  option: (base, { isFocused, isSelected }) => ({
+                    ...base,
+                    backgroundColor: isSelected ? "#00bfff" : isFocused ? "#e0f7ff" : "white",
+                    color: isSelected ? "white" : "black",
+                    cursor: "pointer",
+                    padding: "10px 15px",
+                  }),
                 }}
               />
             </div>
@@ -346,6 +362,19 @@ export default function UnlockPage() {
           </motion.div>
         )}
       </div>
+
+      <style jsx global>{`
+        @keyframes fadeSlide {
+          0% {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </motion.div>
   );
 }
