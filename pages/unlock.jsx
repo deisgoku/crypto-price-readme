@@ -25,12 +25,10 @@ export default function UnlockPage() {
   const ref = router.query.ref;
 
   useEffect(() => {
-    if (ref === "github") {
-      toast.success("Welcome, GitHub warrior!");
-    } else if (ref === "twitter") {
-      toast.success("Hello, Twitter X friends!");
-    } else if (ref) {
-      toast.success(`Welcome from ${ref}!`);
+    if (ref) {
+      if (ref === "github") toast.success("Welcome, GitHub warrior!");
+      else if (ref === "twitter") toast.success("Hello, Twitter X friends!");
+      else toast.success(`Welcome from ${ref}!`);
     }
   }, [ref]);
 
@@ -68,7 +66,6 @@ export default function UnlockPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, token }),
       });
-
       const { status } = await checkRes.json();
 
       if (status === "already_verified" || status === "newly_verified") {
@@ -84,7 +81,7 @@ export default function UnlockPage() {
       } else {
         toast.error("Verification failed. Please make sure you've followed us.");
       }
-    } catch (err) {
+    } catch {
       toast.error("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
@@ -137,7 +134,7 @@ export default function UnlockPage() {
           Unlock Card Tools
         </h1>
 
-        {!unlocked && (
+        {!unlocked ? (
           <>
             <p className="subtitle mt-4">
               Follow{" "}
@@ -187,9 +184,7 @@ export default function UnlockPage() {
               </button>
             </div>
           </>
-        )}
-
-        {unlocked && (
+        ) : (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -232,7 +227,7 @@ export default function UnlockPage() {
               />
             </div>
 
-            {/* Category pakai react-select */}
+            {/* Category (React-Select) */}
             <div className="form-control">
               <label className="label">Category:</label>
               <Select
@@ -247,8 +242,10 @@ export default function UnlockPage() {
                 classNamePrefix="react-select"
                 menuPortalTarget={typeof window !== "undefined" ? document.body : null}
                 menuPosition="fixed"
+                menuPlacement="top" // <<< Fix: Always open up even during search
                 styles={{
-                  menuPortal: (base) => ({ ...base, zIndex: 9999 })
+                  menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                  menu: (provided) => ({ ...provided, marginBottom: 8 }),
                 }}
               />
             </div>
