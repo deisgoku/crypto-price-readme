@@ -3,14 +3,13 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   productionBrowserSourceMaps: false,
-  
+
   images: {
-    unoptimized: true, 
+    unoptimized: true, // Karena lu project static API-based
   },
 
   experimental: {
-    optimizeCss: true, // CSS optimize
-    scrollRestoration: true, // Scroll back/forward advanved
+    scrollRestoration: true, // Scroll tetap di posisi pas back/forward
   },
 
   async headers() {
@@ -20,11 +19,11 @@ const nextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable', 
+            value: 'public, max-age=31536000, immutable',
           },
         ],
       },
-    ]
+    ];
   },
 
   async rewrites() {
@@ -32,8 +31,8 @@ const nextConfig = {
       { source: '/card', destination: '/api/card' },
       { source: '/cards', destination: '/api/cards' },
       { source: '/prices', destination: '/api/prices' },
-    ]
+    ];
   },
-}
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;
