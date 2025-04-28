@@ -32,7 +32,7 @@ export default function CustomCard({ username }) {
       toast.error("Username missing.");
       return;
     }
-    const url = `https://crypto-price-on.vercel.app/card?user=${username}&model=${model}&theme=${theme}&coin=${coin}${selectedCategory ? `&category=${selectedCategory}` : ""}`;
+    const url = `https://crypto-price-on.vercel.app/cards?user=${username}&model=${model}&theme=${theme}&coin=${coin}${selectedCategory ? `&category=${selectedCategory}` : ""}`;
     setFinalUrl(url);
   };
 
