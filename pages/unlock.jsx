@@ -4,7 +4,6 @@ import { toast } from "react-hot-toast";
 import { Loader2, ClipboardCopy, CheckCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import Turnstile from "react-turnstile";
-import { Combobox } from "@headlessui/react";
 
 export default function UnlockPage() {
   const [username, setUsername] = useState("");
@@ -15,13 +14,12 @@ export default function UnlockPage() {
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedHtml, setCopiedHtml] = useState(false);
 
+  // Customize state
   const [model, setModel] = useState("modern");
   const [theme, setTheme] = useState("dark");
   const [coin, setCoin] = useState(5);
-
   const [categories, setCategories] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState(null);
-  const [query, setQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
 
   const router = useRouter();
   const ref = router.query.ref;
@@ -98,7 +96,7 @@ export default function UnlockPage() {
       toast.error("Username missing.");
       return;
     }
-    const url = `https://crypto-price-on.vercel.app/card?user=${username}&model=${model}&theme=${theme}&coin=${coin}${selectedCategory ? `&category=${selectedCategory.category_id}` : ""}`;
+    const url = `https://crypto-price-on.vercel.app/card?user=${username}&model=${model}&theme=${theme}&coin=${coin}${selectedCategory ? `&category=${selectedCategory}` : ""}`;
     setFinalUrl(url);
   };
 
@@ -126,12 +124,6 @@ export default function UnlockPage() {
       toast.error("Failed to copy HTML.");
     }
   };
-
-  const filteredCategories = query === ""
-    ? categories
-    : categories.filter((cat) =>
-        cat.name.toLowerCase().includes(query.toLowerCase())
-      );
 
   return (
     <motion.div
@@ -245,33 +237,18 @@ export default function UnlockPage() {
             {/* Category */}
             <div className="form-control">
               <label className="label">Category:</label>
-              <Combobox value={selectedCategory} onChange={setSelectedCategory}>
-                <div className="relative">
-                  <Combobox.Input
-                    className="input"
-                    placeholder="Search categories..."
-                    onChange={(e) => setQuery(e.target.value)}
-                    displayValue={(cat) => (cat ? cat.name : "")}
-                  />
-                  <Combobox.Options className="absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-white shadow-lg z-10">
-                    {filteredCategories.length === 0 && query !== "" ? (
-                      <div className="p-2">Nothing found.</div>
-                    ) : (
-                      filteredCategories.map((cat) => (
-                        <Combobox.Option
-                          key={cat.category_id}
-                          value={cat}
-                          className={({ active }) =>
-                            `p-2 cursor-pointer ${active ? "bg-blue-500 text-white" : "text-black"}`
-                          }
-                        >
-                          {cat.name}
-                        </Combobox.Option>
-                      ))
-                    )}
-                  </Combobox.Options>
-                </div>
-              </Combobox>
+              <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="select">
+                <option value="">-- Select Category --</option>
+                {categories.length > 0 ? (
+                  categories.map((cat) => (
+                    <option key={cat.category_id} value={cat.category_id}>
+                      {cat.name}
+                    </option>
+                  ))
+                ) : (
+                  <option>Loading categories...</option>
+                )}
+              </select>
             </div>
 
             {/* Generate Button */}
