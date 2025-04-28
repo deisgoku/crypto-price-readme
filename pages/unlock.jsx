@@ -18,8 +18,7 @@ export default function UnlockPage() {
   const [model, setModel] = useState("modern");
   const [theme, setTheme] = useState("dark");
   const [coin, setCoin] = useState(5);
-  const [category, setCategory] = useState("layer-1");
-  const [categoryOptions, setCategoryOptions] = useState([]);
+  const [category, setCategory] = useState([]);
 
   const router = useRouter();
   const ref = router.query.ref;
@@ -39,9 +38,9 @@ export default function UnlockPage() {
       try {
         const res = await fetch("https://api.coingecko.com/api/v3/coins/categories/list");
         const data = await res.json();
-        setCategoryOptions(data);
+        setCategory(data);
       } catch (err) {
-        toast.error("Failed to load categories from CoinGecko.");
+        toast.error("Failed to load categories from server.");
       }
     };
     fetchCategories();
@@ -96,7 +95,7 @@ export default function UnlockPage() {
       toast.error("Username missing.");
       return;
     }
-    const url = `https://crypto-price-on.vercel.app/api/card?user=${username}&model=${model}&theme=${theme}&coin=${coin}&category=${category}`;
+    const url = `https://crypto-price-on.vercel.app/card?user=${username}&model=${model}&theme=${theme}&coin=${coin}&category=${category}`;
     setFinalUrl(url);
   };
 
