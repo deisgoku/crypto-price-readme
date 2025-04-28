@@ -4,6 +4,7 @@ import { toast } from "react-hot-toast";
 import { Loader2, ClipboardCopy, CheckCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import Turnstile from "react-turnstile";
+import CategoryDropdown from "./CategoryDropdown"; // <--- Tambahan
 
 export default function UnlockPage() {
   const [username, setUsername] = useState("");
@@ -14,7 +15,6 @@ export default function UnlockPage() {
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedHtml, setCopiedHtml] = useState(false);
 
-  // Customize state
   const [model, setModel] = useState("modern");
   const [theme, setTheme] = useState("dark");
   const [coin, setCoin] = useState(5);
@@ -234,21 +234,13 @@ export default function UnlockPage() {
               />
             </div>
 
-            {/* Category */}
+            {/* Category pakai Dropdown */}
             <div className="form-control">
               <label className="label">Category:</label>
-              <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="select">
-                <option value="">-- Select Category --</option>
-                {categories.length > 0 ? (
-                  categories.map((cat) => (
-                    <option key={cat.category_id} value={cat.category_id}>
-                      {cat.name}
-                    </option>
-                  ))
-                ) : (
-                  <option>Loading categories...</option>
-                )}
-              </select>
+              <CategoryDropdown
+                categories={categories}
+                onSelectCategory={(id) => setSelectedCategory(id)}
+              />
             </div>
 
             {/* Generate Button */}
