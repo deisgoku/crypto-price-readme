@@ -1,10 +1,10 @@
-import { useState, useEffect, Fragment } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { toast } from "react-hot-toast";
-import { Loader2, ClipboardCopy, CheckCircle, Check } from "lucide-react"; // ChevronUp udah DIBUANG
+import { Loader2, ClipboardCopy, CheckCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import Turnstile from "react-turnstile";
-import { Combobox, Transition } from "@headlessui/react";
+import { Combobox } from "@headlessui/react";
 
 export default function UnlockPage() {
   const [username, setUsername] = useState("");
@@ -18,8 +18,9 @@ export default function UnlockPage() {
   const [model, setModel] = useState("modern");
   const [theme, setTheme] = useState("dark");
   const [coin, setCoin] = useState(5);
+
   const [categories, setCategories] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [query, setQuery] = useState("");
 
   const router = useRouter();
@@ -47,12 +48,6 @@ export default function UnlockPage() {
     };
     fetchCategories();
   }, []);
-
-  const filteredCategories = query === ""
-    ? categories
-    : categories.filter((cat) =>
-        cat.name.toLowerCase().includes(query.toLowerCase())
-      );
 
   const handleUnlock = async () => {
     if (!username.trim()) {
@@ -103,7 +98,7 @@ export default function UnlockPage() {
       toast.error("Username missing.");
       return;
     }
-    const url = `https://crypto-price-on.vercel.app/card?user=${username}&model=${model}&theme=${theme}&coin=${coin}${selectedCategory ? `&category=${selectedCategory}` : ""}`;
+    const url = `https://crypto-price-on.vercel.app/card?user=${username}&model=${model}&theme=${theme}&coin=${coin}${selectedCategory ? `&category=${selectedCategory.category_id}` : ""}`;
     setFinalUrl(url);
   };
 
@@ -132,6 +127,12 @@ export default function UnlockPage() {
     }
   };
 
+  const filteredCategories = query === ""
+    ? categories
+    : categories.filter((cat) =>
+        cat.name.toLowerCase().includes(query.toLowerCase())
+      );
+
   return (
     <motion.div
       className="unlock-wrapper"
@@ -144,6 +145,7 @@ export default function UnlockPage() {
           Unlock Card Tools
         </h1>
 
+        {/* STEP 1: UNLOCK */}
         {!unlocked && (
           <>
             <p className="subtitle mt-4">
@@ -196,6 +198,7 @@ export default function UnlockPage() {
           </>
         )}
 
+        {/* STEP 2: CUSTOMIZE */}
         {unlocked && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -205,6 +208,7 @@ export default function UnlockPage() {
           >
             <h2 className="subtitle text-xl mb-2">Customize Your Card</h2>
 
+            {/* Model */}
             <div className="form-control">
               <label className="label">Model:</label>
               <select value={model} onChange={(e) => setModel(e.target.value)} className="select">
@@ -214,6 +218,7 @@ export default function UnlockPage() {
               </select>
             </div>
 
+            {/* Theme */}
             <div className="form-control">
               <label className="label">Theme:</label>
               <select value={theme} onChange={(e) => setTheme(e.target.value)} className="select">
@@ -225,6 +230,7 @@ export default function UnlockPage() {
               </select>
             </div>
 
+            {/* Coin */}
             <div className="form-control">
               <label className="label">Coin Amount:</label>
               <input
@@ -236,81 +242,46 @@ export default function UnlockPage() {
               />
             </div>
 
+            {/* Category */}
             <div className="form-control">
               <label className="label">Category:</label>
               <Combobox value={selectedCategory} onChange={setSelectedCategory}>
-                <div className="relative mt-1">
-                  <div className="relative w-full cursor-default overflow-hidden rounded-lg bg-white dark:bg-slate-800 text-left shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-opacity-75 sm:text-sm">
-                    <Combobox.Input
-                      className="input"
-                      placeholder="Search category..."
-                      onChange={(event) => setQuery(event.target.value)}
-                      displayValue={(id) => {
-                        const selected = categories.find((cat) => cat.category_id === id);
-                        return selected ? selected.name : "";
-                      }}
-                    />
-                    <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-2">
-                      ▼
-                    </Combobox.Button>
-                  </div>
-                  <Transition
-                    as={Fragment}
-                    leave="transition ease-in duration-100"
-                    leaveFrom="opacity-100"
-                    leaveTo="opacity-0"
-                  >
-                    <Combobox.Options className="absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-white dark:bg-slate-800 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                      {filteredCategories.length === 0 && query !== "" ? (
-                        <div className="relative cursor-default select-none py-2 px-4 text-gray-700">
-                          Nothing found.
-                        </div>
-                      ) : (
-                        filteredCategories.map((cat) => (
-                          <Combobox.Option
-                            key={cat.category_id}
-                            className={({ active }) =>
-                              `relative cursor-pointer select-none py-2 pl-10 pr-4 ${
-                                active ? "bg-blue-600 text-white" : "text-gray-900"
-                              }`
-                            }
-                            value={cat.category_id}
-                          >
-                            {({ selected, active }) => (
-                              <>
-                                <span
-                                  className={`block truncate ${
-                                    selected ? "font-medium" : "font-normal"
-                                  }`}
-                                >
-                                  {cat.name}
-                                </span>
-                                {selected ? (
-                                  <span
-                                    className={`absolute inset-y-0 left-0 flex items-center pl-3 ${
-                                      active ? "text-white" : "text-blue-600"
-                                    }`}
-                                  >
-                                    <Check className="h-5 w-5" aria-hidden="true" />
-                                  </span>
-                                ) : null}
-                              </>
-                            )}
-                          </Combobox.Option>
-                        ))
-                      )}
-                    </Combobox.Options>
-                  </Transition>
+                <div className="relative">
+                  <Combobox.Input
+                    className="input"
+                    placeholder="Search categories..."
+                    onChange={(e) => setQuery(e.target.value)}
+                    displayValue={(cat) => (cat ? cat.name : "")}
+                  />
+                  <Combobox.Options className="absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-white shadow-lg z-10">
+                    {filteredCategories.length === 0 && query !== "" ? (
+                      <div className="p-2">Nothing found.</div>
+                    ) : (
+                      filteredCategories.map((cat) => (
+                        <Combobox.Option
+                          key={cat.category_id}
+                          value={cat}
+                          className={({ active }) =>
+                            `p-2 cursor-pointer ${active ? "bg-blue-500 text-white" : "text-black"}`
+                          }
+                        >
+                          {cat.name}
+                        </Combobox.Option>
+                      ))
+                    )}
+                  </Combobox.Options>
                 </div>
               </Combobox>
             </div>
 
+            {/* Generate Button */}
             <div className="form-control">
               <button onClick={generateUrl} className="button flex items-center justify-center gap-2">
                 Generate URL
               </button>
             </div>
 
+            {/* Result URL */}
             {finalUrl && (
               <div className="form-control">
                 <textarea
@@ -320,6 +291,7 @@ export default function UnlockPage() {
                   className="textarea"
                 />
 
+                {/* Copy URL */}
                 <motion.button
                   onClick={handleCopyUrl}
                   whileTap={{ scale: 0.95 }}
@@ -338,6 +310,7 @@ export default function UnlockPage() {
                   )}
                 </motion.button>
 
+                {/* Copy HTML */}
                 <motion.button
                   onClick={handleCopyHtml}
                   whileTap={{ scale: 0.95 }}
