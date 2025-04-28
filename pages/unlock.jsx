@@ -9,9 +9,16 @@ export default function UnlockPage() {
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
   const [token, setToken] = useState("");
-  const [unlockedUrl, setUnlockedUrl] = useState("");
+  const [unlocked, setUnlocked] = useState(false);
+  const [finalUrl, setFinalUrl] = useState("");
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedHtml, setCopiedHtml] = useState(false);
+
+  // Customize state
+  const [model, setModel] = useState("modern");
+  const [theme, setTheme] = useState("dark");
+  const [coin, setCoin] = useState(5);
+  const [category, setCategory] = useState("layer-1");
 
   const router = useRouter();
   const ref = router.query.ref;
@@ -59,8 +66,7 @@ export default function UnlockPage() {
           });
         }
         toast.success(`Welcome, @${username}! Unlock Successful.`);
-        const url = `https://crypto-price-on.vercel.app/api/card?user=${username}&model=modern&theme=dark&coin=5&category=layer-1`;
-        setUnlockedUrl(url);
+        setUnlocked(true);
       } else {
         toast.error("Verification failed. Please make sure you've followed us.");
       }
@@ -71,10 +77,19 @@ export default function UnlockPage() {
     }
   };
 
+  const generateUrl = () => {
+    if (!username.trim()) {
+      toast.error("Username missing.");
+      return;
+    }
+    const url = `https://crypto-price-on.vercel.app/api/card?user=${username}&model=${model}&theme=${theme}&coin=${coin}&category=${category}`;
+    setFinalUrl(url);
+  };
+
   const handleCopyUrl = async () => {
-    if (!unlockedUrl) return;
+    if (!finalUrl) return;
     try {
-      await navigator.clipboard.writeText(unlockedUrl);
+      await navigator.clipboard.writeText(finalUrl);
       toast.success("URL copied!");
       setCopiedUrl(true);
       setTimeout(() => setCopiedUrl(false), 1500);
@@ -84,8 +99,8 @@ export default function UnlockPage() {
   };
 
   const handleCopyHtml = async () => {
-    if (!unlockedUrl) return;
-    const html = `<p align="left">\n  <img src="${unlockedUrl}" />\n</p>`;
+    if (!finalUrl) return;
+    const html = `<p align="left">\n  <img src="${finalUrl}" />\n</p>`;
     try {
       await navigator.clipboard.writeText(html);
       toast.success("HTML snippet copied!");
@@ -108,127 +123,171 @@ export default function UnlockPage() {
           Unlock Card Tools
         </h1>
 
-        <p className="subtitle mt-4">
-          Follow{" "}
-          <a
-            href="https://twitter.com/Deisgoku"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="link"
-          >
-            @Deisgoku
-          </a>{" "}
-          and enter your Twitter username below:
-        </p>
+        {/* STEP 1: UNLOCK */}
+        {!unlocked && (
+          <>
+            <p className="subtitle mt-4">
+              Follow{" "}
+              <a
+                href="https://twitter.com/Deisgoku"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="link"
+              >
+                @Deisgoku
+              </a>{" "}
+              and enter your Twitter username below:
+            </p>
 
-        {/* INPUT USERNAME */}
-        <div className="form-control">
-          <input
-            type="text"
-            placeholder="e.g. vitalikbutterin"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="input"
-          />
-        </div>
+            <div className="form-control">
+              <input
+                type="text"
+                placeholder="e.g. vitalikbutterin"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="input"
+              />
+            </div>
 
-        {/* CAPTCHA */}
-        {!unlockedUrl && (
-          <motion.div
-            initial={{ opacity: 1 }}
-            animate={{ opacity: unlockedUrl ? 0 : 1 }}
-            transition={{ duration: 0.5 }}
-            className="form-control"
-          >
-            <Turnstile
-              sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-              onSuccess={(token) => setToken(token)}
-              className="rounded-md scale-90 shadow-sm"
-            />
-          </motion.div>
+            <div className="form-control">
+              <Turnstile
+                sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                onSuccess={(token) => setToken(token)}
+                className="rounded-md scale-90 shadow-sm"
+              />
+            </div>
+
+            <div className="form-control">
+              <button
+                onClick={handleUnlock}
+                disabled={loading}
+                className="button flex items-center justify-center gap-2 transition-all duration-300"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    Unlocking...
+                  </>
+                ) : (
+                  "Unlock"
+                )}
+              </button>
+            </div>
+          </>
         )}
 
-        {/* BUTTON UNLOCK */}
-        <div className="form-control">
-          <button
-            onClick={handleUnlock}
-            disabled={loading || unlockedUrl !== ""}
-            className={`button flex items-center justify-center gap-2 transition-all duration-300 ${
-              unlockedUrl !== "" ? "opacity-60 cursor-not-allowed" : ""
-            }`}
-          >
-            {loading ? (
-              <>
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Unlocking...
-              </>
-            ) : unlockedUrl !== "" ? (
-              <>
-                <span className="text-xl animate-fade">🚫</span>
-                <span> Unlock</span>
-              </>
-            ) : (
-              "Unlock"
-            )}
-          </button>
-        </div>
-
-        {/* CARD URL RESULT */}
-        {unlockedUrl && (
+        {/* STEP 2: CUSTOMIZE */}
+        {unlocked && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-            className="w-full flex flex-col items-center mt-6"
+            transition={{ duration: 0.5 }}
+            className="w-full flex flex-col gap-4 mt-6"
           >
-            <p className="subtitle mb-2">Your Card URL:</p>
+            <h2 className="subtitle text-xl mb-2">Customize Your Card</h2>
 
+            {/* Model */}
             <div className="form-control">
-              <textarea
-                value={unlockedUrl}
-                readOnly
-                rows={3}
-                className="textarea"
-              />
-
-              {/* BUTTON COPY URL */}
-              <motion.button
-                onClick={handleCopyUrl}
-                whileTap={{ scale: 0.95 }}
-                className="button flex items-center gap-2 justify-center px-3 py-2 mt-2"
-              >
-                {copiedUrl ? (
-                  <>
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                    <span> Copied!</span>
-                  </>
-                ) : (
-                  <>
-                    <ClipboardCopy className="w-4 h-4" />
-                    <span>Copy URL</span>
-                  </>
-                )}
-              </motion.button>
-
-              {/* BUTTON COPY HTML */}
-              <motion.button
-                onClick={handleCopyHtml}
-                whileTap={{ scale: 0.95 }}
-                className="button flex items-center gap-2 justify-center px-3 py-2 mt-2"
-              >
-                {copiedHtml ? (
-                  <>
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                    <span> Copied!</span>
-                  </>
-                ) : (
-                  <>
-                    <ClipboardCopy className="w-4 h-4" />
-                    <span>Copy HTML</span>
-                  </>
-                )}
-              </motion.button>
+              <label className="label">Model:</label>
+              <select value={model} onChange={(e) => setModel(e.target.value)} className="select">
+                <option value="modern">Modern</option>
+                <option value="classic">Classic</option>
+                <option value="futuristic">Futuristic</option>
+              </select>
             </div>
+
+            {/* Theme */}
+            <div className="form-control">
+              <label className="label">Theme:</label>
+              <select value={theme} onChange={(e) => setTheme(e.target.value)} className="select">
+                <option value="dark">Dark</option>
+                <option value="light">Light</option>
+                <option value="dracula">Dracula</option>
+                <option value="tokyonight">Tokyonight</option>
+                <option value="ayu">Ayu</option>
+              </select>
+            </div>
+
+            {/* Coin */}
+            <div className="form-control">
+              <label className="label">Coin Amount:</label>
+              <input
+                type="number"
+                min={1}
+                value={coin}
+                onChange={(e) => setCoin(e.target.value)}
+                className="input"
+              />
+            </div>
+
+            {/* Category */}
+            <div className="form-control">
+              <label className="label">Category:</label>
+              <select value={category} onChange={(e) => setCategory(e.target.value)} className="select">
+                <option value="layer-1">Layer-1</option>
+                <option value="layer-2">Layer-2</option>
+                <option value="meme-token">Meme Token</option>
+                <option value="depin">Depin</option>
+                <option value="sui-ecosystem">Sui Ecosystem</option>
+              </select>
+            </div>
+
+            {/* Generate Button */}
+            <div className="form-control">
+              <button onClick={generateUrl} className="button flex items-center justify-center gap-2">
+                Generate URL
+              </button>
+            </div>
+
+            {/* Result URL */}
+            {finalUrl && (
+              <div className="form-control">
+                <textarea
+                  value={finalUrl}
+                  readOnly
+                  rows={3}
+                  className="textarea"
+                />
+
+                {/* Copy URL */}
+                <motion.button
+                  onClick={handleCopyUrl}
+                  whileTap={{ scale: 0.95 }}
+                  className="button flex items-center gap-2 justify-center px-3 py-2 mt-2"
+                >
+                  {copiedUrl ? (
+                    <>
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      <span>Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <ClipboardCopy className="w-4 h-4" />
+                      <span>Copy URL</span>
+                    </>
+                  )}
+                </motion.button>
+
+                {/* Copy HTML */}
+                <motion.button
+                  onClick={handleCopyHtml}
+                  whileTap={{ scale: 0.95 }}
+                  className="button flex items-center gap-2 justify-center px-3 py-2 mt-2"
+                >
+                  {copiedHtml ? (
+                    <>
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      <span>Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <ClipboardCopy className="w-4 h-4" />
+                      <span>Copy HTML</span>
+                    </>
+                  )}
+                </motion.button>
+              </div>
+            )}
           </motion.div>
         )}
       </div>
