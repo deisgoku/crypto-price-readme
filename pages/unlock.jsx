@@ -4,7 +4,7 @@ import { toast } from "react-hot-toast";
 import { Loader2, ClipboardCopy, CheckCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import Turnstile from "react-turnstile";
-import Select from "react-select"; // <<< --- Tambahin ini
+import Select from "react-select";
 
 export default function UnlockPage() {
   const [username, setUsername] = useState("");
@@ -245,6 +245,11 @@ export default function UnlockPage() {
                 isClearable
                 className="react-select-container"
                 classNamePrefix="react-select"
+                menuPortalTarget={typeof window !== "undefined" ? document.body : null}
+                menuPosition="fixed"
+                styles={{
+                  menuPortal: (base) => ({ ...base, zIndex: 9999 })
+                }}
               />
             </div>
 
