@@ -48,7 +48,8 @@
     "lucide-react": "^0.263.0",
     "react-hot-toast": "^2.4.0",
     "framer-motion": "^10.16.3",
-    "react-turnstile": "^1.0.7"
+    "react-turnstile": "^1.0.7",
+    "react-select": "^5.7.3"
   },
   "devDependencies": {
     "eslint": "^9.1.0",
