@@ -1,7 +1,7 @@
 import { useState, useEffect, Fragment } from "react";
 import { useRouter } from "next/router";
 import { toast } from "react-hot-toast";
-import { Loader2, ClipboardCopy, CheckCircle, ChevronUpDown, Check } from "lucide-react";
+import { Loader2, ClipboardCopy, CheckCircle, Check } from "lucide-react"; // ChevronUp udah DIBUANG
 import { motion } from "framer-motion";
 import Turnstile from "react-turnstile";
 import { Combobox, Transition } from "@headlessui/react";
@@ -15,7 +15,6 @@ export default function UnlockPage() {
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedHtml, setCopiedHtml] = useState(false);
 
-  // Customize state
   const [model, setModel] = useState("modern");
   const [theme, setTheme] = useState("dark");
   const [coin, setCoin] = useState(5);
@@ -145,7 +144,6 @@ export default function UnlockPage() {
           Unlock Card Tools
         </h1>
 
-        {/* STEP 1: UNLOCK */}
         {!unlocked && (
           <>
             <p className="subtitle mt-4">
@@ -198,7 +196,6 @@ export default function UnlockPage() {
           </>
         )}
 
-        {/* STEP 2: CUSTOMIZE */}
         {unlocked && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -208,7 +205,6 @@ export default function UnlockPage() {
           >
             <h2 className="subtitle text-xl mb-2">Customize Your Card</h2>
 
-            {/* Model */}
             <div className="form-control">
               <label className="label">Model:</label>
               <select value={model} onChange={(e) => setModel(e.target.value)} className="select">
@@ -218,7 +214,6 @@ export default function UnlockPage() {
               </select>
             </div>
 
-            {/* Theme */}
             <div className="form-control">
               <label className="label">Theme:</label>
               <select value={theme} onChange={(e) => setTheme(e.target.value)} className="select">
@@ -230,7 +225,6 @@ export default function UnlockPage() {
               </select>
             </div>
 
-            {/* Coin */}
             <div className="form-control">
               <label className="label">Coin Amount:</label>
               <input
@@ -242,7 +236,6 @@ export default function UnlockPage() {
               />
             </div>
 
-            {/* Category - Combobox */}
             <div className="form-control">
               <label className="label">Category:</label>
               <Combobox value={selectedCategory} onChange={setSelectedCategory}>
@@ -258,7 +251,7 @@ export default function UnlockPage() {
                       }}
                     />
                     <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-2">
-                      <ChevronUpDown className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                      ▼
                     </Combobox.Button>
                   </div>
                   <Transition
@@ -312,14 +305,12 @@ export default function UnlockPage() {
               </Combobox>
             </div>
 
-            {/* Generate Button */}
             <div className="form-control">
               <button onClick={generateUrl} className="button flex items-center justify-center gap-2">
                 Generate URL
               </button>
             </div>
 
-            {/* Result URL */}
             {finalUrl && (
               <div className="form-control">
                 <textarea
@@ -329,7 +320,6 @@ export default function UnlockPage() {
                   className="textarea"
                 />
 
-                {/* Copy URL */}
                 <motion.button
                   onClick={handleCopyUrl}
                   whileTap={{ scale: 0.95 }}
@@ -348,7 +338,6 @@ export default function UnlockPage() {
                   )}
                 </motion.button>
 
-                {/* Copy HTML */}
                 <motion.button
                   onClick={handleCopyHtml}
                   whileTap={{ scale: 0.95 }}
