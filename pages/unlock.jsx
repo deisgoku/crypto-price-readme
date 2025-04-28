@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { toast } from "react-hot-toast";
-import { Loader2, ClipboardCopy, CheckCircle } from "lucide-react"; 
+import { Loader2, ClipboardCopy, CheckCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import Turnstile from "react-turnstile";
 
@@ -20,8 +20,6 @@ export default function UnlockPage() {
   const [coin, setCoin] = useState(5);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [categorySearch, setCategorySearch] = useState("");
-  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
 
   const router = useRouter();
   const ref = router.query.ref;
@@ -126,10 +124,6 @@ export default function UnlockPage() {
       toast.error("Failed to copy HTML.");
     }
   };
-
-  const filteredCategories = categories.filter((cat) =>
-    cat.name.toLowerCase().includes(categorySearch.toLowerCase())
-  );
 
   return (
     <motion.div
@@ -241,51 +235,20 @@ export default function UnlockPage() {
             </div>
 
             {/* Category */}
-            <div className="form-control relative">
+            <div className="form-control">
               <label className="label">Category:</label>
-              <div className="relative">
-                <button
-                  onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-                  className="select flex items-center justify-between w-full"
-                >
-                  {selectedCategory
-                    ? categories.find((c) => c.category_id === selectedCategory)?.name
-                    : "-- Select Category --"}
-                  {/* Chevron icon DITIADAKAN */}
-                </button>
-
-                {showCategoryDropdown && (
-                  <div className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 rounded-md shadow-lg border dark:border-gray-700">
-                    <input
-                      type="text"
-                      placeholder="Search category..."
-                      value={categorySearch}
-                      onChange={(e) => setCategorySearch(e.target.value)}
-                      className="input w-full rounded-t-md"
-                    />
-
-                    <div className="max-h-60 overflow-y-auto">
-                      {filteredCategories.length > 0 ? (
-                        filteredCategories.map((cat) => (
-                          <div
-                            key={cat.category_id}
-                            onClick={() => {
-                              setSelectedCategory(cat.category_id);
-                              setShowCategoryDropdown(false);
-                              setCategorySearch("");
-                            }}
-                            className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                          >
-                            {cat.name}
-                          </div>
-                        ))
-                      ) : (
-                        <div className="px-4 py-2 text-sm text-gray-500">No categories found.</div>
-                      )}
-                    </div>
-                  </div>
+              <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="select">
+                <option value="">-- Select Category --</option>
+                {categories.length > 0 ? (
+                  categories.map((cat) => (
+                    <option key={cat.category_id} value={cat.category_id}>
+                      {cat.name}
+                    </option>
+                  ))
+                ) : (
+                  <option>Loading categories...</option>
                 )}
-              </div>
+              </select>
             </div>
 
             {/* Generate Button */}
