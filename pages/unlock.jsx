@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { toast } from "react-hot-toast";
-import { Loader2, ClipboardCopy, CheckCircle } from "lucide-react";
+import { Loader2, ClipboardCopy, CheckCircle } from "lucide-react"; 
 import { motion } from "framer-motion";
 import Turnstile from "react-turnstile";
 
@@ -14,12 +14,14 @@ export default function UnlockPage() {
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedHtml, setCopiedHtml] = useState(false);
 
+  // Customize state
   const [model, setModel] = useState("modern");
   const [theme, setTheme] = useState("dark");
   const [coin, setCoin] = useState(5);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [categorySearch, setCategorySearch] = useState("");
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
 
   const router = useRouter();
   const ref = router.query.ref;
@@ -125,11 +127,9 @@ export default function UnlockPage() {
     }
   };
 
-  const filteredCategories = searchQuery
-    ? categories.filter((cat) =>
-        cat.name.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : categories;
+  const filteredCategories = categories.filter((cat) =>
+    cat.name.toLowerCase().includes(categorySearch.toLowerCase())
+  );
 
   return (
     <motion.div
@@ -143,6 +143,7 @@ export default function UnlockPage() {
           Unlock Card Tools
         </h1>
 
+        {/* STEP 1: UNLOCK */}
         {!unlocked && (
           <>
             <p className="subtitle mt-4">
@@ -195,6 +196,7 @@ export default function UnlockPage() {
           </>
         )}
 
+        {/* STEP 2: CUSTOMIZE */}
         {unlocked && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -204,6 +206,7 @@ export default function UnlockPage() {
           >
             <h2 className="subtitle text-xl mb-2">Customize Your Card</h2>
 
+            {/* Model */}
             <div className="form-control">
               <label className="label">Model:</label>
               <select value={model} onChange={(e) => setModel(e.target.value)} className="select">
@@ -213,6 +216,7 @@ export default function UnlockPage() {
               </select>
             </div>
 
+            {/* Theme */}
             <div className="form-control">
               <label className="label">Theme:</label>
               <select value={theme} onChange={(e) => setTheme(e.target.value)} className="select">
@@ -224,6 +228,7 @@ export default function UnlockPage() {
               </select>
             </div>
 
+            {/* Coin */}
             <div className="form-control">
               <label className="label">Coin Amount:</label>
               <input
@@ -235,39 +240,62 @@ export default function UnlockPage() {
               />
             </div>
 
-            <div className="form-control">
+            {/* Category */}
+            <div className="form-control relative">
               <label className="label">Category:</label>
-              <input
-                type="text"
-                placeholder="Search category..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="input mb-2"
-              />
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="select"
-              >
-                <option value="">-- Select Category --</option>
-                {filteredCategories.length > 0 ? (
-                  filteredCategories.map((cat) => (
-                    <option key={cat.category_id} value={cat.category_id}>
-                      {cat.name}
-                    </option>
-                  ))
-                ) : (
-                  <option disabled>No categories found.</option>
+              <div className="relative">
+                <button
+                  onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                  className="select flex items-center justify-between w-full"
+                >
+                  {selectedCategory
+                    ? categories.find((c) => c.category_id === selectedCategory)?.name
+                    : "-- Select Category --"}
+                  {/* Chevron icon DITIADAKAN */}
+                </button>
+
+                {showCategoryDropdown && (
+                  <div className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 rounded-md shadow-lg border dark:border-gray-700">
+                    <input
+                      type="text"
+                      placeholder="Search category..."
+                      value={categorySearch}
+                      onChange={(e) => setCategorySearch(e.target.value)}
+                      className="input w-full rounded-t-md"
+                    />
+
+                    <div className="max-h-60 overflow-y-auto">
+                      {filteredCategories.length > 0 ? (
+                        filteredCategories.map((cat) => (
+                          <div
+                            key={cat.category_id}
+                            onClick={() => {
+                              setSelectedCategory(cat.category_id);
+                              setShowCategoryDropdown(false);
+                              setCategorySearch("");
+                            }}
+                            className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                          >
+                            {cat.name}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="px-4 py-2 text-sm text-gray-500">No categories found.</div>
+                      )}
+                    </div>
+                  </div>
                 )}
-              </select>
+              </div>
             </div>
 
+            {/* Generate Button */}
             <div className="form-control">
               <button onClick={generateUrl} className="button flex items-center justify-center gap-2">
                 Generate URL
               </button>
             </div>
 
+            {/* Result URL */}
             {finalUrl && (
               <div className="form-control">
                 <textarea
@@ -277,6 +305,7 @@ export default function UnlockPage() {
                   className="textarea"
                 />
 
+                {/* Copy URL */}
                 <motion.button
                   onClick={handleCopyUrl}
                   whileTap={{ scale: 0.95 }}
@@ -295,6 +324,7 @@ export default function UnlockPage() {
                   )}
                 </motion.button>
 
+                {/* Copy HTML */}
                 <motion.button
                   onClick={handleCopyHtml}
                   whileTap={{ scale: 0.95 }}
