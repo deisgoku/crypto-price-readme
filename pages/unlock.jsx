@@ -26,18 +26,6 @@ export default function UnlockPage() {
     }
   }, [ref]);
 
-  useEffect(() => {
-    // INJECT PARTICLES SPAN STYLE
-    const particles = document.querySelectorAll(".particles span");
-    particles.forEach((particle) => {
-      particle.style.top = `${Math.random() * 100}%`;
-      particle.style.left = `${Math.random() * 100}%`;
-      particle.style.animationDelay = `${Math.random() * 5}s`;
-      particle.style.width = `${Math.random() * 4 + 2}px`;
-      particle.style.height = `${Math.random() * 4 + 2}px`;
-    });
-  }, []);
-
   const handleUnlock = async () => {
     if (!username.trim()) {
       toast.error("Please enter your Twitter username.");
@@ -109,175 +97,141 @@ export default function UnlockPage() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
-      {/* KUBUS Background */}
-      <div className="cubes absolute inset-0 z-0">
-        {[...Array(8)].map((_, i) => (
-          <span
-            key={i}
-            className="cube"
-            style={{
-              top: `${Math.random() * 80}%`,
-              left: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 5}s`,
-              width: `${Math.random() * 15 + 10}px`,
-              height: `${Math.random() * 15 + 10}px`,
-            }}
-          ></span>
-        ))}
-      </div>
+    <motion.div
+      className="unlock-wrapper"
+      initial={{ opacity: 0, y: 50 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.8, ease: "easeOut" }}
+    >
+      <div className="unlock-card">
+        <h1 className="title text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent animate-gradient">
+          Unlock Card Tools
+        </h1>
 
-      {/* API Background */}
-      <div className="fires absolute inset-0 z-0">
-        {[...Array(20)].map((_, i) => (
-          <span
-            key={i}
-            className="fire"
-            style={{
-              left: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 5}s`,
-              width: `${Math.random() * 2 + 2}px`,
-              height: `${Math.random() * 8 + 4}px`,
-            }}
-          ></span>
-        ))}
-      </div>
+        <p className="subtitle mt-4">
+          Follow{" "}
+          <a
+            href="https://twitter.com/Deisgoku"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="link"
+          >
+            @Deisgoku
+          </a>{" "}
+          and enter your Twitter username below:
+        </p>
 
-      {/* Particles */}
-      <div className="particles absolute inset-0 z-10">
-        {[...Array(10)].map((_, i) => (
-          <span key={i}></span>
-        ))}
-      </div>
+        {/* INPUT USERNAME */}
+        <div className="form-control">
+          <input
+            type="text"
+            placeholder="e.g. vitalikbutterin"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className="input"
+          />
+        </div>
 
-      {/* Main Content */}
-      <motion.div
-        className="unlock-wrapper relative z-20 flex items-center justify-center min-h-screen"
-        initial={{ opacity: 0, y: 50 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-      >
-        <div className="unlock-card bg-white/10 backdrop-blur-md rounded-xl p-8 shadow-md max-w-md w-full">
-          <h1 className="title text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent animate-gradient text-center">
-            Unlock Card Tools
-          </h1>
-
-          <p className="subtitle mt-4 text-center text-gray-300">
-            Follow{" "}
-            <a
-              href="https://twitter.com/Deisgoku"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="link text-blue-400 underline"
-            >
-              @Deisgoku
-            </a>{" "}
-            and enter your Twitter username below:
-          </p>
-
-          {/* Input */}
-          <div className="form-control mt-6">
-            <input
-              type="text"
-              placeholder="e.g. vitalikbutterin"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="input w-full rounded-md p-2 bg-black/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-          </div>
-
-          {/* CAPTCHA */}
-          <div className="form-control mt-4">
+        {/* CAPTCHA */}
+        {!unlockedUrl && (
+          <motion.div
+            initial={{ opacity: 1 }}
+            animate={{ opacity: unlockedUrl ? 0 : 1 }}
+            transition={{ duration: 0.5 }}
+            className="form-control"
+          >
             <Turnstile
               sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
               onSuccess={(token) => setToken(token)}
               className="rounded-md scale-90 shadow-sm"
             />
-          </div>
+          </motion.div>
+        )}
 
-          {/* Unlock Button */}
-          <div className="form-control mt-4">
-            <button
-              onClick={handleUnlock}
-              disabled={loading || unlockedUrl !== ""}
-              className={`button w-full flex items-center justify-center gap-2 rounded-md p-2 bg-blue-500 hover:bg-blue-600 transition-all ${
-                unlockedUrl !== "" ? "opacity-60 cursor-not-allowed" : ""
-              }`}
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  Unlocking...
-                </>
-              ) : unlockedUrl !== "" ? (
-                <>
-                  <span className="text-xl animate-fade">🚫</span>
-                  <span> Unlock</span>
-                </>
-              ) : (
-                "Unlock"
-              )}
-            </button>
-          </div>
+        {/* BUTTON UNLOCK */}
+        <div className="form-control">
+          <button
+            onClick={handleUnlock}
+            disabled={loading || unlockedUrl !== ""}
+            className={`button flex items-center justify-center gap-2 transition-all duration-300 ${
+              unlockedUrl !== "" ? "opacity-60 cursor-not-allowed" : ""
+            }`}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Unlocking...
+              </>
+            ) : unlockedUrl !== "" ? (
+              <>
+                <span className="text-xl animate-fade">🚫</span>
+                <span> Unlock</span>
+              </>
+            ) : (
+              "Unlock"
+            )}
+          </button>
+        </div>
 
-          {/* Card URL */}
-          {unlockedUrl && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
-              className="w-full flex flex-col items-center mt-6"
-            >
-              <p className="subtitle mb-2 text-gray-300">Your Card URL:</p>
+        {/* CARD URL RESULT */}
+        {unlockedUrl && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="w-full flex flex-col items-center mt-6"
+          >
+            <p className="subtitle mb-2">Your Card URL:</p>
 
+            <div className="form-control">
               <textarea
                 value={unlockedUrl}
                 readOnly
                 rows={3}
-                className="textarea w-full rounded-md p-2 bg-black/20 text-white mb-4"
+                className="textarea"
               />
 
-              {/* Copy URL */}
+              {/* BUTTON COPY URL */}
               <motion.button
                 onClick={handleCopyUrl}
                 whileTap={{ scale: 0.95 }}
-                className="button flex items-center gap-2 justify-center w-full px-3 py-2 mb-2 bg-green-500 hover:bg-green-600 rounded-md transition-all"
+                className="button flex items-center gap-2 justify-center px-3 py-2 mt-2"
               >
                 {copiedUrl ? (
                   <>
-                    <CheckCircle className="w-4 h-4 text-white" />
-                    <span>Copied!</span>
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span> Copied!</span>
                   </>
                 ) : (
                   <>
-                    <ClipboardCopy className="w-4 h-4 text-white" />
+                    <ClipboardCopy className="w-4 h-4" />
                     <span>Copy URL</span>
                   </>
                 )}
               </motion.button>
 
-              {/* Copy HTML */}
+              {/* BUTTON COPY HTML */}
               <motion.button
                 onClick={handleCopyHtml}
                 whileTap={{ scale: 0.95 }}
-                className="button flex items-center gap-2 justify-center w-full px-3 py-2 bg-purple-500 hover:bg-purple-600 rounded-md transition-all"
+                className="button flex items-center gap-2 justify-center px-3 py-2 mt-2"
               >
                 {copiedHtml ? (
                   <>
-                    <CheckCircle className="w-4 h-4 text-white" />
-                    <span>Copied!</span>
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span> Copied!</span>
                   </>
                 ) : (
                   <>
-                    <ClipboardCopy className="w-4 h-4 text-white" />
+                    <ClipboardCopy className="w-4 h-4" />
                     <span>Copy HTML</span>
                   </>
                 )}
               </motion.button>
-            </motion.div>
-          )}
-        </div>
-      </motion.div>
-    </div>
+            </div>
+          </motion.div>
+        )}
+      </div>
+    </motion.div>
   );
 }
