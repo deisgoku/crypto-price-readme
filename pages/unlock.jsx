@@ -4,6 +4,7 @@ import { toast } from "react-hot-toast";
 import { Loader2, ClipboardCopy, CheckCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import Turnstile from "react-turnstile";
+import Select from "react-select"; // <<< --- Tambahin ini
 
 export default function UnlockPage() {
   const [username, setUsername] = useState("");
@@ -24,12 +25,12 @@ export default function UnlockPage() {
   const ref = router.query.ref;
 
   useEffect(() => {
-    if (ref) {
-      const source = {
-        github: "GitHub warrior",
-        twitter: "Twitter X friends",
-      }[ref] || ref;
-      toast.success(`Welcome, ${source}!`);
+    if (ref === "github") {
+      toast.success("Welcome, GitHub warrior!");
+    } else if (ref === "twitter") {
+      toast.success("Hello, Twitter X friends!");
+    } else if (ref) {
+      toast.success(`Welcome from ${ref}!`);
     }
   }, [ref]);
 
@@ -37,20 +38,28 @@ export default function UnlockPage() {
     const fetchCategories = async () => {
       try {
         const res = await fetch("https://api.coingecko.com/api/v3/coins/categories/list");
-        if (!res.ok) throw new Error("Failed to fetch");
         const data = await res.json();
         setCategories(data);
       } catch (err) {
-        toast.error("Failed to load categories.");
+        toast.error("Failed to load categories from server.");
       }
     };
     fetchCategories();
   }, []);
 
   const handleUnlock = async () => {
-    if (!username.trim()) return toast.error("Please enter your Twitter username.");
-    if (username.includes("@")) return toast.error("Don't include '@' in your username.");
-    if (!token) return toast.error("Please complete the CAPTCHA first.");
+    if (!username.trim()) {
+      toast.error("Please enter your Twitter username.");
+      return;
+    }
+    if (username.includes("@")) {
+      toast.error("Don't include '@' in your username.");
+      return;
+    }
+    if (!token) {
+      toast.error("Please complete the CAPTCHA first.");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -60,9 +69,8 @@ export default function UnlockPage() {
         body: JSON.stringify({ username, token }),
       });
 
-      if (!checkRes.ok) throw new Error("Follow check failed.");
-
       const { status } = await checkRes.json();
+
       if (status === "already_verified" || status === "newly_verified") {
         if (status === "newly_verified") {
           await fetch("/api/add-follower", {
@@ -77,14 +85,17 @@ export default function UnlockPage() {
         toast.error("Verification failed. Please make sure you've followed us.");
       }
     } catch (err) {
-      toast.error("Something went wrong.");
+      toast.error("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   const generateUrl = () => {
-    if (!username.trim()) return toast.error("Username missing.");
+    if (!username.trim()) {
+      toast.error("Username missing.");
+      return;
+    }
     const url = `https://crypto-price-on.vercel.app/card?user=${username}&model=${model}&theme=${theme}&coin=${coin}${selectedCategory ? `&category=${selectedCategory}` : ""}`;
     setFinalUrl(url);
   };
@@ -126,7 +137,7 @@ export default function UnlockPage() {
           Unlock Card Tools
         </h1>
 
-        {!unlocked ? (
+        {!unlocked && (
           <>
             <p className="subtitle mt-4">
               Follow{" "}
@@ -153,7 +164,7 @@ export default function UnlockPage() {
 
             <div className="form-control">
               <Turnstile
-                sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || ""}
+                sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
                 onSuccess={(token) => setToken(token)}
                 className="rounded-md scale-90 shadow-sm"
               />
@@ -176,7 +187,9 @@ export default function UnlockPage() {
               </button>
             </div>
           </>
-        ) : (
+        )}
+
+        {unlocked && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -185,6 +198,7 @@ export default function UnlockPage() {
           >
             <h2 className="subtitle text-xl mb-2">Customize Your Card</h2>
 
+            {/* Model */}
             <div className="form-control">
               <label className="label">Model:</label>
               <select value={model} onChange={(e) => setModel(e.target.value)} className="select">
@@ -194,6 +208,7 @@ export default function UnlockPage() {
               </select>
             </div>
 
+            {/* Theme */}
             <div className="form-control">
               <label className="label">Theme:</label>
               <select value={theme} onChange={(e) => setTheme(e.target.value)} className="select">
@@ -205,6 +220,7 @@ export default function UnlockPage() {
               </select>
             </div>
 
+            {/* Coin */}
             <div className="form-control">
               <label className="label">Coin Amount:</label>
               <input
@@ -216,28 +232,30 @@ export default function UnlockPage() {
               />
             </div>
 
+            {/* Category pakai react-select */}
             <div className="form-control">
               <label className="label">Category:</label>
-              <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="select">
-                <option value="">-- Select Category --</option>
-                {categories.length > 0 ? (
-                  categories.map((cat) => (
-                    <option key={cat.category_id} value={cat.category_id}>
-                      {cat.name}
-                    </option>
-                  ))
-                ) : (
-                  <option>Loading categories...</option>
-                )}
-              </select>
+              <Select
+                options={categories.map((cat) => ({
+                  value: cat.category_id,
+                  label: cat.name
+                }))}
+                onChange={(selected) => setSelectedCategory(selected?.value || "")}
+                placeholder="Select a category..."
+                isClearable
+                className="react-select-container"
+                classNamePrefix="react-select"
+              />
             </div>
 
+            {/* Generate Button */}
             <div className="form-control">
               <button onClick={generateUrl} className="button flex items-center justify-center gap-2">
                 Generate URL
               </button>
             </div>
 
+            {/* Result URL */}
             {finalUrl && (
               <div className="form-control">
                 <textarea
@@ -247,6 +265,7 @@ export default function UnlockPage() {
                   className="textarea"
                 />
 
+                {/* Copy URL */}
                 <motion.button
                   onClick={handleCopyUrl}
                   whileTap={{ scale: 0.95 }}
@@ -265,6 +284,7 @@ export default function UnlockPage() {
                   )}
                 </motion.button>
 
+                {/* Copy HTML */}
                 <motion.button
                   onClick={handleCopyHtml}
                   whileTap={{ scale: 0.95 }}
