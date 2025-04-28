@@ -194,26 +194,46 @@ export default function UnlockPage() {
             <h2 className="subtitle text-xl mb-2">Customize Your Card</h2>
 
             {/* Model */}
-            <div className="form-control">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              className="form-control"
+            >
               <label className="label">Model:</label>
-              <select value={model} onChange={(e) => setModel(e.target.value)} className="select">
+              <select
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+                className="select border-2 rounded-lg p-2 bg-white text-black"
+                style={{ borderColor: "#00bfff" }}
+              >
                 <option value="modern">Modern</option>
                 <option value="classic">Classic</option>
                 <option value="futuristic">Futuristic</option>
               </select>
-            </div>
+            </motion.div>
 
             {/* Theme */}
-            <div className="form-control">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.05 }}
+              className="form-control"
+            >
               <label className="label">Theme:</label>
-              <select value={theme} onChange={(e) => setTheme(e.target.value)} className="select">
+              <select
+                value={theme}
+                onChange={(e) => setTheme(e.target.value)}
+                className="select border-2 rounded-lg p-2 bg-white text-black"
+                style={{ borderColor: "#00bfff" }}
+              >
                 <option value="dark">Dark</option>
                 <option value="light">Light</option>
                 <option value="dracula">Dracula</option>
                 <option value="tokyonight">Tokyonight</option>
                 <option value="ayu">Ayu</option>
               </select>
-            </div>
+            </motion.div>
 
             {/* Coin */}
             <div className="form-control">
@@ -222,8 +242,17 @@ export default function UnlockPage() {
                 type="number"
                 min={1}
                 value={coin}
-                onChange={(e) => setCoin(Number(e.target.value))}
-                className="input"
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === "" || value === "0") {
+                    setCoin("");
+                  } else {
+                    setCoin(parseInt(value, 10));
+                  }
+                }}
+                placeholder="Enter Coin Amount"
+                className="input border-2 rounded-lg p-2 bg-white text-black"
+                style={{ borderColor: "#00bfff" }}
               />
             </div>
 
@@ -242,8 +271,16 @@ export default function UnlockPage() {
                 classNamePrefix="react-select"
                 menuPortalTarget={typeof window !== "undefined" ? document.body : null}
                 menuPosition="fixed"
-                menuPlacement="top" // <<< Fix: Always open up even during search
+                menuPlacement="top"
                 styles={{
+                  control: (base) => ({
+                    ...base,
+                    borderColor: "#00bfff",
+                    borderWidth: 2,
+                    borderRadius: "0.5rem",
+                    backgroundColor: "white",
+                    color: "black",
+                  }),
                   menuPortal: (base) => ({ ...base, zIndex: 9999 }),
                   menu: (provided) => ({ ...provided, marginBottom: 8 }),
                 }}
