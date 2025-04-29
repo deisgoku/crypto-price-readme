@@ -119,7 +119,7 @@ body, .html {
   align-items: center;
   justify-content: center;
   position: absolute;
-  right: 16px;
+  right: 12px;
   top: 50%;
   transform: translateY(-50%);
   z-index: 10;
