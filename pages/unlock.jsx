@@ -41,7 +41,7 @@ export default function UnlockPage() {
 
     setLoading(true);
     try {
-      const loginRes = await fetch("/api/follow-check", {
+      const loginRes = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
