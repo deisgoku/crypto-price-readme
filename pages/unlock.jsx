@@ -79,7 +79,6 @@ export default function UnlockPage() {
     }
   };
 
-  // Password strength detection with regex
   useEffect(() => {
     if (isRegisterMode && password) {
       const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
@@ -147,13 +146,13 @@ export default function UnlockPage() {
               />
               <span
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute top-2.5 right-3 text-gray-500 cursor-pointer"
+                className="absolute top-2.5 right-3 text-sky-500 hover:text-sky-600 transition cursor-pointer"
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </span>
 
               {isRegisterMode && passwordStrength && (
-                <div className="mt-3">
+                <div className="mt-2">
                   <p className={`text-sm font-medium ${visual.color}`}>
                     {visual.label}
                   </p>
@@ -161,8 +160,8 @@ export default function UnlockPage() {
                     {[1, 2, 3].map((i) => (
                       <motion.div
                         key={i}
-                        className={`h-2 flex-1 rounded transition-all ${
-                          i <= visual.level ? visual.color : "bg-gray-200"
+                        className={`h-1.5 flex-1 rounded border border-white/20 transition-all ${
+                          i <= visual.level ? visual.color : "bg-white/10"
                         }`}
                         initial={{ opacity: 0.5 }}
                         animate={{ opacity: 1 }}
@@ -179,7 +178,7 @@ export default function UnlockPage() {
                 key={captchaKey}
                 sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
                 onSuccess={(token) => setToken(token)}
-                className="rounded-md scale-90 shadow-sm"
+                className="rounded-md shadow-sm"
               />
             </div>
 
