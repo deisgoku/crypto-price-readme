@@ -114,7 +114,16 @@ export default function UnlockPage() {
         {!unlocked ? (
           <>
             <p className="subtitle mt-4">
-              Follow <a href="https://twitter.com/Deisgoku" target="_blank" rel="noopener noreferrer" className="link">@Deisgoku</a> and {isRegisterMode ? "create" : "enter"} your Twitter username and password below:
+              Follow{" "}
+              <a
+                href="https://twitter.com/Deisgoku"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="link"
+              >
+                @Deisgoku
+              </a>{" "}
+              and {isRegisterMode ? "create" : "enter"} your Twitter username and password below:
             </p>
 
             <div className="form-control">
@@ -127,23 +136,21 @@ export default function UnlockPage() {
               />
             </div>
 
-            <div className="form-control">
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Enter password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="input w-full pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-3 flex items-center text-sky-500 hover:text-sky-600"
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
+            <div className="relative mt-4">
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Enter password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="input w-full pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-3 flex items-center text-sky-500 hover:text-sky-600"
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
 
             {isRegisterMode && passwordStrength && (
@@ -153,7 +160,9 @@ export default function UnlockPage() {
                   {[1, 2, 3].map((i) => (
                     <motion.div
                       key={i}
-                      className={`h-1.5 flex-1 rounded border border-white/20 transition-all ${i <= visual.level ? visual.color : "bg-white/10"}`}
+                      className={`h-1.5 flex-1 rounded border border-white/20 transition-all ${
+                        i <= visual.level ? visual.color : "bg-white/10"
+                      }`}
                       initial={{ opacity: 0.5 }}
                       animate={{ opacity: 1 }}
                       transition={{ duration: 0.3, delay: i * 0.1 }}
@@ -163,7 +172,7 @@ export default function UnlockPage() {
               </div>
             )}
 
-            <div className="form-control">
+            <div className="form-control mt-4">
               <Turnstile
                 key={captchaKey}
                 sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
@@ -172,7 +181,7 @@ export default function UnlockPage() {
               />
             </div>
 
-            <div className="form-control flex flex-col gap-2">
+            <div className="form-control flex flex-col gap-2 mt-4">
               <button
                 onClick={() => handleSubmit(isRegisterMode ? "register" : "login")}
                 disabled={loading}
