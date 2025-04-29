@@ -33,6 +33,7 @@ export default function UnlockPage() {
     setToken("");
     setCaptchaKey(Date.now());
     setPasswordStrength("");
+    setPassword("");
   };
 
   const handleSubmit = async (mode) => {
@@ -135,12 +136,12 @@ export default function UnlockPage() {
                 placeholder="e.g. vitalikbutterin"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="input"
+                className="input w-full px-4 py-2 rounded-md"
               />
             </div>
 
             <div className="form-control">
-              <div className="relative">
+              <div className="relative w-full">
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter password"
@@ -151,19 +152,7 @@ export default function UnlockPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: "absolute",
-                    top: "50%",
-                    right: "12px",
-                    transform: "translateY(-50%)",
-                    height: "24px",
-                    width: "24px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    zIndex: 20,
-                    padding: 0,
-                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 z-10 h-6 w-6 flex items-center justify-center"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
