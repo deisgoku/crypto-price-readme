@@ -118,7 +118,7 @@ export default function UnlockPage() {
         {!unlocked ? (
           <>
             <p className="subtitle mt-4 text-center">
-              Follow{" "}
+              Follow {" "}
               <a
                 href="https://twitter.com/Deisgoku"
                 target="_blank"
@@ -136,23 +136,23 @@ export default function UnlockPage() {
                 placeholder="e.g. vitalikbutterin"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="input w-full px-4 py-2 rounded-md"
+                className="input"
               />
             </div>
 
             <div className="form-control">
-              <div className="relative w-full">
+              <div className="flex items-center w-full bg-[#1f1f1f] border border-[#333] rounded-md px-3 py-2 focus-within:ring-1 focus-within:ring-cyan-400">
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="inputpwd w-full px-4 pr-10 py-2 rounded-md"
+                  className="flex-1 bg-transparent outline-none text-white placeholder-gray-400"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 z-10 h-6 w-6 flex items-center justify-center"
+                  className="text-white"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -161,9 +161,7 @@ export default function UnlockPage() {
 
             {isRegisterMode && passwordStrength && (
               <div className="mt-2">
-                <p className={`text-sm font-medium ${visual.color}`}>
-                  {visual.label}
-                </p>
+                <p className={`text-sm font-medium ${visual.color}`}>{visual.label}</p>
                 <div className="flex gap-1 mt-1">
                   {[1, 2, 3].map((i) => (
                     <motion.div
@@ -200,11 +198,7 @@ export default function UnlockPage() {
                     <Loader2 className="h-5 w-5 animate-spin" />
                     {isRegisterMode ? "Registering..." : "Unlocking..."}
                   </>
-                ) : isRegisterMode ? (
-                  "Register"
-                ) : (
-                  "Unlock"
-                )}
+                ) : isRegisterMode ? "Register" : "Unlock"}
               </button>
 
               <button
