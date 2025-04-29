@@ -41,7 +41,7 @@ export default function UnlockPage() {
 
     setLoading(true);
     try {
-      const loginRes = await fetch("/api/login", {
+      const loginRes = await fetch("/api/follow-check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
@@ -78,7 +78,7 @@ export default function UnlockPage() {
 
     setLoading(true);
     try {
-      const registerRes = await fetch("/api/register", {
+      const registerRes = await fetch("../api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
