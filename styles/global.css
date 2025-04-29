@@ -102,6 +102,21 @@ body, .html {
   border-color: #00ffff;
   box-shadow: 0 0 8px #00ffff55;
 }
+
+.eye-toggle {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.eye-toggle:hover {
+  color: #00ffff;
+}
   
 .textarea {
   background: #ffffff;
