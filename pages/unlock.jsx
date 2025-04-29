@@ -151,9 +151,9 @@ export default function UnlockPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="eye-toggle absolute right-3 top-0 h-full flex items-center z-10 text-white/70 hover:text-white"
+                  className="eye-toggle absolute right-4 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center z-20"
                 >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
