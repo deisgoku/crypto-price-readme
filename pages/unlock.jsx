@@ -146,7 +146,7 @@ export default function UnlockPage() {
                   placeholder="Enter password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="input w-full pr-10"
+                  className="input w-full pr-12"
                 />
                 <button
                   type="button"
