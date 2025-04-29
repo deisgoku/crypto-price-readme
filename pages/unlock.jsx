@@ -24,7 +24,7 @@ export default function UnlockPage() {
     if (ref) {
       if (ref === "github") toast.success("Welcome, GitHub warrior!");
       else if (ref === "twitter") toast.success("Welcome, Twitter X friends!");
-      else toast.success(`Welcome from ${ref}!`);
+      else toast.success(`Welcome from ${ref}!\`);
     }
   }, [ref]);
 
@@ -114,16 +114,7 @@ export default function UnlockPage() {
         {!unlocked ? (
           <>
             <p className="subtitle mt-4">
-              Follow{" "}
-              <a
-                href="https://twitter.com/Deisgoku"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="link"
-              >
-                @Deisgoku
-              </a>{" "}
-              and {isRegisterMode ? "create" : "enter"} your Twitter username and password below:
+              Follow <a href="https://twitter.com/Deisgoku" target="_blank" rel="noopener noreferrer" className="link">@Deisgoku</a> and {isRegisterMode ? "create" : "enter"} your Twitter username and password below:
             </p>
 
             <div className="form-control">
@@ -143,37 +134,34 @@ export default function UnlockPage() {
                   placeholder="Enter password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="input pr-10"
+                  className="input w-full pr-10"
                 />
-                <span
+                <button
+                  type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute top-1/2 right-3 -translate-y-1/2 text-sky-500 hover:text-sky-600 transition cursor-pointer"
+                  className="absolute inset-y-0 right-3 flex items-center text-sky-500 hover:text-sky-600"
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </span>
+                </button>
               </div>
-
-              {isRegisterMode && passwordStrength && (
-                <div className="mt-2">
-                  <p className={`text-sm font-medium ${visual.color}`}>
-                    {visual.label}
-                  </p>
-                  <div className="flex gap-1 mt-1">
-                    {[1, 2, 3].map((i) => (
-                      <motion.div
-                        key={i}
-                        className={`h-1.5 flex-1 rounded border border-white/20 transition-all ${
-                          i <= visual.level ? visual.color : "bg-white/10"
-                        }`}
-                        initial={{ opacity: 0.5 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.3, delay: i * 0.1 }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
+
+            {isRegisterMode && passwordStrength && (
+              <div className="mt-2">
+                <p className={`text-sm font-medium ${visual.color}`}>{visual.label}</p>
+                <div className="flex gap-1 mt-1">
+                  {[1, 2, 3].map((i) => (
+                    <motion.div
+                      key={i}
+                      className={`h-1.5 flex-1 rounded border border-white/20 transition-all ${i <= visual.level ? visual.color : "bg-white/10"}`}
+                      initial={{ opacity: 0.5 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.3, delay: i * 0.1 }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="form-control">
               <Turnstile
