@@ -146,12 +146,12 @@ export default function UnlockPage() {
                   placeholder="Enter password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="input w-full pr-12"
+                  className="input w-full px-4 pr-12"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-sky-500 hover:text-sky-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/70 hover:text-white"
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
