@@ -68,7 +68,7 @@ body, .html {
   max-width: 100%;
 }
 
-.input, .textarea, .select {
+.input, .textarea, .select, .inputpwd {
   box-sizing: border-box;
 }
 
