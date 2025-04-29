@@ -32,6 +32,7 @@ export default function UnlockPage() {
     setIsRegisterMode(!isRegisterMode);
     setToken("");
     setCaptchaKey(Date.now());
+    setPasswordStrength("");
   };
 
   const handleSubmit = async (mode) => {
@@ -65,6 +66,8 @@ export default function UnlockPage() {
           toast.success("Registration successful! You can now unlock.");
           setIsRegisterMode(false);
           setCaptchaKey(Date.now());
+          setPassword("");
+          setToken("");
         } else {
           toast.success(`Welcome, @${username}! Unlock Successful.`);
           setUnlocked(true);
@@ -106,118 +109,117 @@ export default function UnlockPage() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8, ease: "easeOut" }}
     >
-      <h2 className="text-xl font-semibold text-center">
-        {isRegisterMode ? "Register Account" : "Unlock Card Tools"}
-      </h2>
+      <div className="unlock-card">
+        <h1 className="title text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent animate-gradient text-center">
+          {isRegisterMode ? "Register Account" : "Unlock Card Tools"}
+        </h1>
 
-      {!unlocked ? (
-        <>
-          <p className="subtitle mt-4">
-            Follow{" "}
-            <a
-              href="https://twitter.com/Deisgoku"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="link"
-            >
-              @Deisgoku
-            </a>{" "}
-            and {isRegisterMode ? "create" : "enter"} your Twitter username and
-            password below:
-          </p>
-
-          <div className="form-control">
-            <input
-              type="text"
-              placeholder="e.g. vitalikbutterin"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="input"
-            />
-          </div>
-
-          <div className="form-control">
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                placeholder="Enter password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="input w-full pr-10"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-3 flex items-center text-sky-500 hover:text-sky-600"
+        {!unlocked ? (
+          <>
+            <p className="subtitle mt-4 text-center">
+              Follow{" "}
+              <a
+                href="https://twitter.com/Deisgoku"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="link text-blue-500 underline"
               >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-          </div>
+                @Deisgoku
+              </a>{" "}
+              and {isRegisterMode ? "create" : "enter"} your Twitter username and password below:
+            </p>
 
-          {isRegisterMode && passwordStrength && (
-            <div className="mt-2">
-              <p className={`text-sm font-medium ${visual.color}`}>
-                {visual.label}
-              </p>
-              <div className="flex gap-1 mt-1">
-                {[1, 2, 3].map((i) => (
-                  <motion.div
-                    key={i}
-                    className={`h-1.5 flex-1 rounded border border-white/20 transition-all ${
-                      i <= visual.level ? visual.color : "bg-white/10"
-                    }`}
-                    initial={{ opacity: 0.5 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.3, delay: i * 0.1 }}
-                  />
-                ))}
+            <div className="form-control">
+              <input
+                type="text"
+                placeholder="e.g. vitalikbutterin"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="input"
+              />
+            </div>
+
+            <div className="form-control">
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="input w-full pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-3 flex items-center text-sky-500 hover:text-sky-600"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
             </div>
-          )}
 
-          <div className="form-control">
-            <Turnstile
-              key={captchaKey}
-              sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-              onSuccess={(token) => setToken(token)}
-              className="rounded-md shadow-sm"
-            />
-          </div>
+            {isRegisterMode && passwordStrength && (
+              <div className="mt-2">
+                <p className={`text-sm font-medium ${visual.color}`}>
+                  {visual.label}
+                </p>
+                <div className="flex gap-1 mt-1">
+                  {[1, 2, 3].map((i) => (
+                    <motion.div
+                      key={i}
+                      className={`h-1.5 flex-1 rounded border border-white/20 transition-all ${
+                        i <= visual.level ? visual.color : "bg-white/10"
+                      }`}
+                      initial={{ opacity: 0.5 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.3, delay: i * 0.1 }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
 
-          <div className="form-control flex flex-col gap-2">
-            <button
-              onClick={() =>
-                handleSubmit(isRegisterMode ? "register" : "login")
-              }
-              disabled={loading}
-              className="button flex items-center justify-center gap-2 transition-all duration-300"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  {isRegisterMode ? "Registering..." : "Unlocking..."}
-                </>
-              ) : isRegisterMode ? (
-                "Register"
-              ) : (
-                "Unlock"
-              )}
-            </button>
+            <div className="form-control">
+              <Turnstile
+                key={captchaKey}
+                sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                onSuccess={(token) => setToken(token)}
+                className="rounded-md shadow-sm scale-90"
+              />
+            </div>
 
-            <a
-              onClick={handleModeSwitch}
-              className="link text-sm text-blue-500 underline cursor-pointer text-center"
-            >
-              {isRegisterMode
-                ? "Already have an account? Unlock here"
-                : "New user? Register here"}
-            </a>
-          </div>
-        </>
-      ) : (
-        <CustomCard username={username} />
-      )}
+            <div className="form-control flex flex-col gap-2">
+              <button
+                onClick={() => handleSubmit(isRegisterMode ? "register" : "login")}
+                disabled={loading}
+                className="button flex items-center justify-center gap-2 transition-all duration-300"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    {isRegisterMode ? "Registering..." : "Unlocking..."}
+                  </>
+                ) : isRegisterMode ? (
+                  "Register"
+                ) : (
+                  "Unlock"
+                )}
+              </button>
+
+              <button
+                onClick={handleModeSwitch}
+                className="text-sm text-blue-500 underline"
+              >
+                {isRegisterMode
+                  ? "Already have an account? Unlock here"
+                  : "New user? Register here"}
+              </button>
+            </div>
+          </>
+        ) : (
+          <CustomCard username={username} />
+        )}
+      </div>
     </motion.div>
   );
 }
