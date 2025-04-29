@@ -136,20 +136,22 @@ export default function UnlockPage() {
               />
             </div>
 
-            <div className="form-control relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                placeholder="Enter password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="input pr-10"
-              />
-              <span
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute top-1/2 -translate-y-1/2 right-3 text-sky-500 hover:text-sky-600 transition cursor-pointer"
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </span>
+            <div className="form-control">
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="input pr-10"
+                />
+                <span
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute top-1/2 right-3 -translate-y-1/2 text-sky-500 hover:text-sky-600 transition cursor-pointer"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </span>
+              </div>
 
               {isRegisterMode && passwordStrength && (
                 <div className="mt-2">
