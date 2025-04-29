@@ -141,7 +141,7 @@ export default function UnlockPage() {
             </div>
 
             <div className="form-control">
-              <div className="flex items-center w-full bg-[#1f1f1f] border border-[#333] rounded-md px-3 py-2 focus-within:ring-1 focus-within:ring-cyan-400">
+              <div className="inputpwd flex items-center w-full bg-[#1f1f1f] border border-[#333] rounded-md px-3 py-2 focus-within:ring-1 focus-within:ring-cyan-400">
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter password"
