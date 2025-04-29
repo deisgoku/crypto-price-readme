@@ -27,12 +27,12 @@ body, .html {
   background: rgba(0, 0, 0, 0.9);
   padding: 2rem;
   margin-inline: 1rem;
-  border: 2px solid #00bfff; /* neon listrik biru cerah */
+  border: 2px solid #00bfff;
   border-radius: 1rem;
   max-width: 400px;
   width: 100%;
   text-align: center;
-  box-shadow: 0 0 15px #00f0ff, 0 0 30px #00f0ff, 0 0 45px #00f0ff; /* efek neon */
+  box-shadow: 0 0 15px #00f0ff, 0 0 30px #00f0ff, 0 0 45px #00f0ff;
 }
 
 .title {
@@ -87,6 +87,7 @@ body, .html {
   box-shadow: 0 0 8px #00ffff55;
 }
 
+/* INPUT PASSWORD DENGAN ICON */
 .inputpwd {
   background: #ffffff;
   font-size: 1rem;
@@ -94,11 +95,12 @@ body, .html {
   padding-top: 12px;
   padding-bottom: 12px;
   padding-left: 16px;
-  padding-right: 48px;
+  padding-right: 48px; /* kasih ruang buat icon */
   height: 48px;
   border: 1px solid #00bfff;
   border-radius: 0.5rem;
   transition: all 0.3s ease;
+  position: relative;
 }
 
 .inputpwd:hover, .inputpwd:focus {
@@ -112,15 +114,21 @@ body, .html {
   padding: 0;
   margin: 0;
   cursor: pointer;
-  color: white;
+  color: #ffffffcc;
   display: flex;
   align-items: center;
   justify-content: center;
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
 }
+
 .eye-toggle:hover {
   color: #00ffff;
 }
-  
+
 .textarea {
   background: #ffffff;
   font-size: 1rem;
@@ -163,7 +171,7 @@ body, .html {
   background-color: #2563eb;
 }
 
-/* NEW: Label styling */
+/* Label styling */
 .label {
   font-size: 0.9rem;
   color: #ffffffcc;
@@ -172,7 +180,7 @@ body, .html {
   text-align: left;
 }
 
-/* NEW: Select styling */
+/* Select styling */
 .select {
   background: #ffffff;
   font-size: 1rem;
@@ -181,8 +189,8 @@ body, .html {
   border: 1px solid #00bfff;
   border-radius: 0.5rem;
   transition: all 0.3s ease;
-  appearance: none; /* untuk ngilangin native arrow default */
-  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D'12'%20height%3D'8'%20viewBox%3D'0%200%2012%208'%20xmlns%3D'http%3A//www.w3.org/2000/svg'%3E%3Cpath%20d%3D'M1.41%200L6%204.58%2010.59%200%2012%201.41%206%207.41%200%201.41%201.41%200z'%20fill%3D'%2300bfff'%20/%3E%3C/svg%3E");
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1.41 0L6 4.58 10.59 0 12 1.41 6 7.41 0 1.41 1.41 0z' fill='%2300bfff'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 1rem center;
   background-size: 12px 8px;
@@ -196,17 +204,11 @@ body, .html {
 /* Animations */
 @keyframes pulse {
   0%, 100% {
-    box-shadow:
-      0 0 5px #00ccff,
-      0 0 10px #00ccff,
-      0 0 2px #ffffff inset;
+    box-shadow: 0 0 5px #00ccff, 0 0 10px #00ccff, 0 0 2px #ffffff inset;
     background-color: #0f172a;
   }
   50% {
-    box-shadow:
-      0 0 10px #00ccff,
-      0 0 20px #00ccff,
-      0 0 5px #ffffff inset;
+    box-shadow: 0 0 10px #00ccff, 0 0 20px #00ccff, 0 0 5px #ffffff inset;
     background-color: #1e293b;
   }
 }
@@ -240,5 +242,3 @@ body, .html {
 .animate-fade {
   animation: fade 0.3s ease-in-out;
 }
-
-/* -------------- animasi tambahan --------------*/
