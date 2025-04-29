@@ -8,9 +8,11 @@ import CustomCard from "./custom";
 
 export default function UnlockPage() {
   const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [token, setToken] = useState("");
   const [unlocked, setUnlocked] = useState(false);
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
 
   const router = useRouter();
   const ref = router.query.ref;
@@ -24,8 +26,8 @@ export default function UnlockPage() {
   }, [ref]);
 
   const handleUnlock = async () => {
-    if (!username.trim()) {
-      toast.error("Please enter your Twitter username.");
+    if (!username.trim() || !password.trim()) {
+      toast.error("Please enter username and password.");
       return;
     }
     if (username.includes("@")) {
@@ -39,27 +41,58 @@ export default function UnlockPage() {
 
     setLoading(true);
     try {
-      const checkRes = await fetch("/api/follow-check", {
+      const loginRes = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, token }),
+        body: JSON.stringify({ username, password }),
       });
-      const { status } = await checkRes.json();
 
-      if (status === "already_verified" || status === "newly_verified") {
-        if (status === "newly_verified") {
-          await fetch("/api/add-follower", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username }),
-          });
-        }
+      const loginData = await loginRes.json();
+
+      if (loginRes.ok && loginData.status === "success") {
         toast.success(`Welcome, @${username}! Unlock Successful.`);
         setUnlocked(true);
       } else {
-        toast.error("Verification failed. Please make sure you've followed us.");
+        toast.error(loginData.error || "Login failed. Please try again.");
       }
-    } catch {
+    } catch (error) {
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegister = async () => {
+    if (!username.trim() || !password.trim()) {
+      toast.error("Please enter username and password.");
+      return;
+    }
+    if (username.includes("@")) {
+      toast.error("Don't include '@' in your username.");
+      return;
+    }
+    if (!token) {
+      toast.error("Please complete the CAPTCHA first.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const registerRes = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const registerData = await registerRes.json();
+
+      if (registerRes.ok && registerData.status === "success") {
+        toast.success("Registration successful! You can now unlock.");
+        setIsRegisterMode(false); // Balik ke unlock mode
+      } else {
+        toast.error(registerData.error || "Registration failed.");
+      }
+    } catch (error) {
       toast.error("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
@@ -90,7 +123,7 @@ export default function UnlockPage() {
               >
                 @Deisgoku
               </a>{" "}
-              and enter your Twitter username below:
+              and enter your Twitter username and password below:
             </p>
 
             <div className="form-control">
@@ -104,6 +137,16 @@ export default function UnlockPage() {
             </div>
 
             <div className="form-control">
+              <input
+                type="password"
+                placeholder="Enter password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="input"
+              />
+            </div>
+
+            <div className="form-control">
               <Turnstile
                 sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
                 onSuccess={(token) => setToken(token)}
@@ -111,20 +154,29 @@ export default function UnlockPage() {
               />
             </div>
 
-            <div className="form-control">
+            <div className="form-control flex flex-col gap-2">
               <button
-                onClick={handleUnlock}
+                onClick={isRegisterMode ? handleRegister : handleUnlock}
                 disabled={loading}
                 className="button flex items-center justify-center gap-2 transition-all duration-300"
               >
                 {loading ? (
                   <>
                     <Loader2 className="h-5 w-5 animate-spin" />
-                    Unlocking...
+                    {isRegisterMode ? "Registering..." : "Unlocking..."}
                   </>
                 ) : (
-                  "Unlock"
+                  isRegisterMode ? "Register" : "Unlock"
                 )}
+              </button>
+
+              <button
+                onClick={() => setIsRegisterMode(!isRegisterMode)}
+                className="text-sm text-blue-500 underline"
+              >
+                {isRegisterMode
+                  ? "Already have an account? Unlock here"
+                  : "New user? Register here"}
               </button>
             </div>
           </>
