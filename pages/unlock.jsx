@@ -146,9 +146,9 @@ export default function UnlockPage() {
               />
               <span
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute top-2.5 right-3 text-sky-500 hover:text-sky-600 transition cursor-pointer"
+                className="absolute top-1/2 -translate-y-1/2 right-3 text-sky-500 hover:text-sky-600 transition cursor-pointer"
               >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </span>
 
               {isRegisterMode && passwordStrength && (
