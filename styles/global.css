@@ -63,7 +63,7 @@ body, .html {
   gap: 12px;
 }
 
-.input, .textarea, .button, .select, .inputpwd {
+.input, .textarea, .button, .select{
   width: 100%;
   max-width: 100%;
 }
@@ -119,6 +119,8 @@ body, .html {
   align-items: center;
   justify-content: center;
   position: absolute;
+  height: 24px;
+  width: 24;
   right: 12px;
   top: 50%;
   transform: translateY(-50%);
