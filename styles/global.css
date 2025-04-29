@@ -93,6 +93,8 @@ body, .html {
   color: #000;
   padding-top: 12px;
   padding-bottom: 12px;
+  padding-left: 16px;
+  padding-right: 48px;
   border: 1px solid #00bfff;
   border-radius: 0.5rem;
   transition: all 0.3s ease;
