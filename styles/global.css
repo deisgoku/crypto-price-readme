@@ -89,23 +89,19 @@ body, .html {
 
 /* INPUT PASSWORD DENGAN ICON */
 .inputpwd {
-  background: #ffffff;
-  font-size: 1rem;
-  color: #000;
-  padding-top: 12px;
-  padding-bottom: 12px;
-  padding-left: 16px;
-  padding-right: 48px; /* kasih ruang buat icon */
-  height: 48px;
-  border: 1px solid #00bfff;
+  padding-right: 2.5rem; /* Supaya space buat eye icon */
+  background-color: #1f1f1f;
+  border: 1px solid #333;
   border-radius: 0.5rem;
-  transition: all 0.3s ease;
-  position: relative;
+  font-size: 1rem;
+  color: white;
+  outline: none;
+  width: 100%;
 }
 
-.inputpwd:hover, .inputpwd:focus {
+.inputpwd:focus {
   border-color: #00ffff;
-  box-shadow: 0 0 8px #00ffff55;
+  box-shadow: 0 0 0 1px #00ffff;
 }
 
 .eye-toggle {
