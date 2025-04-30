@@ -1,3 +1,4 @@
+// api/card.js
 const fetch = require('node-fetch');
 const { renderModern } = require('../lib/settings/model/modern');
 const { renderFuturistic } = require('../lib/settings/model/futuristic');
@@ -42,6 +43,7 @@ async function fetchCategoryMap() {
 }
 
 async function fetchGecko(category, limit) {
+  console.log('[FETCH] from Gecko');
   const url = `${COINGECKO_API}/coins/markets?vs_currency=usd&category=${category}&order=market_cap_desc&per_page=${limit}&sparkline=true`;
   const res = await fetch(url);
   if (!res.ok) throw new Error('Gecko failed');
@@ -60,6 +62,7 @@ async function fetchGecko(category, limit) {
 }
 
 async function fetchCMC(category, limit) {
+  console.log('[FETCH] from CMC');
   const slugRes = await fetch(`${CMC_API}/cryptocurrency/category`, {
     headers: { 'X-CMC_PRO_API_KEY': CMC_KEY }
   });
@@ -86,6 +89,7 @@ async function fetchCMC(category, limit) {
 }
 
 async function fetchBinance(limit) {
+  console.log('[FETCH] from Binance');
   const res = await fetch(BINANCE_API);
   if (!res.ok) throw new Error('Binance failed');
   const data = await res.json();
@@ -120,15 +124,18 @@ module.exports = async (req, res) => {
 
   try {
     if (!user || typeof user !== 'string') {
+      console.log('[CARD] Guest access, showing locked card.');
       return res.status(200).send(renderLocked('Guest'));
     }
 
     const verified = await isRegistered(user.toLowerCase());
+    console.log(`[CARD] User: ${user}, Registered: ${verified}`);
     if (!verified) {
       return res.status(200).send(renderLocked(user));
     }
 
     const data = await cacheFetch(cacheKey, 60, async () => {
+      console.log(`[CACHE] MISS for: ${cacheKey}`);
       let data;
       let categoryName = 'General';
 
@@ -136,12 +143,17 @@ module.exports = async (req, res) => {
         data = await fetchGecko(category, limit);
         const catMap = await fetchCategoryMap();
         categoryName = catMap.get(category) || category;
-      } catch {
+        console.log('[CARD] Data from Gecko, category:', categoryName);
+      } catch (err1) {
+        console.warn('[CARD] Gecko failed:', err1.message);
         try {
           data = await fetchCMC(category, limit);
           categoryName = category;
-        } catch {
+          console.log('[CARD] Data from CMC, category:', categoryName);
+        } catch (err2) {
+          console.warn('[CARD] CMC failed:', err2.message);
           data = await fetchBinance(limit);
+          console.log('[CARD] Data from Binance fallback');
         }
       }
 
@@ -151,8 +163,10 @@ module.exports = async (req, res) => {
 
     const renderer = renderers[model] || renderModern;
     const svg = renderer(data, theme, limit);
+    console.log('[CARD] Rendering complete for user:', user);
     return res.status(200).send(svg);
   } catch (err) {
+    console.error('[CARD] Unexpected error:', err);
     return res.status(500).send(`
       <svg xmlns="http://www.w3.org/2000/svg" width="600" height="100">
         <text x="50%" y="50%" font-size="16" text-anchor="middle" fill="red">
