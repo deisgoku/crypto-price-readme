@@ -1,7 +1,8 @@
 const fetch = require('node-fetch');
 const { renderModern } = require('../lib/settings/model/modern');
+const { renderFuturistic } = require('../lib/settings/model/futuristic'); // pastikan path benar
 const renderLocked = require('../lib/settings/data/locked');
-const { isRegistered } = require('../lib/follow-check'); // Ganti dari isFollowing ke isRegistered
+const { isRegistered } = require('../lib/follow-check');
 
 const COINGECKO_API = 'https://api.coingecko.com/api/v3';
 const CMC_API = 'https://pro-api.coinmarketcap.com/v1';
@@ -10,8 +11,6 @@ const CMC_KEY = process.env.CMC_API_KEY;
 
 const cache = new Map();
 let categoryMap = null;
-
-const delay = ms => new Promise(res => setTimeout(res, ms));
 
 function formatVolume(value) {
   if (value >= 1e9) return (value / 1e9).toFixed(1) + "B";
@@ -117,6 +116,15 @@ const fetchBinance = async (limit) => {
     .slice(0, limit);
 };
 
+// ==============================
+// Renderer mapping by model key
+// ==============================
+const renderers = {
+  modern: renderModern,
+  futuristic: renderFuturistic,
+  // classic: renderClassic (optional)
+};
+
 // MAIN HANDLER
 module.exports = async (req, res) => {
   const { user, model = 'modern', theme = 'dark', coin = '6', category = 'layer1' } = req.query;
@@ -127,7 +135,6 @@ module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
 
   try {
-    // Verifikasi username yang sudah terdaftar
     if (!user || typeof user !== 'string') {
       return res.status(200).send(renderLocked('Guest'));
     }
@@ -159,7 +166,8 @@ module.exports = async (req, res) => {
     }
 
     const data = cache.get(cacheKey);
-    const svg = renderModern(data, theme, limit);
+    const renderer = renderers[model] || renderModern;
+    const svg = renderer(data, theme, limit);
     return res.status(200).send(svg);
   } catch (err) {
     return res.status(500).send(`<svg xmlns="http://www.w3.org/2000/svg" width="600" height="100"><text x="50%" y="50%" font-size="16" text-anchor="middle" fill="red">Error: ${err.message}</text></svg>`);
