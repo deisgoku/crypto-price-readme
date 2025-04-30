@@ -89,7 +89,7 @@ body, .html {
 
 /* INPUT PASSWORD DENGAN ICON */
 .inputpwd {
-  padding: 0.75rem 2.5rem 0.75rem 1rem; /* top-right-bottom-left */
+  padding: 0.75rem 2.5rem 0.75rem 1rem;
   background-color: #1f1f1f;
   border: 1px solid #333;
   border-radius: 0.5rem;
@@ -99,31 +99,18 @@ body, .html {
   width: 100%;
 }
 
-.inputpwd:focus {
-  @apply border-[#00ffff] shadow-[0_0_8px_#00ffff55];
-  border-color: #00ffff;
-  box-shadow: 0 0 0 1px #00ffff;
-}
-
-
-
 .eye-toggle {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
   background: transparent;
   border: none;
-  padding: 0;
-  margin: 0;
   cursor: pointer;
   color: #ffffffcc;
   display: flex;
   align-items: center;
   justify-content: center;
-  position: absolute;
-  height: 48px;
-  width: 24;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 10;
 }
 
 .eye-toggle:hover {
