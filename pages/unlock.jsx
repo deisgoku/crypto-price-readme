@@ -20,29 +20,38 @@ export default function UnlockPage() {
   const router = useRouter();
   const ref = router.query.ref;
 
+  // Handle ref-based greetings
   useEffect(() => {
     if (ref) {
-      if (ref === "github") toast.success("Welcome, GitHub warrior!");
-      else if (ref === "twitter") toast.success("Welcome, Twitter X friends!");
-      else toast.success(`Welcome from ${ref}!`);
+      const message =
+        ref === "github"
+          ? "Welcome, GitHub warrior!"
+          : ref === "twitter"
+          ? "Welcome, Twitter X friends!"
+          : `Welcome from ${ref}!`;
+      toast.success(message);
     }
   }, [ref]);
 
+  // Toggle login/register mode
   const handleModeSwitch = () => {
     setIsRegisterMode(!isRegisterMode);
     setToken("");
     setCaptchaKey(Date.now());
   };
 
+  // Handle login/register form submission
   const handleSubmit = async (mode) => {
     if (!username.trim() || !password.trim()) {
       toast.error("Please enter username and password.");
       return;
     }
+
     if (username.includes("@")) {
       toast.error("Don't include '@' in your username.");
       return;
     }
+
     if (!token) {
       toast.error("Please complete the CAPTCHA first.");
       return;
@@ -55,7 +64,7 @@ export default function UnlockPage() {
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ username, password }),
       });
 
       const data = await res.json();
@@ -79,10 +88,12 @@ export default function UnlockPage() {
     }
   };
 
+  // Evaluate password strength
   useEffect(() => {
     if (isRegisterMode && password) {
       const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
       const mediumRegex = /^(?=.*[a-zA-Z])(?=.*\d).{6,}$/;
+
       if (strongRegex.test(password)) setPasswordStrength("strong");
       else if (mediumRegex.test(password)) setPasswordStrength("medium");
       else setPasswordStrength("weak");
@@ -94,7 +105,7 @@ export default function UnlockPage() {
   const strengthVisual = {
     weak: { label: "Weak", level: 1, color: "bg-red-500" },
     medium: { label: "Medium", level: 2, color: "bg-yellow-400" },
-    strong: { label: "Strong", level: 3, color: "bg-green-500" }
+    strong: { label: "Strong", level: 3, color: "bg-green-500" },
   };
 
   const visual = strengthVisual[passwordStrength] || {};
@@ -126,7 +137,7 @@ export default function UnlockPage() {
               and {isRegisterMode ? "create" : "enter"} your Twitter username and password below:
             </p>
 
-            <div className="form-control">
+            <div className="form-control mt-4">
               <input
                 type="text"
                 placeholder="e.g. vitalikbutterin"
@@ -136,41 +147,45 @@ export default function UnlockPage() {
               />
             </div>
 
-            <div className="pwdcontrol relative mt-2">
-              <input
-                type={showPassword ? "text" : "password"}
-                placeholder="Enter password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="inputpwd pr-10"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="eye-toggle"
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-
-            {isRegisterMode && passwordStrength && (
-              <div className="absolute left-0 right-0 top-full mt-1 bg-white/5 backdrop-blur-sm rounded p-2 border border-white/10 z-10">
-                <p className={`text-sm font-medium text-white drop-shadow ${visual.color}`}>{visual.label}</p>
-                <div className="flex gap-1 mt-1">
-                  {[1, 2, 3].map((i) => (
-                    <motion.div
-                      key={i}
-                      className={`h-1.5 flex-1 rounded border border-white/20 transition-all ${
-                        i <= visual.level ? visual.color : "bg-white/10"
-                      }`}
-                      initial={{ opacity: 0.5 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.3, delay: i * 0.1 }}
-                    />
-                  ))}
-                </div>
+            <div className="relative">
+              <div className="pwdcontrol mt-2">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="inputpwd pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="eye-toggle"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
-            )}
+
+              {isRegisterMode && passwordStrength && (
+                <div className="absolute left-0 right-0 top-full mt-1 bg-white/5 backdrop-blur-sm rounded p-2 border border-white/10 z-10">
+                  <p className={`text-sm font-medium text-white drop-shadow ${visual.color}`}>
+                    {visual.label}
+                  </p>
+                  <div className="flex gap-1 mt-1">
+                    {[1, 2, 3].map((i) => (
+                      <motion.div
+                        key={i}
+                        className={`h-1.5 flex-1 rounded border border-white/20 transition-all ${
+                          i <= visual.level ? visual.color : "bg-white/10"
+                        }`}
+                        initial={{ opacity: 0.5 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.3, delay: i * 0.1 }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
 
             <div className="form-control mt-4">
               <Turnstile
