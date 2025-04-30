@@ -63,7 +63,7 @@ body, .html {
   gap: 12px;
 }
 
-.input, .textarea, .button, .select, .inputpwd{
+.input, .textarea, .button, .select{
   width: 100%;
   max-width: 100%;
 }
