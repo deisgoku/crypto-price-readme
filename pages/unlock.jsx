@@ -154,8 +154,8 @@ export default function UnlockPage() {
             </div>
 
             {isRegisterMode && passwordStrength && (
-              <div className="mt-2">
-                <p className={`text-sm font-medium ${visual.color}`}>{visual.label}</p>
+              <div className="mt-2 bg-white/5 backdrop-blur-sm rounded p-2 ">
+                <p className={`text-sm font-medium text-white drop-shadow ${visual.color}`}>{visual.label}</p>
                 <div className="flex gap-1 mt-1">
                   {[1, 2, 3].map((i) => (
                     <motion.div
