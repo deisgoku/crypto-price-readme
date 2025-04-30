@@ -154,7 +154,7 @@ export default function UnlockPage() {
             </div>
 
             {isRegisterMode && passwordStrength && (
-              <div className="mt-2 bg-white/5 backdrop-blur-sm rounded p-2 ">
+              <div className="absolute left-0 right-0 top-full mt-1 bg-white/5 backdrop-blur-sm rounded p-2 border border-white/10 z-10">
                 <p className={`text-sm font-medium text-white drop-shadow ${visual.color}`}>{visual.label}</p>
                 <div className="flex gap-1 mt-1">
                   {[1, 2, 3].map((i) => (
