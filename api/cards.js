@@ -1,6 +1,7 @@
 const fetch = require('node-fetch');
 const { renderModern } = require('../lib/settings/model/modern');
 const { renderFuturistic } = require('../lib/settings/model/futuristic');
+const { renderClassic } = require('../lib/settings/model/classic');
 const renderLocked = require('../lib/settings/data/locked');
 const { isRegistered } = require('../lib/follow-check');
 const cacheFetch = require('../lib/data/middleware');
@@ -123,6 +124,7 @@ function generateSparklinePath(values, width = 70, height = 30) {
 const renderers = {
   modern: renderModern,
   futuristic: renderFuturistic,
+  classic: renderClassic,
 };
 
 module.exports = async (req, res) => {
