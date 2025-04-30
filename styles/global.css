@@ -127,9 +127,6 @@ body, .html {
   justify-content: center;
 }
 
-.eye-toggle:hover {
-  color: #00ffff;
-}
 
 .textarea {
   background: #ffffff;
@@ -206,7 +203,8 @@ body, .html {
 
 /* Container password  strength*/
 .password-strength-box {
-  margin-top: 6px;
+  margin-top: 4px;
+  margin-bottom: 14px;  
   display: flex;
   align-items: center;
   gap: 8px;
@@ -237,12 +235,10 @@ body, .html {
   width: 25%;
   color: #ef4444;
 }
-
 .strength-medium {
   width: 50%;
   color: #facc15;
 }
-
 .strength-strong {
   width: 100%;
   color: #22c55e;
