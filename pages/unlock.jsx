@@ -20,7 +20,6 @@ export default function UnlockPage() {
   const router = useRouter();
   const ref = router.query.ref;
 
-  // Toast greeting if URL has `ref` query
   useEffect(() => {
     if (ref) {
       if (ref === "github") toast.success("Welcome, GitHub warrior!");
@@ -40,12 +39,10 @@ export default function UnlockPage() {
       toast.error("Please enter username and password.");
       return;
     }
-
     if (username.includes("@")) {
       toast.error("Don't include '@' in your username.");
       return;
     }
-
     if (!token) {
       toast.error("Please complete the CAPTCHA first.");
       return;
@@ -82,7 +79,6 @@ export default function UnlockPage() {
     }
   };
 
-  // Password strength logic
   useEffect(() => {
     if (isRegisterMode && password) {
       const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
@@ -112,10 +108,12 @@ export default function UnlockPage() {
       transition={{ duration: 0.8, ease: "easeOut" }}
     >
       <div className="unlock-card">
+        {/* Title */}
         <h1 className="title text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent animate-gradient">
           {isRegisterMode ? "Register Account" : "Unlock Card Tools"}
         </h1>
 
+        {/* Main Form */}
         {!unlocked ? (
           <>
             <p className="subtitle mt-4">
@@ -131,8 +129,8 @@ export default function UnlockPage() {
               and {isRegisterMode ? "create" : "enter"} your Twitter username and password below:
             </p>
 
-            {/* Username Field */}
-            <div className="form-control mt-4">
+            {/* Username */}
+            <div className="form-control mt-2">
               <input
                 type="text"
                 placeholder="e.g. vitalikbutterin"
@@ -142,7 +140,7 @@ export default function UnlockPage() {
               />
             </div>
 
-            {/* Password Field */}
+            {/* Password */}
             <div className="pwdcontrol relative mt-2">
               <input
                 type={showPassword ? "text" : "password"}
@@ -160,10 +158,12 @@ export default function UnlockPage() {
               </button>
             </div>
 
-            {/* Password Strength Indicator (1-bar style) */}
+            {/* Strength Meter */}
             {isRegisterMode && passwordStrength && (
               <div className="password-strength-box">
-                <div className={`strength-bar-single strength-${passwordStrength}`} />
+                <div className="strength-bar-wrapper">
+                  <div className={`strength-bar-fill strength-${passwordStrength}`} />
+                </div>
                 <span className="password-strength-label">{visual.label}</span>
               </div>
             )}
@@ -178,12 +178,10 @@ export default function UnlockPage() {
               />
             </div>
 
-            {/* Submit & Mode Switch */}
+            {/* Submit + Switch */}
             <div className="form-control flex flex-col gap-2 mt-4">
               <button
-                onClick={() =>
-                  handleSubmit(isRegisterMode ? "register" : "login")
-                }
+                onClick={() => handleSubmit(isRegisterMode ? "register" : "login")}
                 disabled={loading}
                 className="button flex items-center justify-center gap-2 transition-all duration-300"
               >
