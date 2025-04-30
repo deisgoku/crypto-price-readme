@@ -20,6 +20,7 @@ export default function UnlockPage() {
   const router = useRouter();
   const ref = router.query.ref;
 
+  // Toast greeting if URL has `ref` query
   useEffect(() => {
     if (ref) {
       if (ref === "github") toast.success("Welcome, GitHub warrior!");
@@ -81,6 +82,7 @@ export default function UnlockPage() {
     }
   };
 
+  // Password strength logic
   useEffect(() => {
     if (isRegisterMode && password) {
       const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
@@ -130,7 +132,7 @@ export default function UnlockPage() {
             </p>
 
             {/* Username Field */}
-            <div className="form-control">
+            <div className="form-control mt-4">
               <input
                 type="text"
                 placeholder="e.g. vitalikbutterin"
@@ -158,27 +160,11 @@ export default function UnlockPage() {
               </button>
             </div>
 
-            {/* Password Strength */}
+            {/* Password Strength Indicator (1-bar style) */}
             {isRegisterMode && passwordStrength && (
               <div className="password-strength-box">
-                <p className={`password-strength-label ${visual.color}`}>
-                  {visual.label}
-                </p>
-                <div className="strength-bar-container">
-                  {[1, 2, 3].map((i) => (
-                    <motion.div
-                      key={i}
-                      className={`strength-bar ${
-                        i <= visual.level
-                          ? `strength-${passwordStrength}`
-                          : "strength-inactive"
-                      }`}
-                      initial={{ opacity: 0.5 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.3, delay: i * 0.1 }}
-                    />
-                  ))}
-                </div>
+                <div className={`strength-bar-single strength-${passwordStrength}`} />
+                <span className="password-strength-label">{visual.label}</span>
               </div>
             )}
 
@@ -192,7 +178,7 @@ export default function UnlockPage() {
               />
             </div>
 
-            {/* Buttons */}
+            {/* Submit & Mode Switch */}
             <div className="form-control flex flex-col gap-2 mt-4">
               <button
                 onClick={() =>
