@@ -151,26 +151,28 @@ export default function UnlockPage() {
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
-            </div>
 
-            {isRegisterMode && passwordStrength && (
-              <div className="absolute left-0 right-0 top-full mt-1 bg-white/5 backdrop-blur-sm rounded p-2 border border-white/10 z-10">
-                <p className={`text-sm font-medium text-white drop-shadow ${visual.color}`}>{visual.label}</p>
-                <div className="flex gap-1 mt-1">
-                  {[1, 2, 3].map((i) => (
-                    <motion.div
-                      key={i}
-                      className={`h-1.5 flex-1 rounded border border-white/20 transition-all ${
-                        i <= visual.level ? visual.color : "bg-white/10"
-                      }`}
-                      initial={{ opacity: 0.5 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.3, delay: i * 0.1 }}
-                    />
-                  ))}
+              {isRegisterMode && passwordStrength && (
+                <div className="absolute left-0 right-0 top-full mt-1 bg-white/5 backdrop-blur-sm rounded p-2 border border-white/10 z-10">
+                  <p className={`text-sm font-medium text-white drop-shadow ${visual.color}`}>
+                    {visual.label}
+                  </p>
+                  <div className="flex gap-1 mt-1">
+                    {[1, 2, 3].map((i) => (
+                      <motion.div
+                        key={i}
+                        className={`h-1.5 flex-1 rounded border border-white/20 transition-all ${
+                          i <= visual.level ? visual.color : "bg-white/10"
+                        }`}
+                        initial={{ opacity: 0.5 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.3, delay: i * 0.1 }}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             <div className="form-control mt-4">
               <Turnstile
