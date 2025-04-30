@@ -20,38 +20,31 @@ export default function UnlockPage() {
   const router = useRouter();
   const ref = router.query.ref;
 
-  // Handle ref-based greetings
   useEffect(() => {
     if (ref) {
-      const message =
-        ref === "github"
-          ? "Welcome, GitHub warrior!"
-          : ref === "twitter"
-          ? "Welcome, Twitter X friends!"
-          : `Welcome from ${ref}!`;
-      toast.success(message);
+      const welcomeMsg = {
+        github: "Welcome, GitHub warrior!",
+        twitter: "Welcome, Twitter X friends!",
+      }[ref] || `Welcome from ${ref}!`;
+      toast.success(welcomeMsg);
     }
   }, [ref]);
 
-  // Toggle login/register mode
   const handleModeSwitch = () => {
     setIsRegisterMode(!isRegisterMode);
     setToken("");
     setCaptchaKey(Date.now());
   };
 
-  // Handle login/register form submission
   const handleSubmit = async (mode) => {
     if (!username.trim() || !password.trim()) {
       toast.error("Please enter username and password.");
       return;
     }
-
     if (username.includes("@")) {
       toast.error("Don't include '@' in your username.");
       return;
     }
-
     if (!token) {
       toast.error("Please complete the CAPTCHA first.");
       return;
@@ -66,7 +59,6 @@ export default function UnlockPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
-
       const data = await res.json();
 
       if (res.ok && data.status === "success") {
@@ -81,21 +73,19 @@ export default function UnlockPage() {
       } else {
         toast.error(data.error || "Action failed. Please try again.");
       }
-    } catch (error) {
+    } catch {
       toast.error("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Evaluate password strength
   useEffect(() => {
     if (isRegisterMode && password) {
-      const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
-      const mediumRegex = /^(?=.*[a-zA-Z])(?=.*\d).{6,}$/;
-
-      if (strongRegex.test(password)) setPasswordStrength("strong");
-      else if (mediumRegex.test(password)) setPasswordStrength("medium");
+      const strong = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+      const medium = /^(?=.*[a-zA-Z])(?=.*\d).{6,}$/;
+      if (strong.test(password)) setPasswordStrength("strong");
+      else if (medium.test(password)) setPasswordStrength("medium");
       else setPasswordStrength("weak");
     } else {
       setPasswordStrength("");
@@ -147,23 +137,21 @@ export default function UnlockPage() {
               />
             </div>
 
-            <div className="relative">
-              <div className="pwdcontrol mt-2">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Enter password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="inputpwd pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="eye-toggle"
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
+            <div className="pwdcontrol relative mt-2">
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Enter password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="inputpwd pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="eye-toggle"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
 
               {isRegisterMode && passwordStrength && (
                 <div className="absolute left-0 right-0 top-full mt-1 bg-white/5 backdrop-blur-sm rounded p-2 border border-white/10 z-10">
