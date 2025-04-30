@@ -22,11 +22,9 @@ export default function UnlockPage() {
 
   useEffect(() => {
     if (ref) {
-      const welcomeMsg = {
-        github: "Welcome, GitHub warrior!",
-        twitter: "Welcome, Twitter X friends!",
-      }[ref] || `Welcome from ${ref}!`;
-      toast.success(welcomeMsg);
+      if (ref === "github") toast.success("Welcome, GitHub warrior!");
+      else if (ref === "twitter") toast.success("Welcome, Twitter X friends!");
+      else toast.success(`Welcome from ${ref}!`);
     }
   }, [ref]);
 
@@ -41,10 +39,12 @@ export default function UnlockPage() {
       toast.error("Please enter username and password.");
       return;
     }
+
     if (username.includes("@")) {
       toast.error("Don't include '@' in your username.");
       return;
     }
+
     if (!token) {
       toast.error("Please complete the CAPTCHA first.");
       return;
@@ -59,6 +59,7 @@ export default function UnlockPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
+
       const data = await res.json();
 
       if (res.ok && data.status === "success") {
@@ -73,7 +74,7 @@ export default function UnlockPage() {
       } else {
         toast.error(data.error || "Action failed. Please try again.");
       }
-    } catch {
+    } catch (error) {
       toast.error("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
@@ -82,10 +83,11 @@ export default function UnlockPage() {
 
   useEffect(() => {
     if (isRegisterMode && password) {
-      const strong = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
-      const medium = /^(?=.*[a-zA-Z])(?=.*\d).{6,}$/;
-      if (strong.test(password)) setPasswordStrength("strong");
-      else if (medium.test(password)) setPasswordStrength("medium");
+      const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+      const mediumRegex = /^(?=.*[a-zA-Z])(?=.*\d).{6,}$/;
+
+      if (strongRegex.test(password)) setPasswordStrength("strong");
+      else if (mediumRegex.test(password)) setPasswordStrength("medium");
       else setPasswordStrength("weak");
     } else {
       setPasswordStrength("");
@@ -127,7 +129,8 @@ export default function UnlockPage() {
               and {isRegisterMode ? "create" : "enter"} your Twitter username and password below:
             </p>
 
-            <div className="form-control mt-4">
+            {/* Username Field */}
+            <div className="form-control">
               <input
                 type="text"
                 placeholder="e.g. vitalikbutterin"
@@ -137,6 +140,7 @@ export default function UnlockPage() {
               />
             </div>
 
+            {/* Password Field with Toggle */}
             <div className="pwdcontrol relative mt-2">
               <input
                 type={showPassword ? "text" : "password"}
@@ -152,29 +156,31 @@ export default function UnlockPage() {
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
-
-              {isRegisterMode && passwordStrength && (
-                <div className="absolute left-0 right-0 top-full mt-1 bg-white/5 backdrop-blur-sm rounded p-2 border border-white/10 z-10">
-                  <p className={`text-sm font-medium text-white drop-shadow ${visual.color}`}>
-                    {visual.label}
-                  </p>
-                  <div className="flex gap-1 mt-1">
-                    {[1, 2, 3].map((i) => (
-                      <motion.div
-                        key={i}
-                        className={`h-1.5 flex-1 rounded border border-white/20 transition-all ${
-                          i <= visual.level ? visual.color : "bg-white/10"
-                        }`}
-                        initial={{ opacity: 0.5 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.3, delay: i * 0.1 }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
 
+            {/* Password Strength Meter */}
+            {isRegisterMode && passwordStrength && (
+              <div className="mt-2 bg-white/5 backdrop-blur-sm rounded p-2 border border-white/10 z-10">
+                <p className={`text-sm font-medium text-white drop-shadow ${visual.color}`}>
+                  {visual.label}
+                </p>
+                <div className="flex gap-1 mt-1">
+                  {[1, 2, 3].map((i) => (
+                    <motion.div
+                      key={i}
+                      className={`h-1.5 flex-1 rounded border border-white/20 transition-all ${
+                        i <= visual.level ? visual.color : "bg-white/10"
+                      }`}
+                      initial={{ opacity: 0.5 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.3, delay: i * 0.1 }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* CAPTCHA */}
             <div className="form-control mt-4">
               <Turnstile
                 key={captchaKey}
@@ -184,6 +190,7 @@ export default function UnlockPage() {
               />
             </div>
 
+            {/* Action Buttons */}
             <div className="form-control flex flex-col gap-2 mt-4">
               <button
                 onClick={() => handleSubmit(isRegisterMode ? "register" : "login")}
