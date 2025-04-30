@@ -205,23 +205,36 @@ body, .html {
 
 
 /* Container password  strength*/
+
 .password-strength-box {
-  margin-top: 0.5rem;  
+  margin-top: 0.25rem;  
   background-color: rgba(255, 255, 255, 0.05); 
   backdrop-filter: blur(4px); 
   border-radius: 0.5rem; /* Sudut membulat */
   padding: 0.5rem; /* Ruang dalam (padding) */
   border: 1px solid rgba(255, 255, 255, 0.1); 
   z-index: 10; 
+  max-width: 300px;        
+  margin-left: auto;        
+  margin-right: auto;
 }
+
 .password-strength-label {
   font-size: 0.875rem; 
   font-weight: 500; 
   color: white; 
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); 
 }
+
+
+.strength-bar-container {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+
 .strength-bar {
-  height: 6px; 
+  height: 4px; 
   flex: 1; 
   border-radius: 0.25rem; 
   border: 1px solid rgba(255, 255, 255, 0.2); 
@@ -242,6 +255,8 @@ body, .html {
 .strength-inactive {
   background-color: rgba(255, 255, 255, 0.1); 
 }
+
+
 
 
 
