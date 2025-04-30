@@ -89,6 +89,7 @@ body, .html {
 
 /* INPUT PASSWORD DENGAN ICON */
 .inputpwd {
+  @apply bg-white text-black border border-[#00bfff] rounded-md px-4 py-3 text-base w-full;
   padding-right: 2.5rem; /* Supaya space buat eye icon */
   background-color: #1f1f1f;
   border: 1px solid #333;
@@ -100,9 +101,12 @@ body, .html {
 }
 
 .inputpwd:focus {
+  @apply border-[#00ffff] shadow-[0_0_8px_#00ffff55];
   border-color: #00ffff;
   box-shadow: 0 0 0 1px #00ffff;
 }
+
+
 
 .eye-toggle {
   background: transparent;
