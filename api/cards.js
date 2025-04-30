@@ -3,13 +3,13 @@ const { renderModern } = require('../lib/settings/model/modern');
 const { renderFuturistic } = require('../lib/settings/model/futuristic');
 const renderLocked = require('../lib/settings/data/locked');
 const { isRegistered } = require('../lib/follow-check');
+const cacheFetch = require('../lib/data/middleware');
 
 const COINGECKO_API = 'https://api.coingecko.com/api/v3';
 const CMC_API = 'https://pro-api.coinmarketcap.com/v1';
 const BINANCE_API = 'https://api.binance.com/api/v3/ticker/24hr';
 const CMC_KEY = process.env.CMC_API_KEY;
 
-const cache = new Map();
 let categoryMap = null;
 
 function formatVolume(value) {
@@ -39,17 +39,6 @@ async function fetchCategoryMap() {
   const list = await res.json();
   categoryMap = new Map(list.map(c => [c.category_id, c.name]));
   return categoryMap;
-}
-
-function genChartPath(data) {
-  const max = Math.max(...data);
-  const min = Math.min(...data);
-  const norm = data.map((p, i) => {
-    const x = (i / (data.length - 1)) * 80;
-    const y = 30 - ((p - min) / (max - min)) * 30;
-    return [x, y];
-  });
-  return 'M' + norm.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' L');
 }
 
 async function fetchGecko(category, limit) {
@@ -139,7 +128,7 @@ module.exports = async (req, res) => {
       return res.status(200).send(renderLocked(user));
     }
 
-    if (!cache.has(cacheKey)) {
+    const data = await cacheFetch(cacheKey, 60, async () => {
       let data;
       let categoryName = 'General';
 
@@ -157,10 +146,9 @@ module.exports = async (req, res) => {
       }
 
       if (data[0]) data[0].category = categoryName;
-      cache.set(cacheKey, data);
-    }
+      return data;
+    });
 
-    const data = cache.get(cacheKey);
     const renderer = renderers[model] || renderModern;
     const svg = renderer(data, theme, limit);
     return res.status(200).send(svg);
