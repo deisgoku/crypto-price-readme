@@ -20,6 +20,7 @@ export default function UnlockPage() {
   const router = useRouter();
   const ref = router.query.ref;
 
+  // Show welcome message based on ref
   useEffect(() => {
     if (ref) {
       if (ref === "github") toast.success("Welcome, GitHub warrior!");
@@ -28,12 +29,14 @@ export default function UnlockPage() {
     }
   }, [ref]);
 
+  // Switch between login/register
   const handleModeSwitch = () => {
     setIsRegisterMode(!isRegisterMode);
     setToken("");
-    setCaptchaKey(Date.now());
+    setCaptchaKey(Date.now()); // Reset CAPTCHA
   };
 
+  // Submit handler for login/register
   const handleSubmit = async (mode) => {
     if (!username.trim() || !password.trim()) {
       toast.error("Please enter username and password.");
@@ -81,6 +84,7 @@ export default function UnlockPage() {
     }
   };
 
+  // Evaluate password strength
   useEffect(() => {
     if (isRegisterMode && password) {
       const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
@@ -94,10 +98,11 @@ export default function UnlockPage() {
     }
   }, [password, isRegisterMode]);
 
+  // Map strength to label, color, and level
   const strengthVisual = {
-    weak: { label: "Weak", level: 1, color: "bg-red-500" },
-    medium: { label: "Medium", level: 2, color: "bg-yellow-400" },
-    strong: { label: "Strong", level: 3, color: "bg-green-500" },
+    weak: { label: "Weak", level: 1, color: "strength-weak" },
+    medium: { label: "Medium", level: 2, color: "strength-medium" },
+    strong: { label: "Strong", level: 3, color: "strength-strong" },
   };
 
   const visual = strengthVisual[passwordStrength] || {};
@@ -129,7 +134,7 @@ export default function UnlockPage() {
               and {isRegisterMode ? "create" : "enter"} your Twitter username and password below:
             </p>
 
-            {/* Username Field */}
+            {/* Username */}
             <div className="form-control">
               <input
                 type="text"
@@ -140,7 +145,7 @@ export default function UnlockPage() {
               />
             </div>
 
-            {/* Password Field with Toggle */}
+            {/* Password with toggle */}
             <div className="pwdcontrol relative mt-2">
               <input
                 type={showPassword ? "text" : "password"}
@@ -158,18 +163,18 @@ export default function UnlockPage() {
               </button>
             </div>
 
-            {/* Password Strength Meter */}
+            {/* Password strength meter */}
             {isRegisterMode && passwordStrength && (
-              <div className="mt-2 bg-white/5 backdrop-blur-sm rounded p-2 border border-white/10 z-10">
-                <p className={`text-sm font-medium text-white drop-shadow ${visual.color}`}>
+              <div className="password-strength-box">
+                <p className={`password-strength-label ${visual.color}`}>
                   {visual.label}
                 </p>
-                <div className="flex gap-1 mt-1">
+                <div style={{ display: "flex", gap: "0.25rem", marginTop: "0.25rem" }}>
                   {[1, 2, 3].map((i) => (
                     <motion.div
                       key={i}
-                      className={`h-1.5 flex-1 rounded border border-white/20 transition-all ${
-                        i <= visual.level ? visual.color : "bg-white/10"
+                      className={`strength-bar ${
+                        i <= visual.level ? `strength-${passwordStrength}` : "strength-inactive"
                       }`}
                       initial={{ opacity: 0.5 }}
                       animate={{ opacity: 1 }}
@@ -190,7 +195,7 @@ export default function UnlockPage() {
               />
             </div>
 
-            {/* Action Buttons */}
+            {/* Buttons */}
             <div className="form-control flex flex-col gap-2 mt-4">
               <button
                 onClick={() => handleSubmit(isRegisterMode ? "register" : "login")}
