@@ -136,7 +136,7 @@ export default function UnlockPage() {
               />
             </div>
 
-            <div className="form-control relative mt-2">
+            <div className="pwdcontrol relative mt-2">
               <input
                 type={showPassword ? "text" : "password"}
                 placeholder="Enter password"
