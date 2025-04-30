@@ -136,20 +136,20 @@ export default function UnlockPage() {
               />
             </div>
 
-            <div className="relative mt-4">
+            <div className="form-control relative mt-2">
               <input
                 type={showPassword ? "text" : "password"}
                 placeholder="Enter password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="inputpwd"
+                className="inputpwd pr-10"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-sky-500 hover:text-sky-600"
+                className="eye-toggle"
               >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
 
