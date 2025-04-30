@@ -1,6 +1,6 @@
 const fetch = require('node-fetch');
 const { renderModern } = require('../lib/settings/model/modern');
-const { renderFuturistic } = require('../lib/settings/model/futuristic'); // pastikan path benar
+const { renderFuturistic } = require('../lib/settings/model/futuristic');
 const renderLocked = require('../lib/settings/data/locked');
 const { isRegistered } = require('../lib/follow-check');
 
@@ -32,14 +32,14 @@ function formatPrice(value) {
   return { price: `0.0{${zeroCount}}${rest}`, micin: true };
 }
 
-const fetchCategoryMap = async () => {
+async function fetchCategoryMap() {
   if (categoryMap) return categoryMap;
   const res = await fetch(`${COINGECKO_API}/coins/categories/list`);
   if (!res.ok) throw new Error('Failed to fetch category list');
   const list = await res.json();
   categoryMap = new Map(list.map(c => [c.category_id, c.name]));
   return categoryMap;
-};
+}
 
 function genChartPath(data) {
   const max = Math.max(...data);
@@ -52,7 +52,7 @@ function genChartPath(data) {
   return 'M' + norm.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' L');
 }
 
-const fetchGecko = async (category, limit) => {
+async function fetchGecko(category, limit) {
   const url = `${COINGECKO_API}/coins/markets?vs_currency=usd&category=${category}&order=market_cap_desc&per_page=${limit}&sparkline=true`;
   const res = await fetch(url);
   if (!res.ok) throw new Error('Gecko failed');
@@ -65,12 +65,12 @@ const fetchGecko = async (category, limit) => {
       micin,
       volume: formatVolume(coin.total_volume),
       trend: coin.price_change_percentage_24h,
-      chart: genChartPath(coin.sparkline_in_7d?.price || [])
+      sparkline: coin.sparkline_in_7d?.price || [],
     };
   });
-};
+}
 
-const fetchCMC = async (category, limit) => {
+async function fetchCMC(category, limit) {
   const slugRes = await fetch(`${CMC_API}/cryptocurrency/category`, {
     headers: { 'X-CMC_PRO_API_KEY': CMC_KEY }
   });
@@ -91,12 +91,12 @@ const fetchCMC = async (category, limit) => {
       micin,
       volume: formatVolume(coin.quote.USD.volume_24h),
       trend: coin.quote.USD.percent_change_24h,
-      chart: ''
+      sparkline: [],
     };
   });
-};
+}
 
-const fetchBinance = async (limit) => {
+async function fetchBinance(limit) {
   const res = await fetch(BINANCE_API);
   if (!res.ok) throw new Error('Binance failed');
   const data = await res.json();
@@ -110,26 +110,21 @@ const fetchBinance = async (limit) => {
         micin,
         volume: formatVolume(parseFloat(d.quoteVolume)),
         trend: parseFloat(d.priceChangePercent),
-        chart: ''
+        sparkline: [],
       };
     })
     .slice(0, limit);
-};
+}
 
-// ==============================
-// Renderer mapping by model key
-// ==============================
 const renderers = {
   modern: renderModern,
   futuristic: renderFuturistic,
-  // classic: renderClassic (optional)
 };
 
-// MAIN HANDLER
 module.exports = async (req, res) => {
   const { user, model = 'modern', theme = 'dark', coin = '6', category = 'layer1' } = req.query;
   const limit = Math.min(Math.max(parseInt(coin), 1), 20);
-  const cacheKey = `${category}_${limit}_${theme}`;
+  const cacheKey = `${category}_${limit}_${theme}_${model}`;
 
   res.setHeader('Content-Type', 'image/svg+xml');
   res.setHeader('Cache-Control', 'no-store');
@@ -152,11 +147,11 @@ module.exports = async (req, res) => {
         data = await fetchGecko(category, limit);
         const catMap = await fetchCategoryMap();
         categoryName = catMap.get(category) || category;
-      } catch (err1) {
+      } catch {
         try {
           data = await fetchCMC(category, limit);
           categoryName = category;
-        } catch (err2) {
+        } catch {
           data = await fetchBinance(limit);
         }
       }
@@ -170,6 +165,12 @@ module.exports = async (req, res) => {
     const svg = renderer(data, theme, limit);
     return res.status(200).send(svg);
   } catch (err) {
-    return res.status(500).send(`<svg xmlns="http://www.w3.org/2000/svg" width="600" height="100"><text x="50%" y="50%" font-size="16" text-anchor="middle" fill="red">Error: ${err.message}</text></svg>`);
+    return res.status(500).send(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="600" height="100">
+        <text x="50%" y="50%" font-size="16" text-anchor="middle" fill="red">
+          Error: ${err.message}
+        </text>
+      </svg>
+    `);
   }
 };
