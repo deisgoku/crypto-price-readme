@@ -1,7 +1,7 @@
 const fetch = require('node-fetch');
 const { renderModern } = require('../lib/settings/model/modern');
 const renderLocked = require('../lib/settings/data/locked');
-const { isFollowing } = require('../lib/follow-check');
+const { isRegistered } = require('../lib/follow-check'); // Ganti dari isFollowing ke isRegistered
 
 const COINGECKO_API = 'https://api.coingecko.com/api/v3';
 const CMC_API = 'https://pro-api.coinmarketcap.com/v1';
@@ -11,7 +11,6 @@ const CMC_KEY = process.env.CMC_API_KEY;
 const cache = new Map();
 let categoryMap = null;
 
-// Delay helper
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 function formatVolume(value) {
@@ -128,12 +127,12 @@ module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
 
   try {
-    // Verifikasi follow jika ada user
+    // Verifikasi username yang sudah terdaftar
     if (!user || typeof user !== 'string') {
       return res.status(200).send(renderLocked('Guest'));
     }
 
-    const verified = await isFollowing(user.toLowerCase());
+    const verified = await isRegistered(user.toLowerCase());
     if (!verified) {
       return res.status(200).send(renderLocked(user));
     }
