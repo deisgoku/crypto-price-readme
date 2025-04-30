@@ -207,28 +207,55 @@ body, .html {
 /* Container password  strength*/
 .password-strength-box {
   margin-top: 6px;
-  margin-bottom: 12px;
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.strength-bar-single {
-  width: 80px; /* Panjang bar */
-  height: 8px; /* Tipis */
-  border-radius: 9999px; /* Ujung membulat */
+.strength-bar-wrapper {
+  width: 80px;
+  height: 8px;
+  border-radius: 9999px;
   background-color: rgba(255, 255, 255, 0.1);
-  transition: background-color 0.3s ease;
+  overflow: hidden;
+  position: relative;
 }
 
+/* Fill with DRL shine */
+.strength-bar-fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, transparent, currentColor, transparent);
+  background-size: 160px;
+  background-repeat: no-repeat;
+  animation: shine 1s linear infinite;
+  transition: width 0.4s ease, color 0.4s ease;
+}
+
+/* Vary width + color depending on strength */
 .strength-weak {
-  background-color: #ef4444;
+  width: 25%;
+  color: #ef4444;
 }
+
 .strength-medium {
-  background-color: #facc15;
+  width: 50%;
+  color: #facc15;
 }
+
 .strength-strong {
-  background-color: #22c55e;
+  width: 100%;
+  color: #22c55e;
+}
+
+/* DRL animation */
+@keyframes shine {
+  0% {
+    background-position: -80px;
+  }
+  100% {
+    background-position: 80px;
+  }
 }
 
 .password-strength-label {
