@@ -5,6 +5,7 @@ const { renderClassic } = require('../lib/settings/model/classic');
 const renderLocked = require('../lib/settings/data/locked');
 const { isRegistered } = require('../lib/follow-check');
 const cacheFetch = require('../lib/data/middleware');
+const { generateColoredChart } = require('../lib/settings/chart/colored');
 
 const COINGECKO_API = 'https://api.coingecko.com/api/v3';
 const CMC_API = 'https://pro-api.coinmarketcap.com/v1';
@@ -13,6 +14,7 @@ const CMC_KEY = process.env.CMC_API_KEY;
 
 let categoryMap = null;
 
+// Helpers
 function formatVolume(value) {
   if (value >= 1e9) return (value / 1e9).toFixed(1) + "B";
   if (value >= 1e6) return (value / 1e6).toFixed(1) + "M";
@@ -41,12 +43,14 @@ async function fetchCategoryMap() {
   return categoryMap;
 }
 
+// Data Sources
 async function fetchGecko(category, limit) {
   console.log('[FETCH] from Gecko');
   const url = `${COINGECKO_API}/coins/markets?vs_currency=usd&category=${category}&order=market_cap_desc&per_page=${limit}&sparkline=true`;
   const res = await fetch(url);
   if (!res.ok) throw new Error('Gecko failed');
   const coins = await res.json();
+
   return coins.map(coin => {
     const { price, micin } = formatPrice(coin.current_price);
     return {
@@ -68,12 +72,14 @@ async function fetchCMC(category, limit) {
   const json = await slugRes.json();
   const match = json.data.find(c => c.name.toLowerCase().includes(category.toLowerCase()));
   if (!match) throw new Error('CMC category not found');
+
   const coins = match.coins.slice(0, limit);
   const ids = coins.map(c => c.id).join(',');
   const dataRes = await fetch(`${CMC_API}/cryptocurrency/quotes/latest?id=${ids}`, {
     headers: { 'X-CMC_PRO_API_KEY': CMC_KEY }
   });
   const data = await dataRes.json();
+
   return Object.values(data.data).map(coin => {
     const { price, micin } = formatPrice(coin.quote.USD.price);
     return {
@@ -92,6 +98,7 @@ async function fetchBinance(limit) {
   const res = await fetch(BINANCE_API);
   if (!res.ok) throw new Error('Binance failed');
   const data = await res.json();
+
   return data
     .filter(d => d.symbol.endsWith('USDT') && d.symbol.length <= 10)
     .map(d => {
@@ -108,6 +115,7 @@ async function fetchBinance(limit) {
     .slice(0, limit);
 }
 
+// Optional fallback if using path only
 function generateSparklinePath(values, width = 70, height = 30) {
   if (!Array.isArray(values) || values.length < 2) return '';
   const max = Math.max(...values);
@@ -127,6 +135,7 @@ const renderers = {
   classic: renderClassic,
 };
 
+// Main handler
 module.exports = async (req, res) => {
   const { user, model = 'modern', theme = 'dark', coin = '6', category = 'layer1' } = req.query;
   const limit = Math.min(Math.max(parseInt(coin), 1), 20);
@@ -175,7 +184,7 @@ module.exports = async (req, res) => {
       for (const item of data) {
         try {
           item.chart = Array.isArray(item.sparkline) && item.sparkline.length > 1
-            ? generateSparklinePath(item.sparkline)
+            ? generateColoredChart(item.sparkline)
             : '';
         } catch (e) {
           console.warn('[CHART] Chart generation failed:', item.symbol, e.message);
@@ -189,6 +198,7 @@ module.exports = async (req, res) => {
     const renderer = renderers[model] || renderModern;
     const svg = renderer(data, theme, limit);
     return res.status(200).send(svg);
+
   } catch (err) {
     console.error('[CARD] Unexpected error:', err);
     return res.status(500).send(`
