@@ -14,7 +14,7 @@ const CMC_KEY = process.env.CMC_API_KEY;
 
 let categoryMap = null;
 
-// Helpers
+// Utils
 function formatVolume(value) {
   if (value >= 1e9) return (value / 1e9).toFixed(1) + "B";
   if (value >= 1e6) return (value / 1e6).toFixed(1) + "M";
@@ -23,24 +23,15 @@ function formatVolume(value) {
 }
 
 function escapeXml(unsafe) {
-  return unsafe.replace(/[<>&'"]/g, c => {
-    switch (c) {
-      case '<': return '&lt;';
-      case '>': return '&gt;';
-      case '&': return '&amp;';
-      case '\'': return '&apos;';
-      case '"': return '&quot;';
-    }
-  });
+  return unsafe.replace(/[<>&'"]/g, c => ({
+    '<': '&lt;', '>': '&gt;', '&': '&amp;', '\'': '&apos;', '"': '&quot;'
+  }[c]));
 }
 
 function formatPrice(value) {
   if (value >= 0.01) {
     const str = value.toFixed(8);
-    return {
-      price: escapeXml(parseFloat(str).toString()),
-      micin: false
-    };
+    return { price: escapeXml(parseFloat(str).toString()), micin: false };
   }
 
   const str = value.toFixed(18);
@@ -48,17 +39,13 @@ function formatPrice(value) {
   const zeroCount = match ? match[0].length - 2 : 0;
   const rest = str.slice(match ? match[0].length : 2).replace(/0+$/, '').slice(0, 4);
   const smart = `0.0{${zeroCount}}${rest}`;
-
-  return {
-    price: escapeXml(smart),
-    micin: true
-  };
+  return { price: escapeXml(smart), micin: true };
 }
 
 async function fetchCategoryMap() {
   if (categoryMap) return categoryMap;
+  console.log('[FETCH] Category list from CoinGecko');
   const res = await fetch(`${COINGECKO_API}/coins/categories/list`);
-  if (!res.ok) throw new Error('Failed to fetch category list');
   const list = await res.json();
   categoryMap = new Map(list.map(c => [c.category_id, c.name]));
   return categoryMap;
@@ -66,12 +53,13 @@ async function fetchCategoryMap() {
 
 // Data Sources
 async function fetchGecko(category, limit) {
-  console.log('[FETCH] from Gecko');
+  console.log(`[FETCH] CoinGecko - category: ${category}, limit: ${limit}`);
   const url = `${COINGECKO_API}/coins/markets?vs_currency=usd&category=${category}&order=market_cap_desc&per_page=${limit}&sparkline=true`;
   const res = await fetch(url);
   if (!res.ok) throw new Error('Gecko failed');
-  const coins = await res.json();
 
+  const coins = await res.json();
+  console.log(`[FETCH] CoinGecko - received ${coins.length} items`);
   return coins.map(coin => {
     const { price, micin } = formatPrice(coin.current_price);
     return {
@@ -80,13 +68,13 @@ async function fetchGecko(category, limit) {
       micin,
       volume: formatVolume(coin.total_volume),
       trend: coin.price_change_percentage_24h,
-      sparkline: Array.isArray(coin.sparkline_in_7d?.price) ? coin.sparkline_in_7d.price : [],
+      sparkline: coin.sparkline_in_7d?.price || [],
     };
   });
 }
 
 async function fetchCMC(category, limit) {
-  console.log('[FETCH] from CMC');
+  console.log(`[FETCH] CoinMarketCap - category: ${category}, limit: ${limit}`);
   const slugRes = await fetch(`${CMC_API}/cryptocurrency/category`, {
     headers: { 'X-CMC_PRO_API_KEY': CMC_KEY }
   });
@@ -101,6 +89,7 @@ async function fetchCMC(category, limit) {
   });
   const data = await dataRes.json();
 
+  console.log(`[FETCH] CoinMarketCap - received ${coins.length} items`);
   return Object.values(data.data).map(coin => {
     const { price, micin } = formatPrice(coin.quote.USD.price);
     return {
@@ -115,39 +104,26 @@ async function fetchCMC(category, limit) {
 }
 
 async function fetchBinance(limit) {
-  console.log('[FETCH] from Binance');
+  console.log(`[FETCH] Binance fallback - limit: ${limit}`);
   const res = await fetch(BINANCE_API);
-  if (!res.ok) throw new Error('Binance failed');
   const data = await res.json();
 
-  return data
+  const filtered = data
     .filter(d => d.symbol.endsWith('USDT') && d.symbol.length <= 10)
-    .map(d => {
-      const { price, micin } = formatPrice(parseFloat(d.lastPrice));
-      return {
-        symbol: d.symbol.replace('USDT', ''),
-        price,
-        micin,
-        volume: formatVolume(parseFloat(d.quoteVolume)),
-        trend: parseFloat(d.priceChangePercent),
-        sparkline: [],
-      };
-    })
     .slice(0, limit);
-}
 
-// Optional fallback if using path only
-function generateSparklinePath(values, width = 70, height = 30) {
-  if (!Array.isArray(values) || values.length < 2) return '';
-  const max = Math.max(...values);
-  const min = Math.min(...values);
-  const range = max - min || 1;
-  const step = width / (values.length - 1);
-  return values.map((v, i) => {
-    const x = (i * step).toFixed(2);
-    const y = (height - ((v - min) / range) * height).toFixed(2);
-    return `${i === 0 ? 'M' : 'L'}${x},${y}`;
-  }).join(' ');
+  console.log(`[FETCH] Binance - received ${filtered.length} items`);
+  return filtered.map(d => {
+    const { price, micin } = formatPrice(parseFloat(d.lastPrice));
+    return {
+      symbol: d.symbol.replace('USDT', ''),
+      price,
+      micin,
+      volume: formatVolume(parseFloat(d.quoteVolume)),
+      trend: parseFloat(d.priceChangePercent),
+      sparkline: [],
+    };
+  });
 }
 
 const renderers = {
@@ -156,7 +132,6 @@ const renderers = {
   classic: renderClassic,
 };
 
-// Main handler
 module.exports = async (req, res) => {
   const { user, model = 'modern', theme = 'dark', coin = '6', category = 'layer1' } = req.query;
   const limit = Math.min(Math.max(parseInt(coin), 1), 20);
@@ -164,10 +139,11 @@ module.exports = async (req, res) => {
 
   res.setHeader('Content-Type', 'image/svg+xml');
   res.setHeader('Cache-Control', 'no-store');
+  console.log(`[REQ] Params: user=${user}, model=${model}, theme=${theme}, coin=${limit}, category=${category}`);
 
   try {
     if (!user || typeof user !== 'string') {
-      console.log('[CARD] Guest access, showing locked card.');
+      console.warn('[CARD] Guest access, showing locked card');
       return res.status(200).send(renderLocked('Guest'));
     }
 
@@ -178,54 +154,55 @@ module.exports = async (req, res) => {
     }
 
     const data = await cacheFetch(cacheKey, 60, async () => {
-      console.log(`[CACHE] MISS for: ${cacheKey}`);
-      let data;
+      console.log(`[CACHE] MISS - fetching new data for key: ${cacheKey}`);
+      let result;
       let categoryName = 'General';
 
       try {
-        data = await fetchGecko(category, limit);
+        result = await fetchGecko(category, limit);
         const catMap = await fetchCategoryMap();
         categoryName = catMap.get(category) || category;
-        console.log('[CARD] Data from Gecko, category:', categoryName);
+        console.log('[DATA] Using Gecko data - category name:', categoryName);
       } catch (err1) {
-        console.warn('[CARD] Gecko failed:', err1.message);
+        console.warn('[FALLBACK] Gecko failed:', err1.message);
         try {
-          data = await fetchCMC(category, limit);
+          result = await fetchCMC(category, limit);
           categoryName = category;
-          console.log('[CARD] Data from CMC, category:', categoryName);
+          console.log('[DATA] Using CMC data - category name:', categoryName);
         } catch (err2) {
-          console.warn('[CARD] CMC failed:', err2.message);
-          data = await fetchBinance(limit);
-          console.log('[CARD] Data from Binance fallback');
+          console.warn('[FALLBACK] CMC failed:', err2.message);
+          result = await fetchBinance(limit);
+          console.log('[DATA] Using Binance fallback data');
         }
       }
 
-      if (data[0]) data[0].category = categoryName;
+      if (result[0]) result[0].category = categoryName;
 
-      for (const item of data) {
+      for (const item of result) {
         try {
-          item.chart = Array.isArray(item.sparkline) && item.sparkline.length > 1
+          item.chart = item.sparkline.length > 1
             ? generateColoredChart(item.sparkline)
             : '';
         } catch (e) {
-          console.warn('[CHART] Chart generation failed:', item.symbol, e.message);
+          console.warn(`[CHART] Failed generating chart for ${item.symbol}:`, e.message);
           item.chart = '';
         }
       }
 
-      return data;
+      return result;
     });
 
     const renderer = renderers[model] || renderModern;
+    console.log(`[RENDER] Rendering with model: ${model}`);
     const svg = renderer(data, theme, limit);
     return res.status(200).send(svg);
 
   } catch (err) {
-    console.error('[CARD] Unexpected error:', err);
+    console.error('[ERROR] Unhandled exception:', err);
     return res.status(500).send(`
       <svg xmlns="http://www.w3.org/2000/svg" width="600" height="100">
         <text x="50%" y="50%" font-size="16" text-anchor="middle" fill="red">
-          Error: ${err.message}
+          Error: ${escapeXml(err.message)}
         </text>
       </svg>
     `);
