@@ -3,6 +3,7 @@ import { toast } from "react-hot-toast";
 import { motion } from "framer-motion";
 import Select from "react-select";
 import { ClipboardCopy, CheckCircle } from "lucide-react";
+import ThemeDropdown from "./ThemeDropdown";
 
 export default function CustomCard({ username }) {
   const [model, setModel] = useState("modern");
@@ -88,18 +89,7 @@ export default function CustomCard({ username }) {
       {/* Theme */}
       <div className="form-control">
         <label className="label">Theme:</label>
-        <select
-          value={theme}
-          onChange={(e) => setTheme(e.target.value)}
-          className="select border-2 rounded-lg p-2 bg-white text-black"
-          style={{ borderColor: "#00bfff" }}
-        >
-          <option value="dark">Dark</option>
-          <option value="light">Light</option>
-          <option value="dracula">Dracula</option>
-          <option value="tokyonight">Tokyonight</option>
-          <option value="ayu">Ayu</option>
-        </select>
+        <ThemeDropdown onSelectTheme={(name) => setTheme(name)} />
       </div>
 
       {/* Coin */}
