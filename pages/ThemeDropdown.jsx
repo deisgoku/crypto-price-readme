@@ -1,5 +1,5 @@
 import Select from "react-select";
-import { themes } from "../lib/settings/theme";
+import { themes } from "../lib/settings/model/theme";
 
 const themeOptions = Object.keys(themes).map((key) => ({
   value: key,
