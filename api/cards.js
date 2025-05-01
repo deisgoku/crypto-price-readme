@@ -13,6 +13,11 @@ const BINANCE_API = 'https://api.binance.com/api/v3/ticker/24hr';
 const CMC_KEY = process.env.CMC_API_KEY;
 
 let categoryMap = null;
+let DEBUG = false;
+
+function debugLog(...args) {
+  if (DEBUG) console.log(...args);
+}
 
 function formatVolume(value) {
   if (value >= 1e9) return (value / 1e9).toFixed(1) + "B";
@@ -43,7 +48,7 @@ function formatPrice(value) {
 
 async function fetchCategoryMap() {
   if (categoryMap) return categoryMap;
-  console.log('[FETCH] Category list from CoinGecko');
+  debugLog('[FETCH] Category list from CoinGecko');
   const res = await fetch(`${COINGECKO_API}/coins/categories/list`);
   const list = await res.json();
   categoryMap = new Map(list.map(c => [c.category_id, c.name]));
@@ -51,13 +56,13 @@ async function fetchCategoryMap() {
 }
 
 async function fetchGecko(category, limit) {
-  console.log(`[FETCH] CoinGecko - category: ${category}, limit: ${limit}`);
+  debugLog(`[FETCH] CoinGecko - category: ${category}, limit: ${limit}`);
   const url = `${COINGECKO_API}/coins/markets?vs_currency=usd&category=${category}&order=market_cap_desc&per_page=${limit}&sparkline=true`;
   const res = await fetch(url);
   if (!res.ok) throw new Error('Gecko failed');
 
   const coins = await res.json();
-  console.log(`[FETCH] CoinGecko - received ${coins.length} items`);
+  debugLog(`[FETCH] CoinGecko - received ${coins.length} items`);
   return coins.map(coin => {
     const { price, micin } = formatPrice(coin.current_price);
     return {
@@ -72,7 +77,7 @@ async function fetchGecko(category, limit) {
 }
 
 async function fetchCMC(category, limit) {
-  console.log(`[FETCH] CoinMarketCap - category: ${category}, limit: ${limit}`);
+  debugLog(`[FETCH] CoinMarketCap - category: ${category}, limit: ${limit}`);
   const slugRes = await fetch(`${CMC_API}/cryptocurrency/category`, {
     headers: { 'X-CMC_PRO_API_KEY': CMC_KEY }
   });
@@ -87,7 +92,7 @@ async function fetchCMC(category, limit) {
   });
   const data = await dataRes.json();
 
-  console.log(`[FETCH] CoinMarketCap - received ${coins.length} items`);
+  debugLog(`[FETCH] CoinMarketCap - received ${coins.length} items`);
   return Object.values(data.data).map(coin => {
     const { price, micin } = formatPrice(coin.quote.USD.price);
     return {
@@ -102,7 +107,7 @@ async function fetchCMC(category, limit) {
 }
 
 async function fetchBinance(limit) {
-  console.log(`[FETCH] Binance fallback - limit: ${limit}`);
+  debugLog(`[FETCH] Binance fallback - limit: ${limit}`);
   const res = await fetch(BINANCE_API);
   const data = await res.json();
 
@@ -110,7 +115,7 @@ async function fetchBinance(limit) {
     .filter(d => d.symbol.endsWith('USDT') && d.symbol.length <= 10)
     .slice(0, limit);
 
-  console.log(`[FETCH] Binance - received ${filtered.length} items`);
+  debugLog(`[FETCH] Binance - received ${filtered.length} items`);
   return filtered.map(d => {
     const { price, micin } = formatPrice(parseFloat(d.lastPrice));
     return {
@@ -131,52 +136,63 @@ const renderers = {
 };
 
 module.exports = async (req, res) => {
-  const { user, model = 'modern', theme = 'dark', coin = '6', category = 'layer1' } = req.query;
-  const limit = Math.min(Math.max(parseInt(coin), 1), 20);
-  const cacheKey = `${category}_${limit}_${theme}_${model}`;
+  const {
+    user,
+    model = 'modern',
+    theme = 'dark',
+    coin,
+    category,
+    debug = 'false'
+  } = req.query;
+
+  DEBUG = debug === 'true';
+
+  const limit = Math.min(Math.max(parseInt(coin) || 5, 1), 20);
+  const safeCategory = category?.trim() || 'coinbase-50-index';
+  const safeTheme = ['dark', 'light'].includes(theme) ? theme : 'dark';
+  const cacheKey = `${safeCategory}_${limit}_${safeTheme}_${model}`;
 
   res.setHeader('Content-Type', 'image/svg+xml');
   res.setHeader('Cache-Control', 'no-store');
-  console.log(`[REQ] Params: user=${user}, model=${model}, theme=${theme}, coin=${limit}, category=${category}`);
+  debugLog(`[REQ] Params: user=${user}, model=${model}, theme=${safeTheme}, coin=${limit}, category=${safeCategory}`);
 
   try {
     if (!user || typeof user !== 'string') {
-      console.warn('[CARD] Guest access, showing locked card');
+      debugLog('[CARD] Guest access, showing locked card');
       return res.status(200).send(renderLocked('Guest'));
     }
 
     const verified = await isRegistered(user.toLowerCase());
-    console.log(`[CARD] User: ${user}, Registered: ${verified}`);
+    debugLog(`[CARD] User: ${user}, Registered: ${verified}`);
     if (!verified) {
       return res.status(200).send(renderLocked(user));
     }
 
     const data = await cacheFetch(cacheKey, 60, async () => {
-      console.log(`[CACHE] MISS - fetching new data for key: ${cacheKey}`);
+      debugLog(`[CACHE] MISS - fetching new data for key: ${cacheKey}`);
       let result;
       let categoryName = 'General';
 
       try {
-        result = await fetchGecko(category, limit);
+        result = await fetchGecko(safeCategory, limit);
         const catMap = await fetchCategoryMap();
-        categoryName = catMap.get(category) || category;
-        console.log('[DATA] Using Gecko data - category name:', categoryName);
+        categoryName = catMap.get(safeCategory) || safeCategory;
+        debugLog('[DATA] Using Gecko data - category name:', categoryName);
       } catch (err1) {
-        console.warn('[FALLBACK] Gecko failed:', err1.message);
+        debugLog('[FALLBACK] Gecko failed:', err1.message);
         try {
-          result = await fetchCMC(category, limit);
-          categoryName = category;
-          console.log('[DATA] Using CMC data - category name:', categoryName);
+          result = await fetchCMC(safeCategory, limit);
+          categoryName = safeCategory;
+          debugLog('[DATA] Using CMC data - category name:', categoryName);
         } catch (err2) {
-          console.warn('[FALLBACK] CMC failed:', err2.message);
+          debugLog('[FALLBACK] CMC failed:', err2.message);
           result = await fetchBinance(limit);
-          console.log('[DATA] Using Binance fallback data');
+          debugLog('[DATA] Using Binance fallback data');
         }
       }
 
       if (result[0]) result[0].category = categoryName;
 
-      // Only generate colored chart for modern or classic
       if (model === 'modern' || model === 'classic') {
         for (const item of result) {
           try {
@@ -184,7 +200,7 @@ module.exports = async (req, res) => {
               ? generateColoredChart(item.sparkline)
               : '';
           } catch (e) {
-            console.warn(`[CHART] Failed generating chart for ${item.symbol}:`, e.message);
+            debugLog(`[CHART] Failed generating chart for ${item.symbol}:`, e.message);
             item.chart = '';
           }
         }
@@ -195,8 +211,8 @@ module.exports = async (req, res) => {
 
     const renderer = renderers[model] || renderModern;
     const svg = model === 'futuristic'
-      ? renderFuturistic(data, theme)
-      : renderer(data, theme, limit);
+      ? renderFuturistic(data, safeTheme)
+      : renderer(data, safeTheme, limit);
 
     return res.status(200).send(svg);
 
