@@ -1,53 +1,54 @@
-import { useState } from "react";
-import { themeNames } from "../lib/settings/model/theme"; // sesuaikan path
+import Select from "react-select";
+import { themes } from "../lib/settings/theme";
+
+const themeOptions = Object.keys(themes).map((key) => ({
+  value: key,
+  label: key.charAt(0).toUpperCase() + key.slice(1),
+}));
 
 export default function ThemeDropdown({ onSelectTheme }) {
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
-
-  const filteredThemes = themeNames.filter((name) =>
-    name.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const handleSelect = (themeName) => {
-    onSelectTheme(themeName);
-    setOpen(false);
-  };
-
   return (
-    <div className="relative inline-block text-left w-full">
-      <button
-        onClick={() => setOpen(!open)}
-        className="button w-full flex justify-center items-center px-4 py-2"
-      >
-        {open ? "Close Themes" : "Select Theme"}
-      </button>
-
-      {open && (
-        <div className="absolute z-10 mt-2 w-full rounded-md bg-white shadow-lg border p-2 max-h-60 overflow-y-auto">
-          <input
-            type="text"
-            placeholder="Search theme..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="input mb-2 w-full"
-          />
-
-          {filteredThemes.length > 0 ? (
-            filteredThemes.map((name) => (
-              <button
-                key={name}
-                onClick={() => handleSelect(name)}
-                className="block w-full text-left px-2 py-1 hover:bg-gray-100 rounded capitalize"
-              >
-                {name}
-              </button>
-            ))
-          ) : (
-            <p className="text-gray-500 text-sm px-2">No themes found.</p>
-          )}
-        </div>
-      )}
+    <div className="form-control">
+      <label className="label">Theme:</label>
+      <Select
+        options={themeOptions}
+        onChange={(selected) => onSelectTheme(selected?.value)}
+        placeholder="Select a theme..."
+        isClearable
+        className="react-select-container"
+        classNamePrefix="react-select"
+        menuPortalTarget={typeof window !== "undefined" ? document.body : null}
+        menuPosition="fixed"
+        menuPlacement="top"
+        styles={{
+          control: (base, state) => ({
+            ...base,
+            borderWidth: 1,
+            borderColor: state.isFocused ? "#00bfff" : "#ccc",
+            boxShadow: state.isFocused ? "0 0 0 2px rgba(0, 191, 255, 0.3)" : "none",
+            borderRadius: "0.5rem",
+            backgroundColor: "white",
+            color: "black",
+            '&:hover': { borderColor: "#00bfff" },
+          }),
+          menu: (base) => ({
+            ...base,
+            border: "2px solid #00bfff",
+            borderRadius: "0.5rem",
+            backgroundColor: "white",
+            padding: "0.5rem 0",
+            animation: "fadeSlide 0.3s ease",
+          }),
+          menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+          option: (base, { isFocused, isSelected }) => ({
+            ...base,
+            backgroundColor: isSelected ? "#00bfff" : isFocused ? "#e0f7ff" : "white",
+            color: isSelected ? "white" : "black",
+            cursor: "pointer",
+            padding: "10px 15px",
+          }),
+        }}
+      />
     </div>
   );
 }
