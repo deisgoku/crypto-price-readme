@@ -2,6 +2,10 @@ const fetch = require('node-fetch');
 const { renderModern } = require('../lib/settings/model/modern');
 const { renderFuturistic } = require('../lib/settings/model/futuristic');
 const { renderClassic } = require('../lib/settings/model/classic');
+const { renderAurora } = require('../lib/settings/model/aurora');
+
+
+
 const renderLocked = require('../lib/settings/data/locked');
 const { isRegistered } = require('../lib/follow-check');
 const cacheFetch = require('../lib/data/middleware');
@@ -119,6 +123,7 @@ const renderers = {
   modern: renderModern,
   futuristic: renderFuturistic,
   classic: renderClassic,
+  aurora: renderAurora,
 };
 
 module.exports = async (req, res) => {
