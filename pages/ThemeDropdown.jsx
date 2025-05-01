@@ -9,7 +9,7 @@ const themeOptions = Object.keys(themes).map((key) => ({
 export default function ThemeDropdown({ onSelectTheme }) {
   return (
     <div className="form-control">
-      <label className="label">Theme:</label>
+      
       <Select
         options={themeOptions}
         onChange={(selected) => onSelectTheme(selected?.value)}
