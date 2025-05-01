@@ -151,13 +151,11 @@
 </div>
 
 
-- Crypto Market Mini Card type Classic with `Category Meme`
+- Crypto Market Mini Card 
 
-[![My Crypto Card](https://crypto-price-on.vercel.app/cards?user=deisgoku&model=classic&theme=tokyonight&coin=10&category=meme-token)](https://crypto-price-on.vercel.app/unlock)
+[![My Crypto Card](https://crypto-price-on.vercel.app/card?user=deisgoku&theme=dark&coin=5&category=meme-token)](https://crypto-price-on.vercel.app/unlock)
 
-- Crypto Market Mini Card type Futuristic with `Category `
 
-[![My Crypto Card](https://crypto-price-on.vercel.app/cards?user=deisgoku&model=futuristic&theme=tokyonight&coin=10&category=coinbase-50-index)](https://crypto-price-on.vercel.app/unlock)
 
 
 
