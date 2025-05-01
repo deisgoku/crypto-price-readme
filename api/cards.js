@@ -22,16 +22,37 @@ function formatVolume(value) {
   return value.toFixed(0);
 }
 
+function escapeXml(unsafe) {
+  return unsafe.replace(/[<>&'"]/g, c => {
+    switch (c) {
+      case '<': return '&lt;';
+      case '>': return '&gt;';
+      case '&': return '&amp;';
+      case '\'': return '&apos;';
+      case '"': return '&quot;';
+    }
+  });
+}
+
 function formatPrice(value) {
   if (value >= 0.01) {
     const str = value.toFixed(8);
-    return { price: parseFloat(str).toString(), micin: false };
+    return {
+      price: escapeXml(parseFloat(str).toString()),
+      micin: false
+    };
   }
+
   const str = value.toFixed(18);
   const match = str.match(/^0\.0+(?=\d)/);
   const zeroCount = match ? match[0].length - 2 : 0;
   const rest = str.slice(match ? match[0].length : 2).replace(/0+$/, '').slice(0, 4);
-  return { price: `0.0{${zeroCount}}${rest}`, micin: true };
+  const smart = `0.0{${zeroCount}}${rest}`;
+
+  return {
+    price: escapeXml(smart),
+    micin: true
+  };
 }
 
 async function fetchCategoryMap() {
