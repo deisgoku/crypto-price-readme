@@ -5,7 +5,6 @@ const { renderClassic } = require('../lib/settings/model/classic');
 const renderLocked = require('../lib/settings/data/locked');
 const { isRegistered } = require('../lib/follow-check');
 const cacheFetch = require('../lib/data/middleware');
-const { generateColoredChart } = require('../lib/settings/chart/colored');
 
 const COINGECKO_API = 'https://api.coingecko.com/api/v3';
 const CMC_API = 'https://pro-api.coinmarketcap.com/v1';
@@ -13,11 +12,6 @@ const BINANCE_API = 'https://api.binance.com/api/v3/ticker/24hr';
 const CMC_KEY = process.env.CMC_API_KEY;
 
 let categoryMap = null;
-let DEBUG = false;
-
-function debugLog(...args) {
-  if (DEBUG) console.log(...args);
-}
 
 function formatVolume(value) {
   if (value >= 1e9) return (value / 1e9).toFixed(1) + "B";
@@ -48,7 +42,6 @@ function formatPrice(value) {
 
 async function fetchCategoryMap() {
   if (categoryMap) return categoryMap;
-  debugLog('[FETCH] Category list from CoinGecko');
   const res = await fetch(`${COINGECKO_API}/coins/categories/list`);
   const list = await res.json();
   categoryMap = new Map(list.map(c => [c.category_id, c.name]));
@@ -56,13 +49,11 @@ async function fetchCategoryMap() {
 }
 
 async function fetchGecko(category, limit) {
-  debugLog(`[FETCH] CoinGecko - category: ${category}, limit: ${limit}`);
   const url = `${COINGECKO_API}/coins/markets?vs_currency=usd&category=${category}&order=market_cap_desc&per_page=${limit}&sparkline=true`;
   const res = await fetch(url);
   if (!res.ok) throw new Error('Gecko failed');
 
   const coins = await res.json();
-  debugLog(`[FETCH] CoinGecko - received ${coins.length} items`);
   return coins.map(coin => {
     const { price, micin } = formatPrice(coin.current_price);
     return {
@@ -77,7 +68,6 @@ async function fetchGecko(category, limit) {
 }
 
 async function fetchCMC(category, limit) {
-  debugLog(`[FETCH] CoinMarketCap - category: ${category}, limit: ${limit}`);
   const slugRes = await fetch(`${CMC_API}/cryptocurrency/category`, {
     headers: { 'X-CMC_PRO_API_KEY': CMC_KEY }
   });
@@ -92,7 +82,6 @@ async function fetchCMC(category, limit) {
   });
   const data = await dataRes.json();
 
-  debugLog(`[FETCH] CoinMarketCap - received ${coins.length} items`);
   return Object.values(data.data).map(coin => {
     const { price, micin } = formatPrice(coin.quote.USD.price);
     return {
@@ -107,26 +96,23 @@ async function fetchCMC(category, limit) {
 }
 
 async function fetchBinance(limit) {
-  debugLog(`[FETCH] Binance fallback - limit: ${limit}`);
   const res = await fetch(BINANCE_API);
   const data = await res.json();
 
-  const filtered = data
+  return data
     .filter(d => d.symbol.endsWith('USDT') && d.symbol.length <= 10)
-    .slice(0, limit);
-
-  debugLog(`[FETCH] Binance - received ${filtered.length} items`);
-  return filtered.map(d => {
-    const { price, micin } = formatPrice(parseFloat(d.lastPrice));
-    return {
-      symbol: d.symbol.replace('USDT', ''),
-      price,
-      micin,
-      volume: formatVolume(parseFloat(d.quoteVolume)),
-      trend: parseFloat(d.priceChangePercent),
-      sparkline: [],
-    };
-  });
+    .slice(0, limit)
+    .map(d => {
+      const { price, micin } = formatPrice(parseFloat(d.lastPrice));
+      return {
+        symbol: d.symbol.replace('USDT', ''),
+        price,
+        micin,
+        volume: formatVolume(parseFloat(d.quoteVolume)),
+        trend: parseFloat(d.priceChangePercent),
+        sparkline: [],
+      };
+    });
 }
 
 const renderers = {
@@ -136,71 +122,53 @@ const renderers = {
 };
 
 module.exports = async (req, res) => {
-  const {
-    user,
-    model = 'modern',
-    theme = 'dark',
-    coin,
-    category,
-    debug = 'false'
-  } = req.query;
-
-  DEBUG = debug === 'true';
-
-  const limit = Math.min(Math.max(parseInt(coin) || 5, 1), 20);
-  const safeCategory = category?.trim() || 'coinbase-50-index';
-  const safeTheme = ['dark', 'light'].includes(theme) ? theme : 'dark';
-  const cacheKey = `${safeCategory}_${limit}_${safeTheme}_${model}`;
+  const { user, model = 'modern', theme = 'dark', coin = '6', category = 'layer1' } = req.query;
+  const limit = Math.min(Math.max(parseInt(coin), 1), 20);
+  const cacheKey = `${category}_${limit}_${theme}_${model}`;
 
   res.setHeader('Content-Type', 'image/svg+xml');
   res.setHeader('Cache-Control', 'no-store');
-  debugLog(`[REQ] Params: user=${user}, model=${model}, theme=${safeTheme}, coin=${limit}, category=${safeCategory}`);
 
   try {
     if (!user || typeof user !== 'string') {
-      debugLog('[CARD] Guest access, showing locked card');
       return res.status(200).send(renderLocked('Guest'));
     }
 
     const verified = await isRegistered(user.toLowerCase());
-    debugLog(`[CARD] User: ${user}, Registered: ${verified}`);
     if (!verified) {
       return res.status(200).send(renderLocked(user));
     }
 
     const data = await cacheFetch(cacheKey, 60, async () => {
-      debugLog(`[CACHE] MISS - fetching new data for key: ${cacheKey}`);
       let result;
       let categoryName = 'General';
 
       try {
-        result = await fetchGecko(safeCategory, limit);
+        result = await fetchGecko(category, limit);
         const catMap = await fetchCategoryMap();
-        categoryName = catMap.get(safeCategory) || safeCategory;
-        debugLog('[DATA] Using Gecko data - category name:', categoryName);
+        categoryName = catMap.get(category) || category;
       } catch (err1) {
-        debugLog('[FALLBACK] Gecko failed:', err1.message);
+        console.warn('[FALLBACK] Gecko failed:', err1.message);
         try {
-          result = await fetchCMC(safeCategory, limit);
-          categoryName = safeCategory;
-          debugLog('[DATA] Using CMC data - category name:', categoryName);
+          result = await fetchCMC(category, limit);
+          categoryName = category;
         } catch (err2) {
-          debugLog('[FALLBACK] CMC failed:', err2.message);
+          console.warn('[FALLBACK] CMC failed:', err2.message);
           result = await fetchBinance(limit);
-          debugLog('[DATA] Using Binance fallback data');
         }
       }
 
       if (result[0]) result[0].category = categoryName;
 
       if (model === 'modern' || model === 'classic') {
+        const { generateColoredChart } = require('../lib/settings/chart/colored');
         for (const item of result) {
           try {
             item.chart = item.sparkline.length > 1
               ? generateColoredChart(item.sparkline)
               : '';
           } catch (e) {
-            debugLog(`[CHART] Failed generating chart for ${item.symbol}:`, e.message);
+            console.warn(`[CHART] Failed generating chart for ${item.symbol}:`, e.message);
             item.chart = '';
           }
         }
@@ -210,10 +178,7 @@ module.exports = async (req, res) => {
     });
 
     const renderer = renderers[model] || renderModern;
-    const svg = model === 'futuristic'
-      ? renderFuturistic(data, safeTheme)
-      : renderer(data, safeTheme, limit);
-
+    const svg = renderer(data, theme, limit);
     return res.status(200).send(svg);
 
   } catch (err) {
