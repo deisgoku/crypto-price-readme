@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
 import { motion } from "framer-motion";
 import Select from "react-select";
@@ -19,9 +19,8 @@ export default function CustomCard({ username }) {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [popupSize, setPopupSize] = useState({ width: 500, height: 400 });
-  const [isMinimized, setIsMinimized] = useState(false);
-  const previewRef = useRef(null);
+  const [minimized, setMinimized] = useState(false);
+  const [maximized, setMaximized] = useState(false);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -29,7 +28,7 @@ export default function CustomCard({ username }) {
         const res = await fetch("https://api.coingecko.com/api/v3/coins/categories/list");
         const data = await res.json();
         setCategories(data);
-      } catch {
+      } catch (err) {
         toast.error("Failed to load categories from server.");
       }
     };
@@ -79,33 +78,13 @@ export default function CustomCard({ username }) {
 
   const handleMouseMove = (e) => {
     if (!dragging) return;
-    setPosition({ x: e.clientX - dragOffset.x, y: e.clientY - dragOffset.y });
+    setPosition({
+      x: e.clientX - dragOffset.x,
+      y: e.clientY - dragOffset.y,
+    });
   };
 
   const handleMouseUp = () => setDragging(false);
-
-  const handleResizeMouseDown = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const startWidth = popupSize.width;
-    const startHeight = popupSize.height;
-
-    const doDrag = (e) => {
-      const newWidth = Math.max(300, startWidth + (e.clientX - startX));
-      const newHeight = Math.max(200, startHeight + (e.clientY - startY));
-      setPopupSize({ width: newWidth, height: newHeight });
-    };
-
-    const stopDrag = () => {
-      window.removeEventListener("mousemove", doDrag);
-      window.removeEventListener("mouseup", stopDrag);
-    };
-
-    window.addEventListener("mousemove", doDrag);
-    window.addEventListener("mouseup", stopDrag);
-  };
 
   const generateUrl = () => {
     if (!username.trim()) {
@@ -149,12 +128,6 @@ export default function CustomCard({ username }) {
     if (finalUrl) setShowPreview(true);
   };
 
-  const handleMinimize = () => setIsMinimized(true);
-  const handleMaximize = () => {
-    setIsMinimized(false);
-    setPopupSize({ width: 500, height: 400 });
-  };
-
   return (
     <>
       <motion.div
@@ -164,8 +137,17 @@ export default function CustomCard({ username }) {
         className="w-full flex flex-col gap-4 mt-6"
       >
         <h2 className="subtitle text-xl mb-2">Customize Your Card</h2>
-        <div className="form-control"><label className="label">Model:</label><ModelDropdown onSelectModel={setModel} /></div>
-        <div className="form-control"><label className="label">Theme:</label><ThemeDropdown onSelectTheme={setTheme} /></div>
+
+        <div className="form-control">
+          <label className="label">Model:</label>
+          <ModelDropdown onSelectModel={setModel} />
+        </div>
+
+        <div className="form-control">
+          <label className="label">Theme:</label>
+          <ThemeDropdown onSelectTheme={setTheme} />
+        </div>
+
         <div className="form-control">
           <label className="label">Coin Amount:</label>
           <input
@@ -181,6 +163,7 @@ export default function CustomCard({ username }) {
             style={{ borderColor: "#00bfff" }}
           />
         </div>
+
         <div className="form-control">
           <label className="label">Category:</label>
           <Select
@@ -290,42 +273,38 @@ export default function CustomCard({ username }) {
       {showPreview && (
         <div className="popup-overlay">
           <div
-            ref={previewRef}
             className="popup-window"
             onMouseDown={handleMouseDown}
             style={{
               left: position.x,
               top: position.y,
-              width: popupSize.width,
-              height: popupSize.height,
-              minWidth: 300,
-              minHeight: 200,
+              width: maximized ? "100vw" : undefined,
+              height: maximized ? "100vh" : undefined,
+              maxWidth: maximized ? "100vw" : "500px",
+              minWidth: minimized ? "250px" : "300px",
+              padding: minimized ? "0.5rem" : "1.5rem",
+              boxSizing: "border-box",
             }}
           >
-            <div className="popup-header" onMouseDown={handleMouseDown}>
-              Card Preview
-              <span className="popup-minimize" onClick={handleMinimize}>—</span>
-              <span className="popup-maximize" onClick={handleMaximize}>▢</span>
-              <span className="popup-close" onClick={() => setShowPreview(false)}>&times;</span>
+            <div className="popup-header flex justify-between items-center mb-2" onMouseDown={handleMouseDown}>
+              <span className="font-semibold text-white">Card Preview</span>
+              <div className="flex gap-2 text-white text-sm">
+                <button onClick={() => setMinimized((v) => !v)} title="Minimize">
+                  {minimized ? "▢" : "—"}
+                </button>
+                <button onClick={() => setMaximized((v) => !v)} title="Maximize">
+                  {maximized ? "🗗" : "🗖"}
+                </button>
+                <button onClick={() => setShowPreview(false)} title="Close">
+                  &times;
+                </button>
+              </div>
             </div>
-            {!isMinimized && (
-              <div style={{ maxHeight: "calc(100% - 40px)", overflow: "auto" }}>
+            {!minimized && (
+              <div style={{ maxHeight: "70vh", overflow: "auto" }}>
                 <img src={finalUrl} alt="Preview" className="w-full rounded-md" />
               </div>
             )}
-            <div
-              className="resize-handle"
-              onMouseDown={handleResizeMouseDown}
-              style={{
-                position: "absolute",
-                width: 20,
-                height: 20,
-                right: 0,
-                bottom: 0,
-                cursor: "nwse-resize",
-                background: "transparent",
-              }}
-            />
           </div>
         </div>
       )}
