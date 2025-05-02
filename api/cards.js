@@ -1,5 +1,5 @@
 const fetch = require('node-fetch');
-const redis = require('../lib/redis');
+const { redis } = require('../lib/redis');
 const renderers = require('../lib/settings/model/list');
 const renderLocked = require('../lib/settings/data/locked');
 const { isRegistered } = require('../lib/follow-check');
