@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 export default function PreviewPopup({ url, onClose }) {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
-  const [position, setPosition] = useState({ x: 100, y: 100 });
+  const [position, setPosition] = useState({ x: 0, y: 0 });
   const [minimized, setMinimized] = useState(false);
   const [maximized, setMaximized] = useState(false);
 
@@ -13,7 +13,7 @@ export default function PreviewPopup({ url, onClose }) {
     const handleMouseMove = (e) => {
       if (!dragging) return;
       setPosition((prev) => ({
-        x: Math.max(0, Math.min(e.clientX - dragOffset.x, window.innerWidth - 200)),
+        x: Math.max(0, Math.min(e.clientX - dragOffset.x, window.innerWidth - 300)),
         y: Math.max(0, Math.min(e.clientY - dragOffset.y, window.innerHeight - 100)),
       }));
     };
@@ -36,31 +36,38 @@ export default function PreviewPopup({ url, onClose }) {
     setDragging(true);
   };
 
-  // Dynamic style logic
+  // Dynamic style logic with refined sizing and stability
   const getStyle = () => {
     if (maximized) {
       return {
         left: 0,
-        top: 0,
-        width: "100vw",
+        
+      
         height: "100vh",
+        maxWidth: "100vw",
+        minWidth: "300px",
         padding: "1rem",
+        boxSizing: "border-box",
       };
     } else if (minimized) {
       return {
         left: 20,
         top: window.innerHeight - 60,
-        width: "180px",
+        width: "250px",
         height: "40px",
-        padding: "0.25rem 0.5rem",
+        padding: "0.5rem",
+        boxSizing: "border-box",
       };
     } else {
       return {
         left: position.x,
         top: position.y,
-        width: "500px",
+        width: undefined,
         height: "auto",
-        padding: "1rem",
+        maxWidth: "500px",
+        minWidth: "300px",
+        padding: "1.5rem",
+        boxSizing: "border-box",
       };
     }
   };
@@ -93,7 +100,7 @@ export default function PreviewPopup({ url, onClose }) {
           </div>
 
           {!minimized && (
-            <div style={{ maxHeight: "75vh", overflow: "auto" }}>
+            <div style={{ maxHeight: "70vh", overflow: "auto" }}>
               <img src={url} alt="Preview" className="w-full rounded-md" />
             </div>
           )}
