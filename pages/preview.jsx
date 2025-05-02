@@ -1,32 +1,33 @@
-import { useEffect } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
 
-export default function PreviewPopup({ imageUrl, popupState, setPopupState, onClose }) {
-  const { position, dragOffset, dragging, minimized, maximized, prevSize } = popupState;
+export default function PreviewPopup({
+  imageUrl,
+  onClose,
+  position,
+  setPosition,
+  minimized,
+  setMinimized,
+  maximized,
+  setMaximized,
+}) {
+  const [dragging, setDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
   const handleMouseDown = (e) => {
+    setDragging(true);
     const rect = e.currentTarget.getBoundingClientRect();
-    setPopupState((prev) => ({
-      ...prev,
-      dragging: true,
-      dragOffset: { x: e.clientX - rect.left, y: e.clientY - rect.top },
-    }));
+    setDragOffset({ x: e.clientX - rect.left, y: e.clientY - rect.top });
   };
 
   const handleMouseMove = (e) => {
-    if (!dragging || minimized || maximized) return;
-    setPopupState((prev) => ({
-      ...prev,
-      position: {
-        x: e.clientX - prev.dragOffset.x,
-        y: e.clientY - prev.dragOffset.y,
-      },
-    }));
+    if (!dragging) return;
+    setPosition({
+      x: e.clientX - dragOffset.x,
+      y: e.clientY - dragOffset.y,
+    });
   };
 
-  const handleMouseUp = () => {
-    setPopupState((prev) => ({ ...prev, dragging: false }));
-  };
+  const handleMouseUp = () => setDragging(false);
 
   useEffect(() => {
     if (dragging) {
@@ -36,109 +37,39 @@ export default function PreviewPopup({ imageUrl, popupState, setPopupState, onCl
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     }
+
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
   }, [dragging]);
 
-  const toggleMaximize = () => {
-    setPopupState((prev) => ({
-      ...prev,
-      maximized: !prev.maximized,
-      minimized: false,
-      position: prev.maximized ? prev.prevSize?.position || { x: 100, y: 100 } : prev.position,
-    }));
-  };
-
-  const handleMinimize = () => {
-    setPopupState((prev) => ({
-      ...prev,
-      minimized: true,
-      maximized: false,
-      prevSize: {
-        position: prev.position,
-        width: prev.width || "500px",
-        height: prev.height || "auto",
-      },
-      position: { x: 16, y: window.innerHeight - 64 },
-    }));
-  };
-
-  const handleRestore = () => {
-    setPopupState((prev) => ({
-      ...prev,
-      minimized: false,
-      maximized: false,
-      position: prev.prevSize?.position || { x: 100, y: 100 },
-    }));
-  };
-
-  const dynamicStyle = {
-    left: position.x,
-    top: position.y,
-    width: minimized
-      ? "200px"
-      : maximized
-      ? "100vw"
-      : prevSize?.width || "500px",
-    height: minimized
-      ? "40px"
-      : maximized
-      ? "100vh"
-      : prevSize?.height || "auto",
-    padding: "0",
-    position: "fixed",
-    zIndex: 9999,
-    overflow: "hidden",
-    borderRadius: "8px",
-    background: "#fff",
-    boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
-  };
-
   return (
     <div className="popup-overlay">
-      <motion.div
+      <div
         className="popup-window"
         onMouseDown={handleMouseDown}
-        style={dynamicStyle}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ type: "spring", stiffness: 250, damping: 20 }}
+        style={{
+          left: position.x,
+          top: position.y,
+          width: maximized ? "100vw" : undefined,
+          height: maximized ? "100vh" : undefined,
+          maxWidth: maximized ? "100vw" : "500px",
+          minWidth: minimized ? "250px" : "300px",
+          padding: minimized ? "0.5rem" : "1.5rem",
+          boxSizing: "border-box",
+        }}
       >
-        <div
-          className="popup-header"
-          onMouseDown={handleMouseDown}
-          style={{
-            height: "40px",
-            backgroundColor: "#222",
-            color: "#fff",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "0 0.5rem",
-            fontSize: "0.9rem",
-            cursor: "move",
-          }}
-        >
-          <span>{minimized ? "Card" : "Card Preview"}</span>
-          <div style={{ display: "flex", gap: "0.5rem" }}>
-            {minimized ? (
-              <span style={{ cursor: "pointer" }} onClick={handleRestore}>▴</span>
-            ) : (
-              <span style={{ cursor: "pointer" }} onClick={handleMinimize}>—</span>
-            )}
-            <span style={{ cursor: "pointer" }} onClick={toggleMaximize}>▢</span>
-            <span style={{ cursor: "pointer" }} onClick={onClose}>&times;</span>
-          </div>
+        <div className="popup-header" onMouseDown={handleMouseDown}>
+          Card Preview
+          <span className="popup-minimize" onClick={() => setMinimized(true)}>—</span>
+          <span className="popup-maximize" onClick={() => { setMinimized(false); setMaximized(true); }}>▢</span>
+          <span className="popup-close" onClick={onClose}>&times;</span>
         </div>
-
-        {!minimized && (
-          <div style={{ padding: "1rem", maxHeight: "70vh", overflow: "auto" }}>
-            <img src={imageUrl} alt="Preview" className="w-full rounded-md" />
-          </div>
-        )}
-      </motion.div>
+        <div style={{ maxHeight: "70vh", overflow: "auto" }}>
+          <img src={imageUrl} alt="Preview" className="w-full rounded-md" />
+        </div>
+      </div>
     </div>
   );
 }
