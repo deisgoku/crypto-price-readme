@@ -11,7 +11,7 @@ export default function PreviewPopup({ url, onClose }) {
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (!dragging) return;
-      const newX = Math.max(0, Math.min(e.clientX - dragOffset.x, window.innerWidth - 250));
+      const newX = Math.max(0, Math.min(e.clientX - dragOffset.x, window.innerWidth - 300));
       const newY = Math.max(0, Math.min(e.clientY - dragOffset.y, window.innerHeight - 100));
       setPosition({ x: newX, y: newY });
     };
@@ -29,9 +29,9 @@ export default function PreviewPopup({ url, onClose }) {
     };
   }, [dragging, dragOffset]);
 
-  const handleMouseDown = (e) => {
-    setDragging(true);
+  const startDragging = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
+    setDragging(true);
     setDragOffset({ x: e.clientX - rect.left, y: e.clientY - rect.top });
   };
 
@@ -50,7 +50,6 @@ export default function PreviewPopup({ url, onClose }) {
       <AnimatePresence>
         <motion.div
           className="popup-window"
-          onMouseDown={handleMouseDown}
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{
             opacity: 1,
@@ -63,17 +62,12 @@ export default function PreviewPopup({ url, onClose }) {
             height: minimized ? "auto" : (maximized ? "100vh" : undefined),
             maxWidth: maximized ? "100vw" : "500px",
             padding: minimized ? "0.25rem 0.5rem" : "1.5rem",
+            zIndex: 9999,
           }}
           exit={{ opacity: 0, scale: 0.9 }}
-          transition={{ 
-            duration: 0.4,
-            ease: "easeInOut",
-            type: "spring",
-            damping: 20,
-            stiffness: 150,
-          }}
+          transition={{ duration: 0.4, ease: "easeInOut" }}
         >
-          <div className="popup-header" onMouseDown={handleMouseDown}>
+          <div className="popup-header" onMouseDown={startDragging}>
             Card Preview
             <span className="popup-minimize" onClick={handleMinimize}>—</span>
             <span className="popup-maximize" onClick={handleMaximize}>▢</span>
