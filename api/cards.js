@@ -1,11 +1,6 @@
 const fetch = require('node-fetch');
-const { renderModern } = require('../lib/settings/model/modern');
-const { renderFuturistic } = require('../lib/settings/model/futuristic');
-const { renderClassic } = require('../lib/settings/model/classic');
-const { renderAurora } = require('../lib/settings/model/aurora');
-
-
-
+const redis = require('../lib/redis');
+const renderers = require('../lib/settings/model/list');
 const renderLocked = require('../lib/settings/data/locked');
 const { isRegistered } = require('../lib/follow-check');
 const cacheFetch = require('../lib/data/middleware');
@@ -17,6 +12,38 @@ const CMC_KEY = process.env.CMC_API_KEY;
 
 let categoryMap = null;
 
+const renderers = require('../lib/settings/model/list');
+
+function generateModelList() {
+  return Object.keys(renderers).map(key => ({
+    label: key[0].toUpperCase() + key.slice(1),
+    value: key
+  }));
+}
+
+async function handleModelList(req, res) {
+  if (req.method === 'GET') {
+    const raw = await redis.get("model:list");
+
+    if (raw) {
+      return res.status(200).json(JSON.parse(raw));
+    }
+
+    const models = generateModelList();
+    await redis.set("model:list", JSON.stringify(models), 'EX', 86400);
+    return res.status(200).json(models);
+  }
+
+  if (req.method === 'POST') {
+    const models = generateModelList();
+    await redis.set("model:list", JSON.stringify(models), 'EX', 86400);
+    return res.status(200).json({ ok: true, models });
+  }
+
+  return res.status(405).json({ error: 'Method not allowed' });
+}
+
+// Utilities
 function formatVolume(value) {
   if (value >= 1e9) return (value / 1e9).toFixed(1) + "B";
   if (value >= 1e6) return (value / 1e6).toFixed(1) + "M";
@@ -119,14 +146,13 @@ async function fetchBinance(limit) {
     });
 }
 
-const renderers = {
-  modern: renderModern,
-  futuristic: renderFuturistic,
-  classic: renderClassic,
-  aurora: renderAurora,
-};
-
+// Handler utama
 module.exports = async (req, res) => {
+  // Route tambahan: model:list
+  if (req.query.handler === 'modelList') {
+    return handleModelList(req, res);
+  }
+
   const { user, model = 'modern', theme = 'dark', coin = '6', category = 'layer1' } = req.query;
   const limit = Math.min(Math.max(parseInt(coin), 1), 20);
   const cacheKey = `${category}_${limit}_${theme}_${model}`;
@@ -182,7 +208,7 @@ module.exports = async (req, res) => {
       return result;
     });
 
-    const renderer = renderers[model] || renderModern;
+    const renderer = renderers[model] || renderers.modern;
     const svg = renderer(data, theme, limit);
     return res.status(200).send(svg);
 
