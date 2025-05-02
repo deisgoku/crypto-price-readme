@@ -1,6 +1,4 @@
-"use client";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/router";
 import { toast } from "react-hot-toast";
 import { motion } from "framer-motion";
 import Select from "react-select";
@@ -8,8 +6,6 @@ import { ClipboardCopy, CheckCircle } from "lucide-react";
 import ThemeDropdown from "./ThemeDropdown";
 
 export default function CustomCard({ username }) {
-  const router = useRouter();
-
   const [model, setModel] = useState("modern");
   const [theme, setTheme] = useState("dark");
   const [coin, setCoin] = useState(5);
@@ -19,23 +15,8 @@ export default function CustomCard({ username }) {
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedHtml, setCopiedHtml] = useState(false);
 
-  
   useEffect(() => {
-    if (!username) {
-      router.replace("/unlock");
-    }
-  }, [username]);
-
-  
-  useEffect(() => {
-    const handlePopState = () => {
-      router.replace("/custom");
-    };
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
-
-  useEffect(() => {
+    // Fetch categories from CoinGecko
     const fetchCategories = async () => {
       try {
         const res = await fetch("https://api.coingecko.com/api/v3/coins/categories/list");
@@ -46,6 +27,26 @@ export default function CustomCard({ username }) {
       }
     };
     fetchCategories();
+
+    // Block browser back with redirect to clean unlock page
+    window.history.pushState(null, "", window.location.href);
+
+    const handleBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+
+    const handlePopState = () => {
+      window.location.replace("/unlock");
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("popstate", handlePopState);
+    };
   }, []);
 
   const generateUrl = () => {
