@@ -1,8 +1,8 @@
-import { motion } from "framer-motion";
 import { useEffect } from "react";
+import { motion } from "framer-motion";
 
 export default function PreviewPopup({ imageUrl, popupState, setPopupState, onClose }) {
-  const { position, minimized, maximized, dragOffset, dragging, prevSize } = popupState;
+  const { position, dragOffset, dragging, minimized, maximized, prevSize } = popupState;
 
   const handleMouseDown = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -43,27 +43,12 @@ export default function PreviewPopup({ imageUrl, popupState, setPopupState, onCl
   }, [dragging]);
 
   const toggleMaximize = () => {
-    setPopupState((prev) => {
-      if (!prev.maximized) {
-        return {
-          ...prev,
-          maximized: true,
-          minimized: false,
-          prevSize: {
-            position: prev.position,
-            width: prev.width || "500px",
-            height: prev.height || "auto",
-          },
-        };
-      } else {
-        return {
-          ...prev,
-          maximized: false,
-          minimized: false,
-          position: prev.prevSize?.position || { x: 100, y: 100 },
-        };
-      }
-    });
+    setPopupState((prev) => ({
+      ...prev,
+      maximized: !prev.maximized,
+      minimized: false,
+      position: prev.maximized ? prev.prevSize?.position || { x: 100, y: 100 } : prev.position,
+    }));
   };
 
   const handleMinimize = () => {
@@ -117,8 +102,8 @@ export default function PreviewPopup({ imageUrl, popupState, setPopupState, onCl
         className="popup-window"
         onMouseDown={handleMouseDown}
         style={dynamicStyle}
-        initial={{ opacity: 0, y: 0 }}
-        animate={{ opacity: 1, y: minimized ? 40 : 0 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
         transition={{ type: "spring", stiffness: 250, damping: 20 }}
       >
         <div
