@@ -18,7 +18,7 @@ export default function UnlockPage() {
   const [passwordStrength, setPasswordStrength] = useState("");
 
   const router = useRouter();
-  const { ref, success, user } = router.query;
+  const ref = router.query.ref;
 
   useEffect(() => {
     if (ref) {
@@ -27,14 +27,6 @@ export default function UnlockPage() {
       else toast.success(`Welcome from ${ref}!`);
     }
   }, [ref]);
-
-  useEffect(() => {
-    if (success === "true" && user) {
-      setUsername(user);
-      setUnlocked(true);
-      toast.success(`Welcome, @${user}! Unlock Successful.`);
-    }
-  }, [success, user]);
 
   const handleModeSwitch = () => {
     setIsRegisterMode(!isRegisterMode);
@@ -74,7 +66,8 @@ export default function UnlockPage() {
           setIsRegisterMode(false);
           setCaptchaKey(Date.now());
         } else {
-          router.push(`/unlock?success=true&user=${username}`);
+          toast.success(`Welcome, @${username}! Unlock Successful.`);
+          setUnlocked(true);
         }
       } else {
         toast.error(data.error || "Action failed. Please try again.");
@@ -115,10 +108,12 @@ export default function UnlockPage() {
       transition={{ duration: 0.8, ease: "easeOut" }}
     >
       <div className="unlock-card">
+        {/* Title */}
         <h1 className="title text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent animate-gradient">
           {isRegisterMode ? "Register Account" : "Unlock Card Tools"}
         </h1>
 
+        {/* Main Form */}
         {!unlocked ? (
           <>
             <p className="subtitle mt-4">
@@ -134,6 +129,7 @@ export default function UnlockPage() {
               and {isRegisterMode ? "create" : "enter"} your Twitter username and password below:
             </p>
 
+            {/* Username */}
             <div className="form-control mt-2">
               <input
                 type="text"
@@ -144,6 +140,7 @@ export default function UnlockPage() {
               />
             </div>
 
+            {/* Password */}
             <div className="pwdcontrol relative mt-2">
               <input
                 type={showPassword ? "text" : "password"}
@@ -161,6 +158,7 @@ export default function UnlockPage() {
               </button>
             </div>
 
+            {/* Strength Meter */}
             {isRegisterMode && passwordStrength && (
               <div className="password-strength-box">
                 <div className="strength-bar-wrapper">
@@ -170,6 +168,7 @@ export default function UnlockPage() {
               </div>
             )}
 
+            {/* CAPTCHA */}
             <div className="form-control mt-4">
               <Turnstile
                 key={captchaKey}
@@ -179,6 +178,7 @@ export default function UnlockPage() {
               />
             </div>
 
+            {/* Submit + Switch */}
             <div className="form-control flex flex-col gap-2 mt-4">
               <button
                 onClick={() => handleSubmit(isRegisterMode ? "register" : "login")}
