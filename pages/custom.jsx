@@ -281,7 +281,16 @@ export default function CustomCard({ username }) {
           <div
             className="popup-window"
             onMouseDown={handleMouseDown}
-            style={{ left: position.x, top: position.y }}
+            style={{
+              left: position.x,
+              top: position.y,
+              width: maximized ? "100vw" : undefined,
+              height: maximized ? "100vh" : undefined,
+              maxWidth: maximized ? "100vw" : "500px",
+              minWidth: minimized ? "250px" : "300px",
+              padding: minimized ? "0.5rem" : "1.5rem",
+              boxSizing: "border-box",
+            }}
           >
             <div className="popup-header" onMouseDown={handleMouseDown}>
               Card Preview
