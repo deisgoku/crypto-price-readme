@@ -4,14 +4,17 @@ import { motion, AnimatePresence } from "framer-motion";
 export default function PreviewPopup({ url, onClose }) {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
-  const [position, setPosition] = useState({ x: 100, y: 100 });
+  const [position, setPosition] = useState({ x: window.innerWidth / 2 - 250, y: window.innerHeight / 2 - 200 });
   const [minimized, setMinimized] = useState(false);
   const [maximized, setMaximized] = useState(false);
 
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (!dragging) return;
-      setPosition({ x: e.clientX - dragOffset.x, y: e.clientY - dragOffset.y });
+      setPosition({
+        x: Math.min(Math.max(0, e.clientX - dragOffset.x), window.innerWidth - 100),
+        y: Math.min(Math.max(0, e.clientY - dragOffset.y), window.innerHeight - 50),
+      });
     };
     const handleMouseUp = () => setDragging(false);
 
@@ -32,6 +35,15 @@ export default function PreviewPopup({ url, onClose }) {
     setDragging(true);
   };
 
+  const popupStyles = {
+    left: maximized ? 0 : minimized ? 20 : position.x,
+    top: maximized ? 0 : minimized ? window.innerHeight - 60 : position.y,
+    width: maximized ? "100vw" : minimized ? "200px" : "500px",
+    height: maximized ? "100vh" : "auto",
+    padding: minimized ? "0.3rem 0.5rem" : "1.5rem",
+    zIndex: 9999,
+  };
+
   return (
     <AnimatePresence>
       <motion.div
@@ -43,19 +55,16 @@ export default function PreviewPopup({ url, onClose }) {
         <motion.div
           className="popup-window"
           onMouseDown={handleMouseDown}
-          style={{
-            left: maximized ? 0 : position.x,
-            top: maximized ? 0 : position.y,
-            width: maximized ? "100vw" : minimized ? "250px" : "500px",
-            height: maximized ? "100vh" : "auto",
-            padding: minimized ? "0.5rem" : "1.5rem",
-          }}
+          style={popupStyles}
           layout
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
         >
           <div className="popup-header" onMouseDown={handleMouseDown}>
             Card Preview
-            <button className="popup-minimize" onClick={() => setMinimized(true)}>—</button>
+            <button className="popup-minimize" onClick={() => {
+              setMinimized(true);
+              setMaximized(false);
+            }}>—</button>
             <button className="popup-maximize" onClick={() => {
               setMinimized(false);
               setMaximized(!maximized);
