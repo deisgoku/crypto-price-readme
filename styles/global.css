@@ -281,10 +281,12 @@ body, .html {
   padding: 1.5rem;
   position: absolute;
   z-index: 10000;
+  width: calc(100% - 2rem); 
+  max-width: 500px; 
   min-width: 300px;
-  max-width: 90vw;
   cursor: move;
   animation: fade 0.3s ease-in-out;
+  box-sizing: border-box;
 }
 
 .popup-header {
