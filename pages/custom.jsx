@@ -15,6 +15,7 @@ export default function CustomCard({ username }) {
   const [finalUrl, setFinalUrl] = useState("");
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedHtml, setCopiedHtml] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -29,19 +30,15 @@ export default function CustomCard({ username }) {
     fetchCategories();
 
     window.history.pushState(null, "", window.location.href);
-
     const handleBeforeUnload = (e) => {
       e.preventDefault();
       e.returnValue = "";
     };
-
     const handlePopState = () => {
       window.location.replace("/unlock");
     };
-
     window.addEventListener("beforeunload", handleBeforeUnload);
     window.addEventListener("popstate", handlePopState);
-
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
       window.removeEventListener("popstate", handlePopState);
@@ -180,51 +177,81 @@ export default function CustomCard({ username }) {
 
       {/* Result */}
       {finalUrl && (
-        <div className="form-control">
+        <div className="form-control flex flex-col items-center gap-2">
           <textarea
             value={finalUrl}
             readOnly
             rows={3}
-            className="textarea"
+            className="textarea w-full"
           />
 
-          {/* Copy URL */}
-          <motion.button
-            onClick={handleCopyUrl}
-            whileTap={{ scale: 0.95 }}
-            className="button flex items-center gap-2 justify-center px-3 py-2 mt-2"
-          >
-            {copiedUrl ? (
-              <>
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <span>Copied!</span>
-              </>
-            ) : (
-              <>
-                <ClipboardCopy className="w-4 h-4" />
-                <span>Copy URL</span>
-              </>
-            )}
-          </motion.button>
+          <div className="flex flex-col md:flex-row gap-2 w-full justify-center">
+            {/* Preview Button */}
+            <motion.button
+              onClick={() => setShowPreview(true)}
+              whileTap={{ scale: 0.95 }}
+              className="button flex items-center gap-2 justify-center px-3 py-2 bg-emerald-600 text-white rounded-md w-full md:w-auto"
+            >
+              <span>Preview</span>
+            </motion.button>
 
-          {/* Copy HTML */}
-          <motion.button
-            onClick={handleCopyHtml}
-            whileTap={{ scale: 0.95 }}
-            className="button flex items-center gap-2 justify-center px-3 py-2 mt-2"
-          >
-            {copiedHtml ? (
-              <>
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <span>Copied!</span>
-              </>
-            ) : (
-              <>
-                <ClipboardCopy className="w-4 h-4" />
-                <span>Copy HTML</span>
-              </>
-            )}
-          </motion.button>
+            {/* Copy URL */}
+            <motion.button
+              onClick={handleCopyUrl}
+              whileTap={{ scale: 0.95 }}
+              className="button flex items-center gap-2 justify-center px-3 py-2 w-full md:w-auto"
+            >
+              {copiedUrl ? (
+                <>
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  <span>Copied!</span>
+                </>
+              ) : (
+                <>
+                  <ClipboardCopy className="w-4 h-4" />
+                  <span>Copy URL</span>
+                </>
+              )}
+            </motion.button>
+
+            {/* Copy HTML */}
+            <motion.button
+              onClick={handleCopyHtml}
+              whileTap={{ scale: 0.95 }}
+              className="button flex items-center gap-2 justify-center px-3 py-2 w-full md:w-auto"
+            >
+              {copiedHtml ? (
+                <>
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  <span>Copied!</span>
+                </>
+              ) : (
+                <>
+                  <ClipboardCopy className="w-4 h-4" />
+                  <span>Copy HTML</span>
+                </>
+              )}
+            </motion.button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Preview */}
+      {showPreview && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
+          <div className="bg-white p-4 rounded-xl relative w-[90%] max-w-[700px]">
+            <button
+              className="absolute top-2 right-3 text-2xl font-bold text-gray-700 hover:text-red-600"
+              onClick={() => setShowPreview(false)}
+            >
+              &times;
+            </button>
+            <img
+              src={finalUrl}
+              alt="Card Preview"
+              className="w-full rounded-lg border border-gray-300 shadow-md"
+            />
+          </div>
         </div>
       )}
     </motion.div>
