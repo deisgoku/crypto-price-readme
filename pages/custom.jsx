@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import Select from "react-select";
 import { ClipboardCopy, CheckCircle } from "lucide-react";
 import ThemeDropdown from "./ThemeDropdown";
+import ModelDropdown from "./ModelDropdown";
 
 export default function CustomCard({ username }) {
   const [model, setModel] = useState("modern");
@@ -16,7 +17,6 @@ export default function CustomCard({ username }) {
   const [copiedHtml, setCopiedHtml] = useState(false);
 
   useEffect(() => {
-    // Fetch categories from CoinGecko
     const fetchCategories = async () => {
       try {
         const res = await fetch("https://api.coingecko.com/api/v3/coins/categories/list");
@@ -28,7 +28,6 @@ export default function CustomCard({ username }) {
     };
     fetchCategories();
 
-    // Block browser back with redirect to clean unlock page
     window.history.pushState(null, "", window.location.href);
 
     const handleBeforeUnload = (e) => {
@@ -95,16 +94,7 @@ export default function CustomCard({ username }) {
       {/* Model */}
       <div className="form-control">
         <label className="label">Model:</label>
-        <select
-          value={model}
-          onChange={(e) => setModel(e.target.value)}
-          className="select border-2 rounded-lg p-2 bg-white text-black"
-          style={{ borderColor: "#00bfff" }}
-        >
-          <option value="modern">Modern</option>
-          <option value="classic">Classic</option>
-          <option value="futuristic">Futuristic</option>
-        </select>
+        <ModelDropdown onSelectModel={(name) => setModel(name)} />
       </div>
 
       {/* Theme */}
