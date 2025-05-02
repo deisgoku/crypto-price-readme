@@ -1,4 +1,6 @@
+"use client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/router";
 import { toast } from "react-hot-toast";
 import { motion } from "framer-motion";
 import Select from "react-select";
@@ -6,6 +8,8 @@ import { ClipboardCopy, CheckCircle } from "lucide-react";
 import ThemeDropdown from "./ThemeDropdown";
 
 export default function CustomCard({ username }) {
+  const router = useRouter();
+
   const [model, setModel] = useState("modern");
   const [theme, setTheme] = useState("dark");
   const [coin, setCoin] = useState(5);
@@ -14,6 +18,22 @@ export default function CustomCard({ username }) {
   const [finalUrl, setFinalUrl] = useState("");
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedHtml, setCopiedHtml] = useState(false);
+
+  
+  useEffect(() => {
+    if (!username) {
+      router.replace("/unlock");
+    }
+  }, [username]);
+
+  
+  useEffect(() => {
+    const handlePopState = () => {
+      router.replace("/custom");
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   useEffect(() => {
     const fetchCategories = async () => {
