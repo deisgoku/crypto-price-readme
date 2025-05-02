@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 export default function PreviewPopup({ url, onClose }) {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
-  const [position, setPosition] = useState({ x: 20, y: 20 });
+  const [position, setPosition] = useState({ x: 0, y: 20 });
   const [minimized, setMinimized] = useState(false);
   const [maximized, setMaximized] = useState(false);
 
