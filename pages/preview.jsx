@@ -10,7 +10,7 @@ export default function PreviewPopup({ url, onClose }) {
 
   useEffect(() => {
     const handleMouseMove = (e) => {
-      if (!dragging || minimized || maximized) return;
+      if (!dragging) return;
       setPosition({ x: e.clientX - dragOffset.x, y: e.clientY - dragOffset.y });
     };
     const handleMouseUp = () => setDragging(false);
@@ -24,80 +24,59 @@ export default function PreviewPopup({ url, onClose }) {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [dragging, dragOffset, minimized, maximized]);
+  }, [dragging, dragOffset]);
 
   const handleMouseDown = (e) => {
-    if (minimized || maximized) return;
-    setDragging(true);
     const rect = e.currentTarget.getBoundingClientRect();
     setDragOffset({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-  };
-
-  const handleMinimize = () => {
-    setMinimized(true);
-    setMaximized(false);
-  };
-
-  const handleMaximize = () => {
-    setMinimized(false);
-    setMaximized(true);
-  };
-
-  const restore = () => {
-    setMinimized(false);
-    setMaximized(false);
+    setDragging(true);
   };
 
   return (
-    <div className="popup-overlay">
-      <AnimatePresence>
+    <AnimatePresence>
+      <motion.div
+        className="popup-overlay fixed top-0 left-0 w-screen h-screen z-[9999] flex items-start justify-start"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+      >
         <motion.div
-          key="popup"
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{
-            opacity: 1,
-            scale: 1,
-            position: "fixed",
-            left: minimized ? 20 : position.x,
-            top: minimized ? "auto" : position.y,
-            bottom: minimized ? 20 : "auto",
-            translateX: minimized ? 0 : 0,
-            translateY: minimized ? 0 : 0,
-            width: minimized ? 250 : maximized ? "100vw" : 500,
-            height: minimized ? "auto" : maximized ? "100vh" : "auto",
-            zIndex: 9999,
-          }}
-          exit={{ opacity: 0, scale: 0.9 }}
-          transition={{ duration: 0.3, ease: "easeInOut" }}
-          className="popup-window bg-[#0a192f] text-white shadow-lg rounded-lg overflow-hidden"
+          className="popup-window bg-white shadow-xl border border-gray-300 rounded-md overflow-hidden"
           onMouseDown={handleMouseDown}
-          style={{ boxSizing: "border-box", padding: minimized ? "0.25rem 0.5rem" : "1rem" }}
+          style={{
+            position: "absolute",
+            left: maximized ? 0 : position.x,
+            top: maximized ? 0 : position.y,
+            width: maximized ? "100vw" : minimized ? "250px" : "500px",
+            height: maximized ? "100vh" : minimized ? "auto" : "auto",
+            padding: minimized ? "0.5rem" : "1.25rem",
+            boxSizing: "border-box",
+          }}
+          layout
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
         >
           <div
-            className="popup-header cursor-move flex justify-between items-center font-semibold mb-2"
+            className="popup-header flex justify-between items-center cursor-move font-bold text-gray-700 border-b pb-2"
             onMouseDown={handleMouseDown}
           >
             <span>Card Preview</span>
-            <div className="flex gap-2 text-xl">
-              {minimized ? (
-                <span onClick={restore} className="cursor-pointer">▢</span>
-              ) : (
-                <>
-                  <span onClick={handleMinimize} className="cursor-pointer">—</span>
-                  <span onClick={handleMaximize} className="cursor-pointer">▢</span>
-                </>
-              )}
-              <span onClick={onClose} className="cursor-pointer">&times;</span>
+            <div className="flex gap-2">
+              <button onClick={() => setMinimized(true)}>—</button>
+              <button onClick={() => {
+                setMinimized(false);
+                setMaximized(!maximized);
+              }}>▢</button>
+              <button onClick={onClose}>&times;</button>
             </div>
           </div>
 
           {!minimized && (
-            <div style={{ maxHeight: "70vh", overflow: "auto" }}>
+            <div className="mt-3 max-h-[70vh] overflow-auto">
               <img src={url} alt="Preview" className="w-full rounded-md" />
             </div>
           )}
         </motion.div>
-      </AnimatePresence>
-    </div>
+      </motion.div>
+    </AnimatePresence>
   );
 }
