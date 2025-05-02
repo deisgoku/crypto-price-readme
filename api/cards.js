@@ -34,14 +34,14 @@ async function handleModelList(req, res) {
     }
 
     const models = generateModelList();
-    await redis.set("model:list", JSON.stringify(models), 'EX', 86400);
+    await redis.set("model:list", JSON.stringify(models), { ex: 86400 });
     return res.status(200).json(models);
   }
 
   if (req.method === 'POST') {
   const models = generateModelList();
   console.log('[POST] generated models:', models); // Tambahkan ini
-  await redis.set("model:list", JSON.stringify(models), 'EX', 86400);
+  await redis.set("model:list", JSON.stringify(models), { ex: 86400 });
   return res.status(200).json({ ok: true, models });
  }
 
