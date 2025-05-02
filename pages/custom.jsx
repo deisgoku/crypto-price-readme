@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import Select from "react-select";
 import { ClipboardCopy, CheckCircle, Eye } from "lucide-react";
 import ThemeDropdown from "./ThemeDropdown";
@@ -16,6 +16,10 @@ export default function CustomCard({ username }) {
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedHtml, setCopiedHtml] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -50,6 +54,37 @@ export default function CustomCard({ username }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (dragging) {
+      window.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("mouseup", handleMouseUp);
+    } else {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    }
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [dragging]);
+
+  const handleMouseDown = (e) => {
+    setDragging(true);
+    const rect = e.currentTarget.getBoundingClientRect();
+    setDragOffset({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
+
+  const handleMouseMove = (e) => {
+    if (!dragging) return;
+    setPosition({
+      x: e.clientX - dragOffset.x,
+      y: e.clientY - dragOffset.y,
+    });
+  };
+
+  const handleMouseUp = () => setDragging(false);
+
   const generateUrl = () => {
     if (!username.trim()) {
       toast.error("Username missing.");
@@ -77,9 +112,7 @@ export default function CustomCard({ username }) {
 
   const handleCopyHtml = async () => {
     if (!finalUrl) return;
-
     const html = `<p align="left">\n  <img src="${finalUrl}" />\n</p>`;
-
     try {
       await navigator.clipboard.writeText(html);
       toast.success("HTML snippet copied!");
@@ -91,8 +124,7 @@ export default function CustomCard({ username }) {
   };
 
   const handlePreview = () => {
-    if (!finalUrl) return;
-    setShowPreview(true);
+    if (finalUrl) setShowPreview(true);
   };
 
   return (
@@ -105,19 +137,16 @@ export default function CustomCard({ username }) {
       >
         <h2 className="subtitle text-xl mb-2">Customize Your Card</h2>
 
-        {/* Model */}
         <div className="form-control">
           <label className="label">Model:</label>
-          <ModelDropdown onSelectModel={(name) => setModel(name)} />
+          <ModelDropdown onSelectModel={setModel} />
         </div>
 
-        {/* Theme */}
         <div className="form-control">
           <label className="label">Theme:</label>
-          <ThemeDropdown onSelectTheme={(name) => setTheme(name)} />
+          <ThemeDropdown onSelectTheme={setTheme} />
         </div>
 
-        {/* Coin */}
         <div className="form-control">
           <label className="label">Coin Amount:</label>
           <input
@@ -126,11 +155,7 @@ export default function CustomCard({ username }) {
             value={coin}
             onChange={(e) => {
               const value = e.target.value;
-              if (value === "" || value === "0") {
-                setCoin("");
-              } else {
-                setCoin(parseInt(value, 10));
-              }
+              setCoin(value === "" || value === "0" ? "" : parseInt(value, 10));
             }}
             placeholder="Enter Coin Amount"
             className="input border-2 rounded-lg p-2 bg-white text-black"
@@ -138,7 +163,6 @@ export default function CustomCard({ username }) {
           />
         </div>
 
-        {/* Category */}
         <div className="form-control">
           <label className="label">Category:</label>
           <Select
@@ -149,7 +173,6 @@ export default function CustomCard({ username }) {
             onChange={(selected) => setSelectedCategory(selected?.value || "")}
             placeholder="Select a category..."
             isClearable
-            className="react-select-container"
             classNamePrefix="react-select"
             menuPortalTarget={typeof window !== "undefined" ? document.body : null}
             menuPosition="fixed"
@@ -171,7 +194,6 @@ export default function CustomCard({ username }) {
                 borderRadius: "0.5rem",
                 backgroundColor: "white",
                 padding: "0.5rem 0",
-                animation: "fadeSlide 0.3s ease",
               }),
               menuPortal: (base) => ({ ...base, zIndex: 9999 }),
               option: (base, { isFocused, isSelected }) => ({
@@ -189,24 +211,16 @@ export default function CustomCard({ username }) {
           />
         </div>
 
-        {/* Generate Button */}
         <div className="form-control">
           <button onClick={generateUrl} className="button flex items-center justify-center gap-2">
             Generate URL
           </button>
         </div>
 
-        {/* Result */}
         {finalUrl && (
           <div className="form-control">
-            <textarea
-              value={finalUrl}
-              readOnly
-              rows={3}
-              className="textarea"
-            />
+            <textarea value={finalUrl} readOnly rows={3} className="textarea" />
 
-            {/* Preview */}
             <motion.button
               onClick={handlePreview}
               whileTap={{ scale: 0.95 }}
@@ -216,7 +230,6 @@ export default function CustomCard({ username }) {
               <span>Preview</span>
             </motion.button>
 
-            {/* Copy URL */}
             <motion.button
               onClick={handleCopyUrl}
               whileTap={{ scale: 0.95 }}
@@ -235,7 +248,6 @@ export default function CustomCard({ username }) {
               )}
             </motion.button>
 
-            {/* Copy HTML */}
             <motion.button
               onClick={handleCopyHtml}
               whileTap={{ scale: 0.95 }}
@@ -257,42 +269,29 @@ export default function CustomCard({ username }) {
         )}
       </motion.div>
 
-      {/* Preview Modal */}
-      <AnimatePresence>
-        {showPreview && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+      {/* Preview Popup */}
+      {showPreview && (
+        <div className="popup-overlay">
+          <div
+            className="popup-window"
+            onMouseDown={handleMouseDown}
+            style={{
+              left: position.x,
+              top: position.y,
+            }}
           >
-            <motion.div
-              initial={{ scale: 0.8 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.8 }}
-              className="relative bg-white p-4 rounded-xl shadow-lg w-[95%] max-w-4xl"
-            >
-              <button
-                onClick={() => setShowPreview(false)}
-                className="absolute top-2 right-2 text-gray-500 hover:text-black"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-              <div className="w-full overflow-auto">
-                <img src={finalUrl} alt="Preview Card" className="w-full rounded-md" />
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <div className="popup-header" onMouseDown={handleMouseDown}>
+              Card Preview
+              <span className="popup-close" onClick={() => setShowPreview(false)}>
+                &times;
+              </span>
+            </div>
+            <div style={{ maxHeight: "70vh", overflow: "auto" }}>
+              <img src={finalUrl} alt="Preview" className="w-full rounded-md" />
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
