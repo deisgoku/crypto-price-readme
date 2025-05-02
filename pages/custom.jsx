@@ -17,9 +17,6 @@ export default function CustomCard({ username }) {
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedHtml, setCopiedHtml] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [minimized, setMinimized] = useState(false);
-  const [maximized, setMaximized] = useState(false);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -34,18 +31,16 @@ export default function CustomCard({ username }) {
 
     fetchCategories();
 
+    window.history.pushState(null, "", window.location.href);
     const handleBeforeUnload = (e) => {
       e.preventDefault();
       e.returnValue = "";
     };
-
     const handlePopState = () => {
       window.location.replace("/unlock");
     };
-
     window.addEventListener("beforeunload", handleBeforeUnload);
     window.addEventListener("popstate", handlePopState);
-
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
       window.removeEventListener("popstate", handlePopState);
@@ -53,62 +48,31 @@ export default function CustomCard({ username }) {
   }, []);
 
   const generateUrl = () => {
-    if (!username.trim()) {
-      toast.error("Username missing.");
-      return;
-    }
-
-    const url = `https://crypto-price-on.vercel.app/cards?user=${username}&model=${model}&theme=${theme}&coin=${coin}${
-      selectedCategory ? `&category=${selectedCategory}` : ""
-    }`;
-
+    if (!username.trim()) return toast.error("Username missing.");
+    const url = `https://crypto-price-on.vercel.app/cards?user=${username}&model=${model}&theme=${theme}&coin=${coin}${selectedCategory ? `&category=${selectedCategory}` : ""}`;
     setFinalUrl(url);
   };
 
-  const handleCopyUrl = async () => {
+  const handleCopy = async (type) => {
     if (!finalUrl) return;
+    const text = type === "url" ? finalUrl : `<p align="left">\n  <img src="${finalUrl}" />\n</p>`;
     try {
-      await navigator.clipboard.writeText(finalUrl);
-      toast.success("URL copied!");
-      setCopiedUrl(true);
-      setTimeout(() => setCopiedUrl(false), 1500);
+      await navigator.clipboard.writeText(text);
+      toast.success(`${type === "url" ? "URL" : "HTML"} copied!`);
+      type === "url" ? setCopiedUrl(true) : setCopiedHtml(true);
+      setTimeout(() => type === "url" ? setCopiedUrl(false) : setCopiedHtml(false), 1500);
     } catch {
-      toast.error("Failed to copy URL.");
-    }
-  };
-
-  const handleCopyHtml = async () => {
-    if (!finalUrl) return;
-    const html = `<p align="left">\n  <img src="${finalUrl}" />\n</p>`;
-    try {
-      await navigator.clipboard.writeText(html);
-      toast.success("HTML snippet copied!");
-      setCopiedHtml(true);
-      setTimeout(() => setCopiedHtml(false), 1500);
-    } catch {
-      toast.error("Failed to copy HTML.");
+      toast.error("Failed to copy.");
     }
   };
 
   return (
     <>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full flex flex-col gap-4 mt-6"
-      >
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="w-full flex flex-col gap-4 mt-6">
         <h2 className="subtitle text-xl mb-2">Customize Your Card</h2>
 
-        <div className="form-control">
-          <label className="label">Model:</label>
-          <ModelDropdown onSelectModel={setModel} />
-        </div>
-
-        <div className="form-control">
-          <label className="label">Theme:</label>
-          <ThemeDropdown onSelectTheme={setTheme} />
-        </div>
+        <div className="form-control"><label className="label">Model:</label><ModelDropdown onSelectModel={setModel} /></div>
+        <div className="form-control"><label className="label">Theme:</label><ThemeDropdown onSelectTheme={setTheme} /></div>
 
         <div className="form-control">
           <label className="label">Coin Amount:</label>
@@ -116,10 +80,7 @@ export default function CustomCard({ username }) {
             type="number"
             min={1}
             value={coin}
-            onChange={(e) => {
-              const value = e.target.value;
-              setCoin(value === "" || value === "0" ? "" : parseInt(value, 10));
-            }}
+            onChange={(e) => setCoin(e.target.value === "" ? "" : parseInt(e.target.value, 10))}
             placeholder="Enter Coin Amount"
             className="input border-2 rounded-lg p-2 bg-white text-black"
             style={{ borderColor: "#00bfff" }}
@@ -129,10 +90,7 @@ export default function CustomCard({ username }) {
         <div className="form-control">
           <label className="label">Category:</label>
           <Select
-            options={categories.map((cat) => ({
-              value: cat.category_id,
-              label: cat.name,
-            }))}
+            options={categories.map((cat) => ({ value: cat.category_id, label: cat.name }))}
             onChange={(selected) => setSelectedCategory(selected?.value || "")}
             placeholder="Select a category..."
             isClearable
@@ -140,72 +98,54 @@ export default function CustomCard({ username }) {
             menuPortalTarget={typeof window !== "undefined" ? document.body : null}
             menuPosition="fixed"
             menuPlacement="top"
-            styles={{ /* same styles as before */ }}
+            styles={{
+              control: (base, state) => ({
+                ...base,
+                borderWidth: 1,
+                borderColor: state.isFocused ? "#00bfff" : "#ccc",
+                boxShadow: state.isFocused ? "0 0 0 2px rgba(0,191,255,0.3)" : "none",
+                borderRadius: "0.5rem",
+                backgroundColor: "white",
+                color: "black",
+                "&:hover": { borderColor: "#00bfff" },
+              }),
+              menu: (base) => ({ ...base, border: "2px solid #00bfff", borderRadius: "0.5rem", backgroundColor: "white", padding: "0.5rem 0" }),
+              menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+              option: (base, { isFocused, isSelected }) => ({
+                ...base,
+                backgroundColor: isSelected ? "#00bfff" : isFocused ? "#e0f7ff" : "white",
+                color: isSelected ? "white" : "black",
+                cursor: "pointer",
+                padding: "10px 15px",
+              }),
+            }}
           />
         </div>
 
         <div className="form-control">
-          <button onClick={generateUrl} className="button flex items-center justify-center gap-2">
-            Generate URL
-          </button>
+          <button onClick={generateUrl} className="button">Generate URL</button>
         </div>
 
         {finalUrl && (
           <div className="form-control">
             <textarea value={finalUrl} readOnly rows={3} className="textarea" />
 
-            <motion.button
-              onClick={() => setShowPreview(true)}
-              whileTap={{ scale: 0.95 }}
-              className="button flex items-center gap-2 justify-center px-3 py-2 mt-2"
-            >
-              <Eye className="w-4 h-4 text-blue-400" />
-              <span>Preview</span>
+            <motion.button onClick={() => setShowPreview(true)} whileTap={{ scale: 0.95 }} className="button flex items-center gap-2 mt-2">
+              <Eye className="w-4 h-4 text-blue-400" /><span>Preview</span>
             </motion.button>
 
-            <motion.button onClick={handleCopyUrl} whileTap={{ scale: 0.95 }} className="button mt-2">
-              {copiedUrl ? (
-                <>
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span>Copied!</span>
-                </>
-              ) : (
-                <>
-                  <ClipboardCopy className="w-4 h-4" />
-                  <span>Copy URL</span>
-                </>
-              )}
+            <motion.button onClick={() => handleCopy("url")} whileTap={{ scale: 0.95 }} className="button flex items-center gap-2 mt-2">
+              {copiedUrl ? <><CheckCircle className="w-4 h-4 text-green-500" /><span>Copied!</span></> : <><ClipboardCopy className="w-4 h-4" /><span>Copy URL</span></>}
             </motion.button>
 
-            <motion.button onClick={handleCopyHtml} whileTap={{ scale: 0.95 }} className="button mt-2">
-              {copiedHtml ? (
-                <>
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span>Copied!</span>
-                </>
-              ) : (
-                <>
-                  <ClipboardCopy className="w-4 h-4" />
-                  <span>Copy HTML</span>
-                </>
-              )}
+            <motion.button onClick={() => handleCopy("html")} whileTap={{ scale: 0.95 }} className="button flex items-center gap-2 mt-2">
+              {copiedHtml ? <><CheckCircle className="w-4 h-4 text-green-500" /><span>Copied!</span></> : <><ClipboardCopy className="w-4 h-4" /><span>Copy HTML</span></>}
             </motion.button>
           </div>
         )}
       </motion.div>
 
-      {showPreview && (
-        <PreviewPopup
-          imageUrl={finalUrl}
-          onClose={() => setShowPreview(false)}
-          position={position}
-          setPosition={setPosition}
-          minimized={minimized}
-          setMinimized={setMinimized}
-          maximized={maximized}
-          setMaximized={setMaximized}
-        />
-      )}
+      {showPreview && <PreviewPopup url={finalUrl} onClose={() => setShowPreview(false)} />}
     </>
   );
 }
