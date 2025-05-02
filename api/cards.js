@@ -12,7 +12,6 @@ const CMC_KEY = process.env.CMC_API_KEY;
 
 let categoryMap = null;
 
-const renderers = require('../lib/settings/model/list');
 
 function generateModelList() {
   return Object.keys(renderers).map(key => ({
