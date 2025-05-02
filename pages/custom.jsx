@@ -16,11 +16,13 @@ export default function CustomCard({ username }) {
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedHtml, setCopiedHtml] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [minimized, setMinimized] = useState(false);
-  const [maximized, setMaximized] = useState(false);
+
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [popupSize, setPopupSize] = useState({ width: 500, height: 400 });
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -28,7 +30,7 @@ export default function CustomCard({ username }) {
         const res = await fetch("https://api.coingecko.com/api/v3/coins/categories/list");
         const data = await res.json();
         setCategories(data);
-      } catch (err) {
+      } catch {
         toast.error("Failed to load categories from server.");
       }
     };
@@ -85,6 +87,11 @@ export default function CustomCard({ username }) {
   };
 
   const handleMouseUp = () => setDragging(false);
+  const handleMinimize = () => setIsMinimized(true);
+  const handleMaximize = () => {
+    setIsMinimized(false);
+    setPopupSize({ width: 500, height: 400 });
+  };
 
   const generateUrl = () => {
     if (!username.trim()) {
@@ -270,6 +277,7 @@ export default function CustomCard({ username }) {
         )}
       </motion.div>
 
+      {/* Preview Popup */}
       {showPreview && (
         <div className="popup-overlay">
           <div
@@ -278,29 +286,17 @@ export default function CustomCard({ username }) {
             style={{
               left: position.x,
               top: position.y,
-              width: maximized ? "100vw" : undefined,
-              height: maximized ? "100vh" : undefined,
-              maxWidth: maximized ? "100vw" : "500px",
-              minWidth: minimized ? "250px" : "300px",
-              padding: minimized ? "0.5rem" : "1.5rem",
-              boxSizing: "border-box",
+              width: popupSize.width,
+              height: popupSize.height,
             }}
           >
-            <div className="popup-header flex justify-between items-center mb-2" onMouseDown={handleMouseDown}>
-              <span className="font-semibold text-white">Card Preview</span>
-              <div className="flex gap-2 text-white text-sm">
-                <button onClick={() => setMinimized((v) => !v)} title="Minimize">
-                  {minimized ? "▢" : "—"}
-                </button>
-                <button onClick={() => setMaximized((v) => !v)} title="Maximize">
-                  {maximized ? "🗗" : "🗖"}
-                </button>
-                <button onClick={() => setShowPreview(false)} title="Close">
-                  &times;
-                </button>
-              </div>
+            <div className="popup-header" onMouseDown={handleMouseDown}>
+              Card Preview
+              <span className="popup-minimize" onClick={handleMinimize}>—</span>
+              <span className="popup-maximize" onClick={handleMaximize}>▢</span>
+              <span className="popup-close" onClick={() => setShowPreview(false)}>&times;</span>
             </div>
-            {!minimized && (
+            {!isMinimized && (
               <div style={{ maxHeight: "70vh", overflow: "auto" }}>
                 <img src={finalUrl} alt="Preview" className="w-full rounded-md" />
               </div>
