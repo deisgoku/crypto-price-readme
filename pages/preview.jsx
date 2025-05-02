@@ -35,43 +35,36 @@ export default function PreviewPopup({ url, onClose }) {
   return (
     <AnimatePresence>
       <motion.div
-        className="popup-overlay fixed top-0 left-0 w-screen h-screen z-[9999] flex items-start justify-start"
+        className="popup-overlay"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
       >
         <motion.div
-          className="popup-window bg-white shadow-xl border border-gray-300 rounded-md overflow-hidden"
+          className="popup-window"
           onMouseDown={handleMouseDown}
           style={{
-            position: "absolute",
             left: maximized ? 0 : position.x,
             top: maximized ? 0 : position.y,
             width: maximized ? "100vw" : minimized ? "250px" : "500px",
-            height: maximized ? "100vh" : minimized ? "auto" : "auto",
-            padding: minimized ? "0.5rem" : "1.25rem",
-            boxSizing: "border-box",
+            height: maximized ? "100vh" : "auto",
+            padding: minimized ? "0.5rem" : "1.5rem",
           }}
           layout
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
         >
-          <div
-            className="popup-header flex justify-between items-center cursor-move font-bold text-gray-700 border-b pb-2"
-            onMouseDown={handleMouseDown}
-          >
-            <span>Card Preview</span>
-            <div className="flex gap-2">
-              <button onClick={() => setMinimized(true)}>—</button>
-              <button onClick={() => {
-                setMinimized(false);
-                setMaximized(!maximized);
-              }}>▢</button>
-              <button onClick={onClose}>&times;</button>
-            </div>
+          <div className="popup-header" onMouseDown={handleMouseDown}>
+            Card Preview
+            <button className="popup-minimize" onClick={() => setMinimized(true)}>—</button>
+            <button className="popup-maximize" onClick={() => {
+              setMinimized(false);
+              setMaximized(!maximized);
+            }}>▢</button>
+            <button className="popup-close" onClick={onClose}>&times;</button>
           </div>
 
           {!minimized && (
-            <div className="mt-3 max-h-[70vh] overflow-auto">
+            <div style={{ maxHeight: "70vh", overflow: "auto" }}>
               <img src={url} alt="Preview" className="w-full rounded-md" />
             </div>
           )}
