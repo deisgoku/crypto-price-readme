@@ -30,6 +30,12 @@ export default function PreviewPopup({ url, onClose }) {
     const rect = e.currentTarget.getBoundingClientRect();
     setDragOffset({ x: e.clientX - rect.left, y: e.clientY - rect.top });
   };
+  
+  const handleMinimize = () => setMinimized(true);
+  const handleMaximize = () => {
+    setMinimized(false);
+    setMaximized(true);
+  };
 
   return (
     <div className="popup-overlay">
