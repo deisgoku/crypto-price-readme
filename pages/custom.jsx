@@ -16,13 +16,11 @@ export default function CustomCard({ username }) {
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedHtml, setCopiedHtml] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
-
-  const [isMinimized, setIsMinimized] = useState(false);
-  const [popupSize, setPopupSize] = useState({ width: 500, height: 400 });
+  const [minimized, setMinimized] = useState(false);
+  const [maximized, setMaximized] = useState(false);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -87,11 +85,6 @@ export default function CustomCard({ username }) {
   };
 
   const handleMouseUp = () => setDragging(false);
-  const handleMinimize = () => setIsMinimized(true);
-  const handleMaximize = () => {
-    setIsMinimized(false);
-    setPopupSize({ width: 500, height: 400 });
-  };
 
   const generateUrl = () => {
     if (!username.trim()) {
@@ -133,6 +126,12 @@ export default function CustomCard({ username }) {
 
   const handlePreview = () => {
     if (finalUrl) setShowPreview(true);
+  };
+
+  const handleMinimize = () => setMinimized(true);
+  const handleMaximize = () => {
+    setMinimized(false);
+    setMaximized(true);
   };
 
   return (
@@ -277,18 +276,12 @@ export default function CustomCard({ username }) {
         )}
       </motion.div>
 
-      {/* Preview Popup */}
       {showPreview && (
         <div className="popup-overlay">
           <div
             className="popup-window"
             onMouseDown={handleMouseDown}
-            style={{
-              left: position.x,
-              top: position.y,
-              width: popupSize.width,
-              height: popupSize.height,
-            }}
+            style={{ left: position.x, top: position.y }}
           >
             <div className="popup-header" onMouseDown={handleMouseDown}>
               Card Preview
@@ -296,11 +289,9 @@ export default function CustomCard({ username }) {
               <span className="popup-maximize" onClick={handleMaximize}>▢</span>
               <span className="popup-close" onClick={() => setShowPreview(false)}>&times;</span>
             </div>
-            {!isMinimized && (
-              <div style={{ maxHeight: "70vh", overflow: "auto" }}>
-                <img src={finalUrl} alt="Preview" className="w-full rounded-md" />
-              </div>
-            )}
+            <div style={{ maxHeight: "70vh", overflow: "auto" }}>
+              <img src={finalUrl} alt="Preview" className="w-full rounded-md" />
+            </div>
           </div>
         </div>
       )}
