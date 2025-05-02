@@ -54,12 +54,14 @@ export default function PreviewPopup({ url, onClose }) {
           animate={{
             opacity: 1,
             scale: 1,
-            left: minimized ? 10 : position.x,
-            top: minimized ? 'auto' : position.y,
-            bottom: minimized ? 10 : 'auto',
-            position: 'fixed',
-            width: minimized ? 250 : (maximized ? "100vw" : undefined),
-            height: minimized ? "auto" : (maximized ? "100vh" : undefined),
+            position: "fixed",
+            left: minimized ? 10 : dragging ? position.x : "50%",
+            top: minimized ? "auto" : dragging ? position.y : "50%",
+            bottom: minimized ? 10 : "auto",
+            translateX: minimized || dragging ? 0 : "-50%",
+            translateY: minimized || dragging ? 0 : "-50%",
+            width: minimized ? 250 : maximized ? "100vw" : "100%",
+            height: minimized ? "auto" : maximized ? "100vh" : "auto",
             maxWidth: maximized ? "100vw" : "500px",
             padding: minimized ? "0.25rem 0.5rem" : "1.5rem",
             zIndex: 9999,
@@ -67,18 +69,7 @@ export default function PreviewPopup({ url, onClose }) {
           exit={{ opacity: 0, scale: 0.9 }}
           transition={{ duration: 0.4, ease: "easeInOut" }}
         >
-          <div className="popup-header" onMouseDown={startDragging}>
-            Card Preview
-            <span className="popup-minimize" onClick={handleMinimize}>—</span>
-            <span className="popup-maximize" onClick={handleMaximize}>▢</span>
-            <span className="popup-close" onClick={onClose}>&times;</span>
-          </div>
-
-          {!minimized && (
-            <div style={{ maxHeight: "70vh", overflow: "auto" }}>
-              <img src={url} alt="Preview" className="w-full rounded-md" />
-            </div>
-          )}
+          {/* content here */}
         </motion.div>
       </AnimatePresence>
     </div>
