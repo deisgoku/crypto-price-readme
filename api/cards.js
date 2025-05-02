@@ -22,10 +22,15 @@ function generateModelList() {
 
 async function handleModelList(req, res) {
   if (req.method === 'GET') {
-    const raw = await redis.get("model:list");
-
-    if (raw) {
-      return res.status(200).json(JSON.parse(raw));
+    try {
+      const raw = await redis.get("model:list");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return res.status(200).json(parsed);
+      }
+    } catch (e) {
+      console.warn('[modelList] Failed to parse model:list from Redis:', e.message);
+      // fallback lanjut di bawah
     }
 
     const models = generateModelList();
