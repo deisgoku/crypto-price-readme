@@ -10,12 +10,9 @@ export default function PreviewPopup({ url, onClose }) {
 
   useEffect(() => {
     const handleMouseMove = (e) => {
-      if (!dragging) return;
-      const newX = Math.max(0, Math.min(e.clientX - dragOffset.x, window.innerWidth - 300));
-      const newY = Math.max(0, Math.min(e.clientY - dragOffset.y, window.innerHeight - 100));
-      setPosition({ x: newX, y: newY });
+      if (!dragging || minimized || maximized) return;
+      setPosition({ x: e.clientX - dragOffset.x, y: e.clientY - dragOffset.y });
     };
-
     const handleMouseUp = () => setDragging(false);
 
     if (dragging) {
@@ -27,11 +24,12 @@ export default function PreviewPopup({ url, onClose }) {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [dragging, dragOffset]);
+  }, [dragging, dragOffset, minimized, maximized]);
 
-  const startDragging = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
+  const handleMouseDown = (e) => {
+    if (minimized || maximized) return;
     setDragging(true);
+    const rect = e.currentTarget.getBoundingClientRect();
     setDragOffset({ x: e.clientX - rect.left, y: e.clientY - rect.top });
   };
 
@@ -45,31 +43,59 @@ export default function PreviewPopup({ url, onClose }) {
     setMaximized(true);
   };
 
+  const restore = () => {
+    setMinimized(false);
+    setMaximized(false);
+  };
+
   return (
     <div className="popup-overlay">
       <AnimatePresence>
         <motion.div
-          className="popup-window"
+          key="popup"
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{
             opacity: 1,
             scale: 1,
             position: "fixed",
-            left: minimized ? 10 : dragging ? position.x : "50%",
-            top: minimized ? "auto" : dragging ? position.y : "50%",
-            bottom: minimized ? 10 : "auto",
-            translateX: minimized || dragging ? 0 : "-50%",
-            translateY: minimized || dragging ? 0 : "-50%",
-            width: minimized ? 250 : maximized ? "100vw" : "100%",
+            left: minimized ? 20 : position.x,
+            top: minimized ? "auto" : position.y,
+            bottom: minimized ? 20 : "auto",
+            translateX: minimized ? 0 : 0,
+            translateY: minimized ? 0 : 0,
+            width: minimized ? 250 : maximized ? "100vw" : 500,
             height: minimized ? "auto" : maximized ? "100vh" : "auto",
-            maxWidth: maximized ? "100vw" : "500px",
-            padding: minimized ? "0.25rem 0.5rem" : "1.5rem",
             zIndex: 9999,
           }}
           exit={{ opacity: 0, scale: 0.9 }}
-          transition={{ duration: 0.4, ease: "easeInOut" }}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+          className="popup-window bg-[#0a192f] text-white shadow-lg rounded-lg overflow-hidden"
+          onMouseDown={handleMouseDown}
+          style={{ boxSizing: "border-box", padding: minimized ? "0.25rem 0.5rem" : "1rem" }}
         >
-          {/* content here */}
+          <div
+            className="popup-header cursor-move flex justify-between items-center font-semibold mb-2"
+            onMouseDown={handleMouseDown}
+          >
+            <span>Card Preview</span>
+            <div className="flex gap-2 text-xl">
+              {minimized ? (
+                <span onClick={restore} className="cursor-pointer">▢</span>
+              ) : (
+                <>
+                  <span onClick={handleMinimize} className="cursor-pointer">—</span>
+                  <span onClick={handleMaximize} className="cursor-pointer">▢</span>
+                </>
+              )}
+              <span onClick={onClose} className="cursor-pointer">&times;</span>
+            </div>
+          </div>
+
+          {!minimized && (
+            <div style={{ maxHeight: "70vh", overflow: "auto" }}>
+              <img src={url} alt="Preview" className="w-full rounded-md" />
+            </div>
+          )}
         </motion.div>
       </AnimatePresence>
     </div>
