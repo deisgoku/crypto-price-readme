@@ -12,7 +12,7 @@ export default function ModelDropdown({ onSelectModel, defaultValue = "modern" }
         const res = await fetch("/cards?handler=modelList"); 
         const data = await res.json();
         if (Array.isArray(data)) {
-          const options = data.map((m) => ({ value: m, label: capitalize(m) }));
+          const options = data.map((m) => ({ value: m.value, label: m.label }));
           setModels(options);
           const defaultOpt = options.find((opt) => opt.value === defaultValue);
           setSelected(defaultOpt || options[0]);
