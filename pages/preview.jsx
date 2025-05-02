@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 export default function PreviewPopup({ url, onClose }) {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [position, setPosition] = useState({ x: 20, y: 20 });
   const [minimized, setMinimized] = useState(false);
   const [maximized, setMaximized] = useState(false);
 
@@ -14,7 +14,7 @@ export default function PreviewPopup({ url, onClose }) {
       if (!dragging) return;
       setPosition((prev) => ({
         x: Math.max(0, Math.min(e.clientX - dragOffset.x, window.innerWidth - 300)),
-        y: Math.max(0, Math.min(e.clientY - dragOffset.y, window.innerHeight - 100)),
+        y: Math.max(20, Math.min(e.clientY - dragOffset.y, window.innerHeight - 100)),
       }));
     };
     const handleMouseUp = () => setDragging(false);
