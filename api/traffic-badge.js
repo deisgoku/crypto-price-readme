@@ -1,22 +1,20 @@
 const fetch = require('node-fetch');
-const { Redis } = require('../lib/redis');
-
-const redis = new Redis(process.env.REDIS_URL);
+const { redis } = require('../lib/redis'); 
 
 const repoOwner = 'deisgoku';
 const repoName = 'crypto-price-readme';
 const key = 'clone:count';
 
 module.exports = async (req, res) => {
-  
   if (req.method !== 'GET' && req.method !== 'PUT') {
     return res.status(405).send('Method not allowed');
   }
 
-  // Validasi 
+  // Handle PUT request (update clone count)
   if (req.method === 'PUT') {
     const authHeader = req.headers.authorization;
     const expectedToken = `token ${process.env.GITHUB_TOKEN}`;
+    
     if (!authHeader || authHeader !== expectedToken) {
       return res.status(401).send('Unauthorized');
     }
@@ -32,6 +30,7 @@ module.exports = async (req, res) => {
 
       const data = await response.json();
       const cloneCount = data.count || 0;
+
       await redis.set(key, cloneCount);
       return res.status(200).send(`Clone count updated: ${cloneCount}`);
     } catch (err) {
@@ -39,7 +38,7 @@ module.exports = async (req, res) => {
     }
   }
 
-  
+  // Handle GET request (serve badge)
   const cloneCount = await redis.get(key) || 0;
   const badge = `
     <svg xmlns="http://www.w3.org/2000/svg" width="270" height="35" viewBox="0 0 270 35">
