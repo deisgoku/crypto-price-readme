@@ -17,13 +17,11 @@ module.exports = async (req, res) => {
   try {
     let cached = await redis.get(key);
     let userCount;
-    let timestamp;
 
     if (cached) {
       const parsed = JSON.parse(cached);
       userCount = parsed.userCount;
-      timestamp = parsed.timestamp;
-      console.log(`[USER BADGE] Cache hit (${mode}): ${userCount} (at ${timestamp})`);
+      console.log(`[USER BADGE] Cache hit (${mode}): ${userCount}`);
     } else {
       console.log(`[USER BADGE] Cache miss, fetching from GitHub (${mode})...`);
 
@@ -42,27 +40,25 @@ module.exports = async (req, res) => {
 
       const data = await response.json();
       userCount = mode === 'day' ? data.uniques || 0 : data.count || 0;
-      timestamp = new Date().toISOString();
 
-      await redis.set(key, JSON.stringify({ userCount, timestamp }), 'EX', mode === 'day' ? 300 : 3600);
-      console.log(`[USER BADGE] Saved ${userCount} at ${timestamp} to Redis`);
+      await redis.set(key, JSON.stringify({ userCount }), 'EX', mode === 'day' ? 300 : 3600);
+      console.log(`[USER BADGE] Saved ${userCount} to Redis`);
     }
 
-    return generateBadge(res, userCount, timestamp);
+    return generateBadge(res, userCount);
   } catch (err) {
     console.error('[USER BADGE] Unexpected error:', err);
     return sendErrorBadge(res, 'Internal');
   }
 };
 
-function generateBadge(res, userCount, timestamp) {
+function generateBadge(res, userCount) {
   const badge = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="370" height="35" viewBox="0 0 370 35">
-      <rect x="0.5" y="0.5" width="369" height="34" rx="10" fill="none" stroke="#4A90E2" stroke-width="1" />
-      <rect x="1" y="1" width="368" height="33" rx="9" fill="#1E1E1E" />
-      <text x="15" y="23" fill="#4A90E2" font-size="16" font-weight="bold" font-family="Arial, sans-serif">${userCount}</text>
-      <text x="55" y="23" fill="#FFFFFF" font-size="14" font-family="Arial, sans-serif">
-        users since release (as of ${timestamp.slice(0, 10)})
+    <svg xmlns="http://www.w3.org/2000/svg" width="220" height="35" viewBox="0 0 220 35">
+      <rect x="0.5" y="0.5" width="219" height="34" rx="10" fill="none" stroke="#4A90E2" stroke-width="1" />
+      <rect x="1" y="1" width="218" height="33" rx="9" fill="#1E1E1E" />
+      <text x="15" y="23" fill="#4A90E2" font-size="16" font-weight="bold" font-family="Arial, sans-serif">
+        ${userCount} users interested
       </text>
     </svg>
   `;
