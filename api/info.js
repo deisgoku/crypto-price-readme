@@ -32,16 +32,27 @@ module.exports = async (req, res) => {
   }
 
   try {
+    const themeParam = req.query.theme?.toLowerCase() || 'dark';
+    const selectedTheme = themes[themeParam] || themes.dark;
+    const {
+      bgColor,
+      textColor,
+      borderColor,
+      headBg,
+      headText,
+    } = selectedTheme;
+
+    // Hanya digunakan oleh info.js
+    const rowOdd = "#161b2233";
+    const rowEven = "#161b2255";
+
     const themeLabels = getThemeLabelsFromFile();
     const modelOptions = generateModelList();
-    const theme = 'dark';
-    const { bgColor, textColor, borderColor, headBg, headText } = themes[theme] || themes.dark;
 
     const font = `font-family='monospace' font-size='13px'`;
     const rowHeight = 30;
     const colWidth = [160, 160, 240];
     const rowCount = Math.ceil(themeLabels.length / 2);
-
     const col1 = themeLabels.slice(0, rowCount).map(t => t.label);
     const col2 = themeLabels.slice(rowCount).map(t => t.label);
 
@@ -63,7 +74,7 @@ module.exports = async (req, res) => {
 
     const rows = Array.from({ length: rowCount }).map((_, i) => {
       const y = startY + i * rowHeight;
-      const fill = i % 2 === 0 ? '#ffffff22' : '#cccccc22';
+      const fill = i % 2 === 0 ? rowEven : rowOdd;
       return `
         <rect x="0" y="${y}" width="${colWidth[0]}" height="${rowHeight}" fill="${fill}" />
         <rect x="${colWidth[0]}" y="${y}" width="${colWidth[1]}" height="${rowHeight}" fill="${fill}" />
