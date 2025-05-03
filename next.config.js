@@ -1,15 +1,14 @@
-// next.config.js
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   productionBrowserSourceMaps: false,
 
   images: {
-    unoptimized: true, // Karena lu project static API-based
+    unoptimized: true, 
   },
 
   experimental: {
-    scrollRestoration: true, // Scroll tetap di posisi pas back/forward
+    scrollRestoration: true, 
   },
 
   async headers() {
@@ -31,6 +30,7 @@ const nextConfig = {
       { source: '/card', destination: '/api/card' },
       { source: '/cards', destination: '/api/cards' },
       { source: '/prices', destination: '/api/prices' },
+      { source: '/traffic-badge', destination: '/api/traffic-badge' }, // Tambahkan ini
     ];
   },
 };
