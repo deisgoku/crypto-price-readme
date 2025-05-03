@@ -1,92 +1,107 @@
-const cardInfo = require("../lib/settings/data/info");
+const { themes } = require('../lib/settings/model/theme');
+const { redis } = require('../lib/redis');
 
-module.exports = (req, res) => {
-  // Determine theme (light or dark)
-  const themeParam = req.query.theme;
-  const themeMode = themeParam === "dark" ? "dark" : "light";
+const getThemeLabelsFromFile = () => {
+  return Object.entries(themes).map(([key]) => ({
+    label: key.charAt(0).toUpperCase() + key.slice(1),
+    value: key
+  }));
+};
 
-  // Color schemes
-  const colors = {
-    light: {
-      bg: "#fff",
-      text: "#000",
-      headerBg: "#222",
-      headerText: "#fff",
-      rowEven: "#f9f9f9",
-      rowOdd: "#ffffff",
-      border: "#ccc"
-    },
-    dark: {
-      bg: "#1e1e1e",
-      text: "#ffffff",
-      headerBg: "#333",
-      headerText: "#ffffff",
-      rowEven: "#2a2a2a",
-      rowOdd: "#1e1e1e",
-      border: "#444"
+
+
+module.exports = async (req, res) => {
+  if (req.method === 'POST') {
+    try {
+      const themeLabels = getThemeLabelsFromFile();
+      await redis.set('theme:labels', JSON.stringify(themeLabels));
+      return res.status(200).json({ message: 'Themes stored to Redis.', count: themeLabels.length });
+    } catch (err) {
+      console.error("Theme POST error:", err);
+      return res.status(500).json({ error: "Failed to store themes." });
     }
-  };
-  const style = colors[themeMode];
-
-  // Layout settings
-  const rowHeight = 30;
-  const tableStartY = 80;
-  const totalWidth = 640;
-  const midX = totalWidth / 2;
-  const colWidth = midX;
-  const rowPerCol = Math.ceil(cardInfo.themes.length / 2);
-  const totalHeight = tableStartY + rowPerCol * rowHeight + 40;
-
-  // Helper to render each cell (theme + style)
-  function renderCell(themeName, styleName, x, y, bgColor) {
-    return `
-      <rect x="${x}" y="${y}" width="${colWidth / 2}" height="${rowHeight}" fill="${bgColor}" stroke="${style.border}" />
-      <rect x="${x + colWidth / 2}" y="${y}" width="${colWidth / 2}" height="${rowHeight}" fill="${bgColor}" stroke="${style.border}" />
-      <text x="${x + colWidth / 4}" y="${y + 20}" fill="${style.text}" font-size="13" text-anchor="middle">${themeName}</text>
-      <text x="${x + (colWidth * 3) / 4}" y="${y + 20}" fill="${style.text}" font-size="13" text-anchor="middle">${styleName}</text>
-    `;
   }
 
-  // Build header rows and data rows
-  let rows = "";
+  if (req.method === 'GET') {
+    try {
+      let rawThemes = await redis.get("theme:labels");
 
-  // Left header
-  rows += `
-    <rect x="0" y="${tableStartY}" width="${colWidth / 2}" height="${rowHeight}" fill="${style.headerBg}" />
-    <rect x="${colWidth / 2}" y="${tableStartY}" width="${colWidth / 2}" height="${rowHeight}" fill="${style.headerBg}" />
-    <text x="${colWidth / 4}" y="${tableStartY + 20}" fill="${style.headerText}" font-weight="bold" font-size="14" text-anchor="middle">Available Theme</text>
-    <text x="${(colWidth * 3) / 4}" y="${tableStartY + 20}" fill="${style.headerText}" font-weight="bold" font-size="14" text-anchor="middle">Available Style</text>
-  `;
-  // Right header
-  rows += `
-    <rect x="${colWidth}" y="${tableStartY}" width="${colWidth / 2}" height="${rowHeight}" fill="${style.headerBg}" />
-    <rect x="${colWidth + colWidth / 2}" y="${tableStartY}" width="${colWidth / 2}" height="${rowHeight}" fill="${style.headerBg}" />
-    <text x="${colWidth + colWidth / 4}" y="${tableStartY + 20}" fill="${style.headerText}" font-weight="bold" font-size="14" text-anchor="middle">Available Theme</text>
-    <text x="${colWidth + (colWidth * 3) / 4}" y="${tableStartY + 20}" fill="${style.headerText}" font-weight="bold" font-size="14" text-anchor="middle">Available Style</text>
-  `;
+      // Auto fallback if missing
+      if (!rawThemes) {
+        const themeLabels = getThemeLabelsFromFile();
+        await redis.set("theme:labels", JSON.stringify(themeLabels));
+        rawThemes = JSON.stringify(themeLabels);
+        console.log("Auto-filled theme:labels from theme.js");
+      }
 
-  // Data rows split into two columns
-  cardInfo.themes.forEach((themeName, i) => {
-    const isLeft = i < rowPerCol;
-    const colX = isLeft ? 0 : colWidth;
-    const rowIndex = isLeft ? i : i - rowPerCol;
-    const y = tableStartY + rowHeight * (rowIndex + 1);
-    const bgColor = rowIndex % 2 === 0 ? style.rowEven : style.rowOdd;
-    const styleName = cardInfo.styles[themeName] || "available soon";
-    rows += renderCell(themeName, styleName, colX, y, bgColor);
-  });
+      const rawModels = await redis.get("model:list");
+      if (!rawModels) {
+        return res.status(404).send("Missing model data in Redis.");
+      }
 
-  // Full SVG
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="${totalWidth}" height="${totalHeight}">
-      <style>text { font-family: Arial, sans-serif; }</style>
-      <rect x="0" y="0" width="${totalWidth}" height="${totalHeight}" fill="${style.bg}" />
-      <text x="${totalWidth / 2}" y="30" text-anchor="middle" font-size="20" font-weight="bold" fill="${style.text}">Crypto-Readme Card Feature</text>
-      <text x="${totalWidth / 2}" y="55" text-anchor="middle" font-size="14" fill="${style.text}">Version ${cardInfo.version}</text>
-      ${rows}
-    </svg>
-  `;
+      const themeLabels = JSON.parse(rawThemes);
+      const modelOptions = JSON.parse(rawModels);
+      const theme = 'dark';
+      const { bgColor, textColor, borderColor, headBg, headText } = themes[theme] || themes.dark;
 
-  res.setHeader("Content-Type", "image/svg+xml");
-  res.status(200).send(svg);
+      const font = `font-family='monospace' font-size='13px'`;
+      const rowHeight = 30;
+      const colWidth = [160, 160, 240];
+      const rowCount = Math.ceil(themeLabels.length / 2);
+
+      const col1 = themeLabels.slice(0, rowCount).map(t => t.label);
+      const col2 = themeLabels.slice(rowCount).map(t => t.label);
+
+      const headerY = 40;
+      const startY = headerY + rowHeight;
+      const tableHeight = Math.max(rowCount, modelOptions.length) * rowHeight;
+      const svgWidth = colWidth.reduce((a, b) => a + b, 0);
+      const svgHeight = startY + tableHeight + 40;
+
+      const themeHeader = `
+        <rect x="0" y="${headerY}" width="${colWidth[0] + colWidth[1]}" height="${rowHeight}" fill="${headBg}" />
+        <text x="${(colWidth[0] + colWidth[1]) / 2}" y="${headerY + 20}" fill="${headText}" text-anchor="middle" ${font}>THEMES</text>
+      `;
+
+      const modelHeader = `
+        <rect x="${colWidth[0] + colWidth[1]}" y="${headerY}" width="${colWidth[2]}" height="${rowHeight}" fill="${headBg}" />
+        <text x="${colWidth[0] + colWidth[1] + colWidth[2] / 2}" y="${headerY + 20}" fill="${headText}" text-anchor="middle" ${font}>MODELS</text>
+      `;
+
+      const rows = Array.from({ length: rowCount }).map((_, i) => {
+        const y = startY + i * rowHeight;
+        const fill = i % 2 === 0 ? '#ffffff22' : '#cccccc22';
+        return `
+          <rect x="0" y="${y}" width="${colWidth[0]}" height="${rowHeight}" fill="${fill}" />
+          <rect x="${colWidth[0]}" y="${y}" width="${colWidth[1]}" height="${rowHeight}" fill="${fill}" />
+          <text x="10" y="${y + 20}" ${font} fill="${textColor}">${escapeXml(col1[i] || '')}</text>
+          <text x="${colWidth[0] + 10}" y="${y + 20}" ${font} fill="${textColor}">${escapeXml(col2[i] || '')}</text>
+        `;
+      }).join('');
+
+      const modelTexts = modelOptions.map((m, i) => {
+        const y = startY + i * rowHeight + 20;
+        return `<text x="${colWidth[0] + colWidth[1] + 10}" y="${y}" ${font} fill="${textColor}">${escapeXml(m.label)}</text>`;
+      }).join('');
+
+      const svg = `
+        <svg width="${svgWidth}" height="${svgHeight}" xmlns="http://www.w3.org/2000/svg">
+          <rect width="100%" height="100%" fill="${bgColor}" stroke="${borderColor}" />
+          ${themeHeader}
+          ${modelHeader}
+          ${rows}
+          ${modelTexts}
+        </svg>
+      `;
+
+      res.setHeader("Content-Type", "image/svg+xml");
+      return res.status(200).send(svg);
+
+    } catch (err) {
+      console.error("SVG render error:", err);
+      return res.status(500).send("Failed to render SVG.");
+    }
+  }
+
+  return res.status(405).json({ error: 'Method not allowed' });
 };
