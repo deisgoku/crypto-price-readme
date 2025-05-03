@@ -16,26 +16,39 @@ module.exports = async (req, res) => {
   try {
     console.log(`[USER BADGE] Fetching user traffic for ${repoOwner}/${repoName}...`);
 
-    const response = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/traffic/clones`, {
-      headers: {
-        Authorization: `token ${GITHUB_TOKEN}`
-      }
-    });
+    // Cek data dari Redis
+    let userCount = await redis.get(key);
 
-    if (!response.ok) {
-      const text = await response.text();
-      console.error(`[USER BADGE] GitHub API error: ${response.status} - ${text}`);
-      return res.status(500).send('Error fetching GitHub data');
+    if (!userCount) {
+      console.log(`[USER BADGE] No data in Redis, fetching from GitHub API...`);
+
+      // Ambil data dari GitHub API jika tidak ada di Redis
+      const response = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/traffic/clones`, {
+        headers: {
+          Authorization: `token ${GITHUB_TOKEN}`
+        }
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        console.error(`[USER BADGE] GitHub API error: ${response.status} - ${text}`);
+        return res.status(500).send('Error fetching GitHub data');
+      }
+
+      const data = await response.json();
+      userCount = data.count || 0;
+
+      // Simpan ke Redis jika data berhasil diambil
+      await redis.set(key, userCount);
+      console.log(`[USER BADGE] Saved to Redis with key "${key}"`);
+    } else {
+      console.log(`[USER BADGE] Retrieved user count from Redis: ${userCount}`);
     }
 
-    const data = await response.json();
-    const userCount = data.count || 0;
+    // Pastikan userCount adalah angka
+    userCount = parseInt(userCount, 10);
 
-    console.log(`[USER BADGE] Total users: ${userCount}`);
-
-    await redis.set(key, userCount);
-    console.log(`[USER BADGE] Saved to Redis with key "${key}"`);
-
+    // Membuat badge SVG
     const badge = `
       <svg xmlns="http://www.w3.org/2000/svg" width="270" height="35" viewBox="0 0 270 35">
         <rect x="0.5" y="0.5" width="269" height="34" rx="10" fill="none" stroke="#4A90E2" stroke-width="1" />
@@ -47,6 +60,7 @@ module.exports = async (req, res) => {
       </svg>
     `;
 
+    // Kirim badge sebagai respons
     res.setHeader('Content-Type', 'image/svg+xml');
     return res.send(badge);
 
