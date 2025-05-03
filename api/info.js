@@ -42,7 +42,6 @@ module.exports = async (req, res) => {
       headText,
     } = selectedTheme;
 
-    // Hanya digunakan oleh info.js
     const rowOdd = "#161b2233";
     const rowEven = "#161b2255";
 
@@ -60,7 +59,11 @@ module.exports = async (req, res) => {
     const startY = headerY + rowHeight;
     const tableHeight = Math.max(rowCount, modelOptions.length) * rowHeight;
     const svgWidth = colWidth.reduce((a, b) => a + b, 0);
-    const svgHeight = startY + tableHeight + 40;
+    const svgHeight = startY + tableHeight + 60; // tambahan untuk footer
+
+    const titleText = `
+      <text x="${svgWidth / 2}" y="25" fill="${textColor}" text-anchor="middle" ${font}>All inBuilt Theme & Style</text>
+    `;
 
     const themeHeader = `
       <rect x="0" y="${headerY}" width="${colWidth[0] + colWidth[1]}" height="${rowHeight}" fill="${headBg}" />
@@ -88,13 +91,20 @@ module.exports = async (req, res) => {
       return `<text x="${colWidth[0] + colWidth[1] + 10}" y="${y}" ${font} fill="${textColor}">${escapeXml(m.label)}</text>`;
     }).join('');
 
+    const footerY = svgHeight - 20;
+    const footerText = `
+      <text x="${svgWidth / 2}" y="${footerY}" fill="${textColor}" text-anchor="middle" ${font}>GitHub Crypto Market Card</text>
+    `;
+
     const svg = `
       <svg width="${svgWidth}" height="${svgHeight}" xmlns="http://www.w3.org/2000/svg">
         <rect width="100%" height="100%" fill="${bgColor}" stroke="${borderColor}" />
+        ${titleText}
         ${themeHeader}
         ${modelHeader}
         ${rows}
         ${modelTexts}
+        ${footerText}
       </svg>
     `;
 
