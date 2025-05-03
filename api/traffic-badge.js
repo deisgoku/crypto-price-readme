@@ -15,15 +15,21 @@ module.exports = async (req, res) => {
   const key = `user:count:${mode}`;
 
   try {
-    let cached = await redis.get(key);
-    let userCount;
+    let userCount = 0;
+    let raw = await redis.get(key);
 
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      userCount = parsed.userCount;
-      console.log(`[USER BADGE] Cache hit (${mode}): ${userCount}`);
-    } else {
-      console.log(`[USER BADGE] Cache miss, fetching from GitHub (${mode})...`);
+    if (raw) {
+      try {
+        const parsed = typeof raw === 'string' ? JSON.parse(raw) : null;
+        userCount = parsed?.userCount ?? 0;
+        console.log(`[USER BADGE] Cache hit (${mode}): ${userCount}`);
+      } catch (parseErr) {
+        console.warn('[USER BADGE] Redis value invalid JSON, ignoring cache:', raw);
+      }
+    }
+
+    if (!userCount) {
+      console.log(`[USER BADGE] Fetching from GitHub (${mode})...`);
 
       const response = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/traffic/clones`, {
         headers: {
