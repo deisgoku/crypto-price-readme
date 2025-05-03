@@ -1,6 +1,6 @@
 const { themes } = require('../lib/settings/model/theme');
 const { redis } = require('../lib/redis');
-const { generateModelList } = require('../lib/settings/model/list');
+//const { generateModelList } = require('../lib/settings/model/list');
 
 // Ambil daftar tema dari file
 const getThemeLabelsFromFile = () => {
