@@ -3,7 +3,7 @@ name: Generate Traffic Badge
 on:
   schedule:
     - cron: "0 2 * * *"  # Setiap hari jam 9 pagi (WIB)
-  workflow_dispatch:      # Bisa dijalankan manual
+  workflow_dispatch:      
 
 jobs:
   build-badge:
@@ -30,7 +30,7 @@ jobs:
 
       - name: Push traffic count to Redis
         run: |
-          curl -X PUT https://your-vercel-url/api/traffic \
+          curl -X PUT https://crypto-price-on.vercel.app/api/traffic \
             -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}"
 
       - name: Commit and push badge
