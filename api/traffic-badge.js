@@ -8,7 +8,7 @@ module.exports = async (req, res) => {
   const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
   if (!GITHUB_TOKEN) {
     console.error('[USER BADGE] Missing GITHUB_TOKEN');
-    return res.status(500).send('Missing GitHub token');
+    return sendErrorBadge(res, 'No Token');
   }
 
   const mode = req.query.t === 'day' ? 'day' : 'default';
@@ -28,13 +28,16 @@ module.exports = async (req, res) => {
       console.log(`[USER BADGE] Cache miss, fetching from GitHub (${mode})...`);
 
       const response = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/traffic/clones`, {
-        headers: { Authorization: `token ${GITHUB_TOKEN}` }
+        headers: {
+          Authorization: `token ${GITHUB_TOKEN}`,
+          'User-Agent': 'traffic-badge'
+        }
       });
 
       if (!response.ok) {
         const text = await response.text();
         console.error(`[USER BADGE] GitHub API error: ${response.status} - ${text}`);
-        return res.status(500).send('Error fetching GitHub data');
+        return sendErrorBadge(res, `API ${response.status}`);
       }
 
       const data = await response.json();
@@ -42,14 +45,13 @@ module.exports = async (req, res) => {
       timestamp = new Date().toISOString();
 
       await redis.set(key, JSON.stringify({ userCount, timestamp }), 'EX', mode === 'day' ? 300 : 3600);
-      console.log(`[USER BADGE] Saved ${userCount} at ${timestamp} to Redis with key "${key}"`);
+      console.log(`[USER BADGE] Saved ${userCount} at ${timestamp} to Redis`);
     }
 
     return generateBadge(res, userCount, timestamp);
-
   } catch (err) {
     console.error('[USER BADGE] Unexpected error:', err);
-    return res.status(500).send('Failed to update and generate badge');
+    return sendErrorBadge(res, 'Internal');
   }
 };
 
@@ -65,5 +67,18 @@ function generateBadge(res, userCount, timestamp) {
     </svg>
   `;
   res.setHeader('Content-Type', 'image/svg+xml');
-  return res.send(badge);
+  res.setHeader('Cache-Control', 'no-cache');
+  return res.status(200).send(badge);
+}
+
+function sendErrorBadge(res, label = 'Error') {
+  const badge = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="160" height="35" viewBox="0 0 160 35">
+      <rect x="0" y="0" width="160" height="35" rx="10" fill="#222" />
+      <text x="10" y="23" fill="#FF5555" font-size="14" font-family="Arial, sans-serif">Badge ${label}</text>
+    </svg>
+  `;
+  res.setHeader('Content-Type', 'image/svg+xml');
+  res.setHeader('Cache-Control', 'no-cache');
+  return res.status(200).send(badge);
 }
