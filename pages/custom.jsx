@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
 import { motion } from "framer-motion";
 import Select from "react-select";
-import { ClipboardCopy, CheckCircle, Eye } from "lucide-react";
+import { ClipboardCopy, CheckCircle, Eye, Loader2 } from "lucide-react";
 import ThemeDropdown from "./ThemeDropdown";
 import ModelDropdown from "./ModelDropdown";
 import PreviewPopup from "./preview";
@@ -17,8 +17,9 @@ export default function CustomCard({ username }) {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [finalUrl, setFinalUrl] = useState("");
   const [copiedUrl, setCopiedUrl] = useState(false);
-  const [copiedHtml, setCopiedHtml] = useState(false);
+  const [copiedMd, setCopiedMd] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [loading, setLoading] = useState(false); // for spinner
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -49,20 +50,25 @@ export default function CustomCard({ username }) {
     };
   }, []);
 
-  const generateUrl = () => {
+  const generateUrl = async () => {
     if (!username.trim()) return toast.error("Username missing.");
+    setLoading(true);
+    await new Promise((r) => setTimeout(r, 800)); // Simulate delay
     const url = `https://crypto-price-on.vercel.app/cards?user=${username}&model=${model}&theme=${theme}&coin=${coin}${selectedCategory ? `&category=${selectedCategory}` : ""}`;
     setFinalUrl(url);
+    setLoading(false);
   };
 
   const handleCopy = async (type) => {
     if (!finalUrl) return;
-    const text = type === "url" ? finalUrl : `<p align="left">\n  <img src="${finalUrl}" />\n</p>`;
+    const markdown = `[![${username}](${finalUrl})](https://crypto-price-on.vercel.app/unlock)`;
+    const text = type === "url" ? finalUrl : markdown;
+
     try {
       await navigator.clipboard.writeText(text);
-      toast.success(`${type === "url" ? "URL" : "HTML"} copied!`);
-      type === "url" ? setCopiedUrl(true) : setCopiedHtml(true);
-      setTimeout(() => type === "url" ? setCopiedUrl(false) : setCopiedHtml(false), 1500);
+      toast.success(`${type === "url" ? "URL" : "Markdown"} copied!`);
+      type === "url" ? setCopiedUrl(true) : setCopiedMd(true);
+      setTimeout(() => type === "url" ? setCopiedUrl(false) : setCopiedMd(false), 1500);
     } catch {
       toast.error("Failed to copy.");
     }
@@ -125,7 +131,16 @@ export default function CustomCard({ username }) {
         </div>
 
         <div className="form-control">
-          <button onClick={generateUrl} className="button">Generate URL</button>
+          <button onClick={generateUrl} className="button flex items-center justify-center gap-2" disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Generating...</span>
+              </>
+            ) : (
+              <span>Generate URL</span>
+            )}
+          </button>
         </div>
 
         {finalUrl && (
@@ -140,8 +155,8 @@ export default function CustomCard({ username }) {
               {copiedUrl ? <><CheckCircle className="w-4 h-4 text-green-500" /><span>Copied!</span></> : <><ClipboardCopy className="w-4 h-4" /><span>Copy URL</span></>}
             </motion.button>
 
-            <motion.button onClick={() => handleCopy("html")} whileTap={{ scale: 0.95 }} className="button flex items-center gap-2 mt-2">
-              {copiedHtml ? <><CheckCircle className="w-4 h-4 text-green-500" /><span>Copied!</span></> : <><ClipboardCopy className="w-4 h-4" /><span>Copy HTML</span></>}
+            <motion.button onClick={() => handleCopy("md")} whileTap={{ scale: 0.95 }} className="button flex items-center gap-2 mt-2">
+              {copiedMd ? <><CheckCircle className="w-4 h-4 text-green-500" /><span>Copied!</span></> : <><ClipboardCopy className="w-4 h-4" /><span>Copy Markdown</span></>}
             </motion.button>
           </div>
         )}
