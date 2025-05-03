@@ -30,7 +30,7 @@ jobs:
 
       - name: Push traffic count to Redis
         run: |
-          curl -X PUT https://crypto-price-on.vercel.app/api/traffic \
+          curl -X PUT https://crypto-price-on.vercel.app/api/traffic-badge \
             -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}"
 
       - name: Commit and push badge
