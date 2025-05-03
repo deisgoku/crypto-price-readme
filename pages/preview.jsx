@@ -2,57 +2,53 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function PreviewPopup({ url, onClose }) {
+  const popupRef = useRef(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
+  const [resizing, setResizing] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 20 });
+  const [size, setSize] = useState({ width: 400, height: "auto" });
   const [minimized, setMinimized] = useState(false);
   const [maximized, setMaximized] = useState(false);
-  const [size, setSize] = useState({ width: 400, height: 300 });
-  const resizingRef = useRef(false);
 
-  const safeHeight = typeof window !== "undefined" ? window.innerHeight : 800;
-  const safeWidth = typeof window !== "undefined" ? window.innerWidth : 600;
-
-  const updatePosition = (clientX, clientY) => {
-    setPosition({
-      x: Math.max(0, Math.min(clientX - dragOffset.x, safeWidth - size.width)),
-      y: Math.max(20, Math.min(clientY - dragOffset.y, safeHeight - 100)),
-    });
-  };
-
+  // Dragging
   useEffect(() => {
     const handleMove = (e) => {
-      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-      if (resizingRef.current) {
-        setSize({
-          width: Math.max(300, clientX - position.x),
-          height: Math.max(200, clientY - position.y),
+      const clientX = e.touches?.[0]?.clientX ?? e.clientX;
+      const clientY = e.touches?.[0]?.clientY ?? e.clientY;
+      if (dragging) {
+        setPosition({
+          x: Math.max(0, Math.min(clientX - dragOffset.x, window.innerWidth - 300)),
+          y: Math.max(20, Math.min(clientY - dragOffset.y, window.innerHeight - 100)),
         });
-      } else if (dragging) {
-        updatePosition(clientX, clientY);
+      } else if (resizing && popupRef.current) {
+        const rect = popupRef.current.getBoundingClientRect();
+        const newWidth = Math.max(300, clientX - rect.left);
+        const newHeight = Math.max(200, clientY - rect.top);
+        setSize({ width: newWidth, height: newHeight });
       }
     };
 
-    const handleUp = () => {
+    const stop = () => {
       setDragging(false);
-      resizingRef.current = false;
+      setResizing(false);
     };
 
     window.addEventListener("mousemove", handleMove);
-    window.addEventListener("mouseup", handleUp);
+    window.addEventListener("mouseup", stop);
     window.addEventListener("touchmove", handleMove, { passive: false });
-    window.addEventListener("touchend", handleUp);
+    window.addEventListener("touchend", stop);
+
     return () => {
       window.removeEventListener("mousemove", handleMove);
-      window.removeEventListener("mouseup", handleUp);
+      window.removeEventListener("mouseup", stop);
       window.removeEventListener("touchmove", handleMove);
-      window.removeEventListener("touchend", handleUp);
+      window.removeEventListener("touchend", stop);
     };
-  }, [dragging, dragOffset, position, size]);
+  }, [dragging, dragOffset, resizing]);
 
-  const handleDragStart = (e) => {
-    const isTouch = e.touches?.length === 1;
+  const startDrag = (e) => {
+    const isTouch = e.type === "touchstart";
     const clientX = isTouch ? e.touches[0].clientX : e.clientX;
     const clientY = isTouch ? e.touches[0].clientY : e.clientY;
     const rect = e.currentTarget.getBoundingClientRect();
@@ -61,22 +57,28 @@ export default function PreviewPopup({ url, onClose }) {
     e.stopPropagation();
   };
 
+  const startResize = (e) => {
+    setResizing(true);
+    e.stopPropagation();
+    e.preventDefault();
+  };
+
   const getStyle = () => {
     if (maximized) {
       return {
         left: 0,
-        top: 0,
-        width: "100vw",
         height: "100vh",
+        maxWidth: "100vw",
+        minWidth: "300px",
         padding: "1rem",
         boxSizing: "border-box",
       };
     } else if (minimized) {
       return {
         left: 20,
-        top: safeHeight - 60,
-        width: 250,
-        height: 40,
+        top: window.innerHeight - 60,
+        width: "250px",
+        height: "40px",
         padding: "0.5rem",
         boxSizing: "border-box",
       };
@@ -86,7 +88,9 @@ export default function PreviewPopup({ url, onClose }) {
         top: position.y,
         width: size.width,
         height: size.height,
-        padding: "1rem",
+        maxWidth: "500px",
+        minWidth: "300px",
+        padding: "1.5rem",
         boxSizing: "border-box",
       };
     }
@@ -101,6 +105,7 @@ export default function PreviewPopup({ url, onClose }) {
         exit={{ opacity: 0 }}
       >
         <motion.div
+          ref={popupRef}
           className="popup-window fixed bg-[#0f172a] text-white rounded-lg shadow-xl z-[9999]"
           style={getStyle()}
           layout
@@ -108,30 +113,29 @@ export default function PreviewPopup({ url, onClose }) {
         >
           <div
             className="popup-header cursor-move flex justify-between items-center font-semibold border-b pb-1 mb-2 select-none"
-            onMouseDown={handleDragStart}
-            onTouchStart={handleDragStart}
+            onMouseDown={startDrag}
+            onTouchStart={startDrag}
             style={{ touchAction: "none" }}
           >
             <span>Card Preview</span>
             <div className="flex gap-2">
-              <button onClick={() => { setMinimized(true); setMaximized(false); }}>—</button>
-              <button onClick={() => { setMaximized(!maximized); setMinimized(false); }}>▢</button>
-              <button onClick={onClose}>&times;</button>
+              <button className="popup-minimize" onClick={() => { setMinimized(true); setMaximized(false); }}>—</button>
+              <button className="popup-maximize" onClick={() => { setMaximized(!maximized); setMinimized(false); }}>▢</button>
+              <button className="popup-close" onClick={onClose}>&times;</button>
             </div>
           </div>
 
           {!minimized && (
-            <div style={{ height: "calc(100% - 50px)", overflow: "auto" }}>
+            <div style={{ maxHeight: "70vh", overflow: "auto" }}>
               <img src={url} alt="Preview" className="w-full rounded-md" />
             </div>
           )}
 
-          {/* Resize handle */}
-          {!minimized && !maximized && (
+          {!maximized && !minimized && (
             <div
-              className="absolute bottom-1 right-1 w-4 h-4 bg-white/30 rounded-sm cursor-se-resize z-[10000]"
-              onMouseDown={(e) => { e.stopPropagation(); resizingRef.current = true; }}
-              onTouchStart={(e) => { e.stopPropagation(); resizingRef.current = true; }}
+              className="resize-handle absolute bottom-1 right-1 w-4 h-4 cursor-se-resize z-[9999]"
+              onMouseDown={startResize}
+              onTouchStart={startResize}
               style={{ touchAction: "none" }}
             />
           )}
