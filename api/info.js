@@ -2,13 +2,15 @@ const { themes } = require('../lib/settings/model/theme');
 const { redis } = require('../lib/redis');
 const { generateModelList } = require('../lib/settings/model/list');
 
+// Ambil daftar tema dari file
 const getThemeLabelsFromFile = () => {
   return Object.entries(themes).map(([key]) => ({
     label: key.charAt(0).toUpperCase() + key.slice(1),
-    value: key
+    value: key,
   }));
 };
 
+// Ambil daftar model dari Redis atau generate
 const getModelList = async () => {
   try {
     const raw = await redis.get("model:list");
@@ -22,6 +24,7 @@ const getModelList = async () => {
   return models;
 };
 
+// Escape karakter untuk XML
 const escapeXml = (unsafe) =>
   unsafe.replace(/[<>&'"]/g, (c) => {
     switch (c) {
@@ -38,7 +41,10 @@ module.exports = async (req, res) => {
     try {
       const themeLabels = getThemeLabelsFromFile();
       await redis.set('theme:labels', JSON.stringify(themeLabels));
-      return res.status(200).json({ message: 'Themes stored to Redis.', count: themeLabels.length });
+      return res.status(200).json({
+        message: 'Themes stored to Redis.',
+        count: themeLabels.length,
+      });
     } catch (err) {
       console.error("Theme POST error:", err);
       return res.status(500).json({ error: "Failed to store themes." });
@@ -48,33 +54,37 @@ module.exports = async (req, res) => {
   if (req.method === 'GET') {
     try {
       let rawThemes = await redis.get("theme:labels");
-
       if (!rawThemes) {
-        const themeLabels = getThemeLabelsFromFile();
-        await redis.set("theme:labels", JSON.stringify(themeLabels));
-        rawThemes = JSON.stringify(themeLabels);
+        const fallback = getThemeLabelsFromFile();
+        await redis.set("theme:labels", JSON.stringify(fallback));
+        rawThemes = fallback;
         console.log("Auto-filled theme:labels from theme.js");
       }
 
-      const themeLabels = JSON.parse(rawThemes);
-      const modelOptions = await getModelList(); // <- aman dan pasti valid
+      const themeLabels = typeof rawThemes === 'string' ? JSON.parse(rawThemes) : rawThemes;
+      const modelOptions = await getModelList();
 
       const theme = 'dark';
-      const { bgColor, textColor, borderColor, headBg, headText } = themes[theme] || themes.dark;
+      const {
+        bgColor,
+        textColor,
+        borderColor,
+        headBg,
+        headText,
+      } = themes[theme] || themes.dark;
 
       const font = `font-family='monospace' font-size='13px'`;
       const rowHeight = 30;
       const colWidth = [160, 160, 240];
       const rowCount = Math.ceil(themeLabels.length / 2);
-
-      const col1 = themeLabels.slice(0, rowCount).map(t => t.label);
-      const col2 = themeLabels.slice(rowCount).map(t => t.label);
-
       const headerY = 40;
       const startY = headerY + rowHeight;
       const tableHeight = Math.max(rowCount, modelOptions.length) * rowHeight;
       const svgWidth = colWidth.reduce((a, b) => a + b, 0);
       const svgHeight = startY + tableHeight + 40;
+
+      const col1 = themeLabels.slice(0, rowCount).map(t => t.label);
+      const col2 = themeLabels.slice(rowCount).map(t => t.label);
 
       const themeHeader = `
         <rect x="0" y="${headerY}" width="${colWidth[0] + colWidth[1]}" height="${rowHeight}" fill="${headBg}" />
@@ -114,7 +124,6 @@ module.exports = async (req, res) => {
 
       res.setHeader("Content-Type", "image/svg+xml");
       return res.status(200).send(svg);
-
     } catch (err) {
       console.error("SVG render error:", err);
       return res.status(500).send("Failed to render SVG.");
