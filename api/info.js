@@ -59,20 +59,20 @@ module.exports = async (req, res) => {
     const startY = headerY + rowHeight;
     const tableHeight = Math.max(rowCount, modelOptions.length) * rowHeight;
     const svgWidth = colWidth.reduce((a, b) => a + b, 0);
-    const svgHeight = startY + tableHeight + 60; // tambahan untuk footer
+    const svgHeight = startY + tableHeight + 60;
 
     const titleText = `
-      <text x="${svgWidth / 2}" y="25" fill="${textColor}" text-anchor="middle" ${font}>All inBuilt Theme & Style</text>
+      <text x="${svgWidth / 2}" y="25" fill="${textColor}" text-anchor="middle" ${font}>${escapeXml('All inBuilt Theme & Style')}</text>
     `;
 
     const themeHeader = `
       <rect x="0" y="${headerY}" width="${colWidth[0] + colWidth[1]}" height="${rowHeight}" fill="${headBg}" />
-      <text x="${(colWidth[0] + colWidth[1]) / 2}" y="${headerY + 20}" fill="${headText}" text-anchor="middle" ${font}>THEMES</text>
+      <text x="${(colWidth[0] + colWidth[1]) / 2}" y="${headerY + 20}" fill="${headText}" text-anchor="middle" ${font}>${escapeXml('Themes')}</text>
     `;
 
     const modelHeader = `
       <rect x="${colWidth[0] + colWidth[1]}" y="${headerY}" width="${colWidth[2]}" height="${rowHeight}" fill="${headBg}" />
-      <text x="${colWidth[0] + colWidth[1] + colWidth[2] / 2}" y="${headerY + 20}" fill="${headText}" text-anchor="middle" ${font}>MODELS</text>
+      <text x="${colWidth[0] + colWidth[1] + colWidth[2] / 2}" y="${headerY + 20}" fill="${headText}" text-anchor="middle" ${font}>${escapeXml('Models')}</text>
     `;
 
     const rows = Array.from({ length: rowCount }).map((_, i) => {
@@ -91,9 +91,9 @@ module.exports = async (req, res) => {
       return `<text x="${colWidth[0] + colWidth[1] + 10}" y="${y}" ${font} fill="${textColor}">${escapeXml(m.label)}</text>`;
     }).join('');
 
-    const footerY = svgHeight - 20;
+    const footerY = startY + tableHeight + 20;
     const footerText = `
-      <text x="${svgWidth / 2}" y="${footerY}" fill="${textColor}" text-anchor="middle" ${font}>GitHub Crypto Market Card</text>
+      <text x="${svgWidth / 2}" y="${footerY}" fill="${textColor}" text-anchor="middle" ${font}>${escapeXml('GitHub Crypto Market Card')}</text>
     `;
 
     const svg = `
