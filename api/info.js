@@ -9,6 +9,16 @@ const getThemeLabelsFromFile = () => {
 };
 
 
+const escapeXml = (unsafe) =>
+  unsafe.replace(/[<>&'"]/g, (c) => {
+    switch (c) {
+      case '<': return '&lt;';
+      case '>': return '&gt;';
+      case '&': return '&amp;';
+      case '\'': return '&apos;';
+      case '"': return '&quot;';
+    }
+  });
 
 module.exports = async (req, res) => {
   if (req.method === 'POST') {
