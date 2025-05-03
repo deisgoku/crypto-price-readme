@@ -43,13 +43,28 @@ module.exports = async (req, res) => {
         console.log("Auto-filled theme:labels from theme.js");
       }
 
-      const rawModels = await redis.get("model:list");
-      if (!rawModels) {
-        return res.status(404).send("Missing model data in Redis.");
+      // Menggunakan fetch untuk mendapatkan data model dari API eksternal
+      const fetchModels = async () => {
+        try {
+          const res = await fetch("/cards?handler=modelList");
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            return data.map((m) => ({ value: m.value, label: m.label }));
+          } else {
+            return [];
+          }
+        } catch (err) {
+          return [];
+        }
+      };
+
+      // Memanggil fetchModels untuk mendapatkan model
+      const modelOptions = await fetchModels();
+      if (modelOptions.length === 0) {
+        return res.status(404).send("Missing or invalid model data.");
       }
 
       const themeLabels = JSON.parse(rawThemes);
-      const modelOptions = JSON.parse(rawModels);
       const theme = 'dark';
       const { bgColor, textColor, borderColor, headBg, headText } = themes[theme] || themes.dark;
 
@@ -114,3 +129,4 @@ module.exports = async (req, res) => {
 
   return res.status(405).json({ error: 'Method not allowed' });
 };
+
