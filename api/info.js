@@ -55,7 +55,7 @@ module.exports = async (req, res) => {
 
     const currentYear = new Date().getFullYear();
 
-    const themeHeader = `
+    const tableHeader = `
       <defs>
         <linearGradient id="aurora" x1="0%" y1="0%" x2="100%" y2="0%">
           <stop offset="0%" stop-color="#00f0ff"/>
@@ -67,21 +67,13 @@ module.exports = async (req, res) => {
       <text x="${(colWidth[0] + colWidth[1]) / 2}" y="${headerY + 20}" fill="${headText}" text-anchor="middle" ${font}>
         ${escapeXml("THEMES")}
       </text>
-    `;
-
-    const modelHeader = `
-    <defs>
-        <linearGradient id="aurora" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#00f0ff"/>
-          <stop offset="100%" stop-color="#a100ff"/>
-        </linearGradient>
-      </defs>
-      
       <rect x="${colWidth[0] + colWidth[1]}" y="${headerY}" width="${colWidth[2]}" height="${rowHeight}" rx="8" ry="8" fill="url(#aurora)" />
       <text x="${colWidth[0] + colWidth[1] + colWidth[2] / 2}" y="${headerY + 20}" fill="${headText}" text-anchor="middle" ${font}>
         ${escapeXml("MODELS")}
       </text>
     `;
+
+    
 
     const rows = Array.from({ length: rowCount }).map((_, i) => {
       const y = startY + i * rowHeight;
@@ -107,8 +99,7 @@ module.exports = async (req, res) => {
           ${escapeXml("All inBuilt Theme & Style")}
         </text>
         
-        ${themeHeader}
-        ${modelHeader}
+        ${tableHeader}
         ${rows}
         ${modelTexts}
 
