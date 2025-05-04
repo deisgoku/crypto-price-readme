@@ -22,9 +22,8 @@ const escapeXml = (unsafe) =>
       case '<': return '&lt;';
       case '>': return '&gt;';
       case '&': return '&amp;';
-      case '\'': return '&apos;';
+      case "'": return '&apos;';
       case '"': return '&quot;';
-      default: return c;
     }
   });
 
@@ -44,6 +43,7 @@ module.exports = async (req, res) => {
 
     const themeLabels = getThemeLabelsFromFile();
     const modelOptions = generateModelList();
+
     const rowCount = Math.ceil(themeLabels.length / 2);
     const col1 = themeLabels.slice(0, rowCount).map(t => t.label);
     const col2 = themeLabels.slice(rowCount).map(t => t.label);
@@ -51,27 +51,24 @@ module.exports = async (req, res) => {
     const rowHeight = 30;
     const colWidth = [160, 160, 240];
     const headerY = 40;
-    const startY = headerY + rowHeight;
+    const gapBetweenHeaderAndRow = 10;
+    const startY = headerY + rowHeight + gapBetweenHeaderAndRow;
     const tableHeight = Math.max(rowCount, modelOptions.length) * rowHeight;
     const svgWidth = colWidth.reduce((a, b) => a + b, 0);
-    const svgHeight = startY + tableHeight + 80;
     const paddingX = 20;
+    const svgHeight = startY + tableHeight + 80;
     const viewBox = `0 0 ${svgWidth + paddingX * 2} ${svgHeight}`;
     const currentYear = new Date().getFullYear();
 
     const tableHeader = `
-      <!-- Satu baris header menyatu -->
       <rect x="${paddingX}" y="${headerY}" width="${svgWidth}" height="${rowHeight}" fill="${headBg}" stroke="${borderColor}" stroke-width="1" />
-
-      <!-- Text: Themes (span 2 kolom) -->
       <text x="${paddingX + (colWidth[0] + colWidth[1]) / 2}" y="${headerY + 20}" fill="${headText}" text-anchor="middle" ${font}>
         ${escapeXml("THEMES")}
       </text>
-
-      <!-- Text: Models -->
       <text x="${paddingX + colWidth[0] + colWidth[1] + colWidth[2] / 2}" y="${headerY + 20}" fill="${headText}" text-anchor="middle" ${font}>
         ${escapeXml("MODELS")}
       </text>
+      <line x1="${paddingX}" y1="${startY - gapBetweenHeaderAndRow / 2}" x2="${paddingX + svgWidth}" y2="${startY - gapBetweenHeaderAndRow / 2}" stroke="${borderColor}" stroke-width="1" />
     `;
 
     const rows = Array.from({ length: rowCount }).map((_, i) => {
@@ -92,14 +89,15 @@ module.exports = async (req, res) => {
 
       return `
         <rect x="${paddingX + colWidth[0] + colWidth[1]}" y="${y}" width="${colWidth[2]}" height="${rowHeight}" fill="${fill}" stroke="${borderColor}" stroke-width="1" />
-        <text x="${paddingX + colWidth[0] + colWidth[1] + 10}" y="${y + 20}" ${font} fill="${textColor}">${escapeXml(m.label)}</text>
+        <text x="${paddingX + colWidth[0] + colWidth[1] + 10}" y="${y + 20}" ${font} fill="${textColor}">
+          ${escapeXml(m.label || '')}
+        </text>
       `;
     }).join('');
 
     const svg = `
       <svg width="${svgWidth + paddingX * 2}" height="${svgHeight}" viewBox="${viewBox}" xmlns="http://www.w3.org/2000/svg">
         <rect x="0" y="0" width="100%" height="100%" rx="16" ry="16" fill="${bgColor}" stroke="${borderColor}" stroke-width="2" />
-
         <text x="${(svgWidth + paddingX * 2) / 2}" y="20" text-anchor="middle" fill="${headText}" ${font}>
           ${escapeXml("All inBuilt Theme & Style")}
         </text>
