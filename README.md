@@ -152,18 +152,22 @@
 
 ---
 
-- All in One Features
+ ## All in One Features 
 
 ![](https://crypto-price-on.vercel.app/api/info?theme=aurora)
 
-- Crypto Market Mini Card 
+- Crypto Market Mini Card
+
+
+[![deisgoku](https://crypto-price-on.vercel.app/cards?user=nana&model=aurora&theme=aurora&coin=6&category=coinbase-50-index)](https://crypto-price-on.vercel.app/unlock)
 
 [![My Crypto Card](https://crypto-price-on.vercel.app/card?user=deisgoku&theme=dark&coin=5&category=meme-token)](https://crypto-price-on.vercel.app/unlock)
 
-
+[![ Your Username](https://crypto-price-on.vercel.app/cards?user=nana&model=modern&theme=aurora&coin=6&category=depin)](https://crypto-price-on.vercel.app/unlock)
 
 [![My Crypto Card](https://crypto-price-on.vercel.app/cards?user=deisgoku&model=futuristic&theme=tokyonight&coin=5&category=meme-token)](https://crypto-price-on.vercel.app/unlock)
 
+[![nana](https://crypto-price-on.vercel.app/cards?user=nana&model=classic&theme=light&coin=6&category=binance-smart-chain)](https://crypto-price-on.vercel.app/unlock)
 
 ---
 
