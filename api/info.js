@@ -53,7 +53,8 @@ module.exports = async (req, res) => {
     const headerY = 40;
     const gapBetweenHeaderAndRow = 10;
     const startY = headerY + rowHeight + gapBetweenHeaderAndRow;
-    const tableHeight = Math.max(rowCount, modelOptions.length) * rowHeight;
+    const maxRow = Math.max(rowCount, modelOptions.length);
+    const tableHeight = maxRow * rowHeight;
     const svgWidth = colWidth.reduce((a, b) => a + b, 0);
     const paddingX = 20;
     const svgHeight = startY + tableHeight + 80;
@@ -71,7 +72,7 @@ module.exports = async (req, res) => {
       <line x1="${paddingX}" y1="${startY - gapBetweenHeaderAndRow / 2}" x2="${paddingX + svgWidth}" y2="${startY - gapBetweenHeaderAndRow / 2}" stroke="${borderColor}" stroke-width="1" />
     `;
 
-    const rows = Array.from({ length: rowCount }).map((_, i) => {
+    const rows = Array.from({ length: maxRow }).map((_, i) => {
       const y = startY + i * rowHeight;
       const fill = i % 2 === 0 ? rowEven : rowOdd;
 
@@ -83,14 +84,15 @@ module.exports = async (req, res) => {
       `;
     }).join('');
 
-    const modelTexts = modelOptions.map((m, i) => {
+    const modelTexts = Array.from({ length: maxRow }).map((_, i) => {
       const y = startY + i * rowHeight;
       const fill = i % 2 === 0 ? rowEven : rowOdd;
+      const label = modelOptions[i]?.label || '';
 
       return `
         <rect x="${paddingX + colWidth[0] + colWidth[1]}" y="${y}" width="${colWidth[2]}" height="${rowHeight}" fill="${fill}" stroke="${borderColor}" stroke-width="1" />
         <text x="${paddingX + colWidth[0] + colWidth[1] + 10}" y="${y + 20}" ${font} fill="${textColor}">
-          ${escapeXml(m.label || '')}
+          ${escapeXml(label)}
         </text>
       `;
     }).join('');
