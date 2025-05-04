@@ -150,6 +150,11 @@
   </table>
 </div>
 
+---
+
+- All in One Features
+
+![](https://crypto-price-on.vercel.app/api/info?theme=aurora)
 
 - Crypto Market Mini Card 
 
