@@ -37,7 +37,7 @@ module.exports = async (req, res) => {
     const radius = 8;
     const padding = 20;
     const headerHeight = 30;
-    const colWidth = [160, 240]; // theme, model
+    const colWidth = [160, 240];
     const tableWidth = colWidth[0] + colWidth[1];
     const svgWidth = tableWidth + padding * 2;
     const svgHeight = 90 + headerHeight + rowCount * rowHeight + 60;
@@ -77,13 +77,13 @@ module.exports = async (req, res) => {
       <svg viewBox="0 0 ${svgWidth} ${svgHeight}" width="${svgWidth}" height="${svgHeight}" xmlns="http://www.w3.org/2000/svg">
         <rect width="100%" height="100%" rx="16" ry="16" fill="${bgColor}" stroke="${borderColor}" stroke-width="2" />
 
-        <text x="${svgWidth / 2}" y="40" ${fonts.title} fill="${headText}" text-anchor="middle">All Inbuilt Theme & Model</text>
+        <text x="${svgWidth / 2}" y="40" ${fonts.title} fill="${headText}" text-anchor="middle">${escapeXml('All Inbuilt Theme & Model')}</text>
 
         ${header}
         ${rows}
 
-        <text x="${svgWidth / 2}" y="${svgHeight - 30}" ${fonts.footer} fill="${textColor}" text-anchor="middle">GitHub Crypto Market Card</text>
-        <text x="${svgWidth / 2}" y="${svgHeight - 12}" ${fonts.footer} fill="${textColor}" text-anchor="middle">${new Date().getFullYear()} © DeisGoku</text>
+        <text x="${svgWidth / 2}" y="${svgHeight - 30}" ${fonts.footer} fill="${textColor}" text-anchor="middle">${escapeXml('GitHub Crypto Market Card')}</text>
+        <text x="${svgWidth / 2}" y="${svgHeight - 12}" ${fonts.footer} fill="${textColor}" text-anchor="middle">${escapeXml(`${new Date().getFullYear()} © DeisGoku`)}</text>
       </svg>
     `;
 
