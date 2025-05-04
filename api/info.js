@@ -24,6 +24,7 @@ const escapeXml = (unsafe) =>
       case '&': return '&amp;';
       case '\'': return '&apos;';
       case '"': return '&quot;';
+      default: return c;
     }
   });
 
@@ -59,12 +60,15 @@ module.exports = async (req, res) => {
     const currentYear = new Date().getFullYear();
 
     const tableHeader = `
-      <rect x="${paddingX}" y="${headerY}" width="${colWidth[0] + colWidth[1]}" height="${rowHeight}" rx="8" ry="8" fill="${headBg}" />
+      <!-- Satu baris header menyatu -->
+      <rect x="${paddingX}" y="${headerY}" width="${svgWidth}" height="${rowHeight}" fill="${headBg}" stroke="${borderColor}" stroke-width="1" />
+
+      <!-- Text: Themes (span 2 kolom) -->
       <text x="${paddingX + (colWidth[0] + colWidth[1]) / 2}" y="${headerY + 20}" fill="${headText}" text-anchor="middle" ${font}>
         ${escapeXml("THEMES")}
       </text>
 
-      <rect x="${paddingX + colWidth[0] + colWidth[1]}" y="${headerY}" width="${colWidth[2]}" height="${rowHeight}" rx="8" ry="8" fill="${headBg}" />
+      <!-- Text: Models -->
       <text x="${paddingX + colWidth[0] + colWidth[1] + colWidth[2] / 2}" y="${headerY + 20}" fill="${headText}" text-anchor="middle" ${font}>
         ${escapeXml("MODELS")}
       </text>
