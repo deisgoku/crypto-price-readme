@@ -24,7 +24,6 @@ const escapeXml = (unsafe) =>
       case '&': return '&amp;';
       case '\'': return '&apos;';
       case '"': return '&quot;';
-      default: return c;
     }
   });
 
@@ -50,11 +49,11 @@ module.exports = async (req, res) => {
     const col1 = themeLabels.slice(0, rowCount).map(t => t.label);
     const col2 = themeLabels.slice(rowCount).map(t => t.label);
 
-    // Layout settings
+    // Layout
     const rowHeight = 30;
-    const colWidth = [160, 160, 240];  // Adjusted for more space
+    const colWidth = [160, 160, 240];
     const headerY = 40;
-    const startY = headerY + rowHeight * 2;  // Offset startY by 2 rows (for header)
+    const startY = headerY + rowHeight;
     const tableHeight = Math.max(rowCount, modelOptions.length) * rowHeight;
     const svgWidth = colWidth.reduce((a, b) => a + b, 0);
     const svgHeight = startY + tableHeight + 80;
@@ -62,25 +61,14 @@ module.exports = async (req, res) => {
 
     // Header (Gradient + Labels)
     const tableHeader = `
-      <defs>
-        <linearGradient id="aurora" x1="0" y1="0" x2="${svgWidth}" y2="0" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stop-color="#00f0ff"/>
-          <stop offset="100%" stop-color="#a100ff"/>
-        </linearGradient>
-      </defs>
 
-      <!-- Baris Header Utama -->
-      <rect x="0" y="${headerY}" width="${colWidth[0]}" height="${rowHeight * 2}" rx="8" ry="8" fill="url(#aurora)" />
-      <rect x="${colWidth[0]}" y="${headerY}" width="${colWidth[1]}" height="${rowHeight * 2}" rx="0" ry="0" fill="url(#aurora)" />
-
-      <rect x="${colWidth[0] + colWidth[1]}" y="${headerY}" width="${colWidth[2] - 8}" height="${rowHeight * 2}" rx="0" ry="0" fill="url(#aurora)" />
-      <rect x="${colWidth[0] + colWidth[1] + colWidth[2] - 8}" y="${headerY}" width="8" height="${rowHeight * 2}" rx="8" ry="8" fill="url(#aurora)" />
-
-      <!-- Header Themes -->
+      <rect x="0" y="${headerY}" width="${colWidth[0] + colWidth[1]}" height="${rowHeight}" rx="8" ry="8" fill="${headBg}" />
       <text x="${(colWidth[0] + colWidth[1]) / 2}" y="${headerY + 20}" fill="${headText}" text-anchor="middle" ${font}>
         ${escapeXml("THEMES")}
       </text>
-      <text x="${colWidth[0] + colWidth[1] + colWidth[2] / 2}" y="${headerY + rowHeight}" fill="${headText}" text-anchor="middle" ${font}>
+
+      <rect x="${colWidth[0] + colWidth[1]}" y="${headerY}" width="${colWidth[2]}" height="${rowHeight}" rx="8" ry="8" fill="${headBg}" />
+      <text x="${colWidth[0] + colWidth[1] + colWidth[2] / 2}" y="${headerY + 20}" fill="${headText}" text-anchor="middle" ${font}>
         ${escapeXml("MODELS")}
       </text>
     `;
