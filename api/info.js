@@ -59,19 +59,24 @@ module.exports = async (req, res) => {
     const svgHeight = startY + tableHeight + 80;
     const currentYear = new Date().getFullYear();
 
-    // Header (Gradient + Labels combined)
+    // Header (Gradient + Labels)
     const tableHeader = `
       <defs>
         <linearGradient id="aurora" x1="0" y1="0" x2="${svgWidth}" y2="0" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stop-color="#00f0ff"/>
           <stop offset="100%" stop-color="#a100ff"/>
         </linearGradient>
-      </defs>
-
+      
       <rect x="0" y="${headerY}" width="${colWidth[0] + colWidth[1]}" height="${rowHeight}" rx="8" ry="8" fill="url(#aurora)" />
       <text x="${(colWidth[0] + colWidth[1]) / 2}" y="${headerY + 20}" fill="${headText}" text-anchor="middle" ${font}>
-        ${escapeXml("THEMES & MODELS")}
+        ${escapeXml("THEMES")}
       </text>
+
+      <rect x="${colWidth[0] + colWidth[1]}" y="${headerY}" width="${colWidth[2]}" height="${rowHeight}" rx="8" ry="8" fill="url(#aurora)" />
+      <text x="${colWidth[0] + colWidth[1] + colWidth[2] / 2}" y="${headerY + 20}" fill="${headText}" text-anchor="middle" ${font}>
+        ${escapeXml("MODELS")}
+      </text>
+     </defs>
     `;
 
     // Table Rows
