@@ -1,28 +1,21 @@
-const { themes } = require('../lib/settings/model/theme');
-const renderers = require('../lib/settings/model/list');
+module.exports = async (req, res) => {
+  const { themes } = require('../lib/settings/model/theme');
+  const renderers = require('../lib/settings/model/list');
 
-const getThemeLabelsFromFile = () =>
-  Object.entries(themes).map(([key]) => ({
+  const themeLabels = Object.keys(themes).map(key => ({
     label: key.charAt(0).toUpperCase() + key.slice(1),
     value: key
   }));
 
-const generateModelList = () =>
-  Object.keys(renderers).map((key) => ({
-    label: key[0].toUpperCase() + key.slice(1),
+  const modelOptions = Object.keys(renderers).map(key => ({
+    label: key.charAt(0).toUpperCase() + key.slice(1),
     value: key
   }));
 
-const escapeXml = (unsafe) =>
-  unsafe.replace(/[<>&'"]/g, (c) => ({
-    '<': '&lt;',
-    '>': '&gt;',
-    '&': '&amp;',
-    '\'': '&apos;',
-    '"': '&quot;',
+  const escapeXml = (unsafe) => unsafe.replace(/[<>&'"]/g, (c) => ({
+    '<': '&lt;', '>': '&gt;', '&': '&amp;', '\'': '&apos;', '"': '&quot;'
   }[c]));
 
-module.exports = async (req, res) => {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -32,78 +25,65 @@ module.exports = async (req, res) => {
     const selectedTheme = themes[themeParam] || themes.dark;
     const { bgColor, textColor, borderColor, headText } = selectedTheme;
 
-    const rowOdd = "#161b2233";
-    const rowEven = "#161b2255";
+    const fonts = {
+      title: "font-family='sans-serif' font-size='18px' font-weight='bold'",
+      header: "font-family='monospace' font-size='13px' font-weight='bold'",
+      row: "font-family='monospace' font-size='13px'",
+      footer: "font-family='monospace' font-size='12px'"
+    };
 
-    const themeLabels = getThemeLabelsFromFile();
-    const modelOptions = generateModelList();
-
-    const font = `font-family='monospace' font-size='13px'`;
     const rowHeight = 30;
-    const colWidth = [160, 160, 240];
-    const rowCount = Math.ceil(themeLabels.length / 2);
-    const col1 = themeLabels.slice(0, rowCount).map(t => t.label);
-    const col2 = themeLabels.slice(rowCount).map(t => t.label);
+    const rowCount = Math.max(themeLabels.length, modelOptions.length);
+    const radius = 8;
+    const padding = 20;
+    const headerHeight = 30;
+    const colWidth = [160, 240]; // theme, model
+    const tableWidth = colWidth[0] + colWidth[1];
+    const svgWidth = tableWidth + padding * 2;
+    const svgHeight = 90 + headerHeight + rowCount * rowHeight + 60;
 
-    const headerY = 40;
-    const startY = headerY + rowHeight;
-    const tableHeight = Math.max(rowCount, modelOptions.length) * rowHeight;
-
-    const paddingLeft = 20;
-    const svgWidth = colWidth.reduce((a, b) => a + b, 0) + paddingLeft * 2;
-    const svgHeight = startY + tableHeight + 80;
-
-    const currentYear = new Date().getFullYear();
-
-    const tableHeader = `
+    const header = `
       <defs>
-        <linearGradient id="aurora" x1="0" y1="0" x2="${svgWidth}" y2="0" gradientUnits="userSpaceOnUse">
+        <linearGradient id="aurora" x1="0" y1="0" x2="${tableWidth}" y2="0" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stop-color="#00f0ff"/>
           <stop offset="100%" stop-color="#a100ff"/>
         </linearGradient>
       </defs>
 
-      <rect x="${paddingLeft}" y="${headerY}" width="${colWidth[0] + colWidth[1]}" height="${rowHeight}" rx="8" ry="8" fill="url(#aurora)" />
-      <text x="${paddingLeft + (colWidth[0] + colWidth[1]) / 2}" y="${headerY + 20}" fill="${headText}" text-anchor="middle" ${font}>
-        ${escapeXml("THEMES")}
-      </text>
-      <rect x="${paddingLeft + colWidth[0] + colWidth[1]}" y="${headerY}" width="${colWidth[2]}" height="${rowHeight}" rx="8" ry="8" fill="url(#aurora)" />
-      <text x="${paddingLeft + colWidth[0] + colWidth[1] + colWidth[2] / 2}" y="${headerY + 20}" fill="${headText}" text-anchor="middle" ${font}>
-        ${escapeXml("MODELS")}
-      </text>
+      <g transform="translate(${padding}, 90)">
+        <rect width="${tableWidth}" height="${headerHeight}" rx="${radius}" fill="url(#aurora)" />
+        <text x="${colWidth[0] / 2}" y="20" ${fonts.header} fill="${headText}" text-anchor="middle">Theme</text>
+        <text x="${colWidth[0] + colWidth[1] / 2}" y="20" ${fonts.header} fill="${headText}" text-anchor="middle">Model</text>
+      </g>
     `;
 
     const rows = Array.from({ length: rowCount }).map((_, i) => {
-      const y = startY + i * rowHeight;
-      const fill = i % 2 === 0 ? rowEven : rowOdd;
+      const themeText = themeLabels[i]?.label || '';
+      const modelText = modelOptions[i]?.label || '';
+      const y = 90 + headerHeight + i * rowHeight;
+      const rowFill = i % 2 === 0 ? "#161b2255" : "#161b2233";
+
       return `
-        <rect x="${paddingLeft}" y="${y}" width="${colWidth[0]}" height="${rowHeight}" fill="${fill}" />
-        <rect x="${paddingLeft + colWidth[0]}" y="${y}" width="${colWidth[1]}" height="${rowHeight}" fill="${fill}" />
-        <text x="${paddingLeft + 10}" y="${y + 20}" ${font} fill="${textColor}">${escapeXml(col1[i] || '')}</text>
-        <text x="${paddingLeft + colWidth[0] + 10}" y="${y + 20}" ${font} fill="${textColor}">${escapeXml(col2[i] || '')}</text>
+        <g transform="translate(${padding}, ${y})">
+          <rect width="${colWidth[0]}" height="${rowHeight}" fill="${rowFill}" />
+          <rect x="${colWidth[0]}" width="${colWidth[1]}" height="${rowHeight}" fill="${rowFill}" />
+          <text x="10" y="20" ${fonts.row} fill="${textColor}">${escapeXml(themeText)}</text>
+          <text x="${colWidth[0] + 10}" y="20" ${fonts.row} fill="${textColor}">${escapeXml(modelText)}</text>
+        </g>
       `;
     }).join('');
 
-    const modelTexts = modelOptions.map((m, i) => {
-      const y = startY + i * rowHeight + 20;
-      return `<text x="${paddingLeft + colWidth[0] + colWidth[1] + 10}" y="${y}" ${font} fill="${textColor}">${escapeXml(m.label)}</text>`;
-    }).join('');
-
     const svg = `
-      <svg width="${svgWidth}" height="${svgHeight}" xmlns="http://www.w3.org/2000/svg">
+      <svg viewBox="0 0 ${svgWidth} ${svgHeight}" width="${svgWidth}" height="${svgHeight}" xmlns="http://www.w3.org/2000/svg">
         <rect width="100%" height="100%" rx="16" ry="16" fill="${bgColor}" stroke="${borderColor}" stroke-width="2" />
-        <text x="${svgWidth / 2}" y="20" text-anchor="middle" fill="${headText}" ${font}>
-          ${escapeXml("All inBuilt Theme & Style")}
-        </text>
-        ${tableHeader}
+
+        <text x="${svgWidth / 2}" y="40" ${fonts.title} fill="${headText}" text-anchor="middle">All Inbuilt Theme & Model</text>
+
+        ${header}
         ${rows}
-        ${modelTexts}
-        <text x="${svgWidth / 2}" y="${svgHeight - 30}" text-anchor="middle" fill="${textColor}" ${font}>
-          GitHub Crypto Market Card
-        </text>
-        <text x="${svgWidth / 2}" y="${svgHeight - 12}" text-anchor="middle" fill="${textColor}" ${font}>
-          ${currentYear} © DeisGoku All Reserved
-        </text>
+
+        <text x="${svgWidth / 2}" y="${svgHeight - 30}" ${fonts.footer} fill="${textColor}" text-anchor="middle">GitHub Crypto Market Card</text>
+        <text x="${svgWidth / 2}" y="${svgHeight - 12}" ${fonts.footer} fill="${textColor}" text-anchor="middle">${new Date().getFullYear()} © DeisGoku</text>
       </svg>
     `;
 
