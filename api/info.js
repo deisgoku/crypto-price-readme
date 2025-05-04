@@ -33,7 +33,6 @@ module.exports = async (req, res) => {
   }
 
   try {
-    // Theme setup
     const themeParam = req.query.theme?.toLowerCase() || 'dark';
     const selectedTheme = themes[themeParam] || themes.dark;
     const { bgColor, textColor, borderColor, headBg, headText } = selectedTheme;
@@ -42,14 +41,12 @@ module.exports = async (req, res) => {
     const rowEven = "#161b2255";
     const font = `font-family='monospace' font-size='13px'`;
 
-    // Table data
     const themeLabels = getThemeLabelsFromFile();
     const modelOptions = generateModelList();
     const rowCount = Math.ceil(themeLabels.length / 2);
     const col1 = themeLabels.slice(0, rowCount).map(t => t.label);
     const col2 = themeLabels.slice(rowCount).map(t => t.label);
 
-    // Layout
     const rowHeight = 30;
     const colWidth = [160, 160, 240];
     const headerY = 40;
@@ -57,47 +54,49 @@ module.exports = async (req, res) => {
     const tableHeight = Math.max(rowCount, modelOptions.length) * rowHeight;
     const svgWidth = colWidth.reduce((a, b) => a + b, 0);
     const svgHeight = startY + tableHeight + 80;
+    const paddingX = 20;
+    const viewBox = `0 0 ${svgWidth + paddingX * 2} ${svgHeight}`;
     const currentYear = new Date().getFullYear();
 
-    // Header (Gradient + Labels)
     const tableHeader = `
-
-      <rect x="0" y="${headerY}" width="${colWidth[0] + colWidth[1]}" height="${rowHeight}" rx="8" ry="8" fill="${headBg}" />
-      <text x="${(colWidth[0] + colWidth[1]) / 2}" y="${headerY + 20}" fill="${headText}" text-anchor="middle" ${font}>
+      <rect x="${paddingX}" y="${headerY}" width="${colWidth[0] + colWidth[1]}" height="${rowHeight}" rx="8" ry="8" fill="${headBg}" />
+      <text x="${paddingX + (colWidth[0] + colWidth[1]) / 2}" y="${headerY + 20}" fill="${headText}" text-anchor="middle" ${font}>
         ${escapeXml("THEMES")}
       </text>
 
-      <rect x="${colWidth[0] + colWidth[1]}" y="${headerY}" width="${colWidth[2]}" height="${rowHeight}" rx="8" ry="8" fill="${headBg}" />
-      <text x="${colWidth[0] + colWidth[1] + colWidth[2] / 2}" y="${headerY + 20}" fill="${headText}" text-anchor="middle" ${font}>
+      <rect x="${paddingX + colWidth[0] + colWidth[1]}" y="${headerY}" width="${colWidth[2]}" height="${rowHeight}" rx="8" ry="8" fill="${headBg}" />
+      <text x="${paddingX + colWidth[0] + colWidth[1] + colWidth[2] / 2}" y="${headerY + 20}" fill="${headText}" text-anchor="middle" ${font}>
         ${escapeXml("MODELS")}
       </text>
     `;
 
-    // Table Rows
     const rows = Array.from({ length: rowCount }).map((_, i) => {
       const y = startY + i * rowHeight;
       const fill = i % 2 === 0 ? rowEven : rowOdd;
 
       return `
-        <rect x="0" y="${y}" width="${colWidth[0]}" height="${rowHeight}" fill="${fill}" />
-        <rect x="${colWidth[0]}" y="${y}" width="${colWidth[1]}" height="${rowHeight}" fill="${fill}" />
-        <text x="10" y="${y + 20}" ${font} fill="${textColor}">${escapeXml(col1[i] || '')}</text>
-        <text x="${colWidth[0] + 10}" y="${y + 20}" ${font} fill="${textColor}">${escapeXml(col2[i] || '')}</text>
+        <rect x="${paddingX}" y="${y}" width="${colWidth[0]}" height="${rowHeight}" fill="${fill}" stroke="${borderColor}" stroke-width="1" />
+        <rect x="${paddingX + colWidth[0]}" y="${y}" width="${colWidth[1]}" height="${rowHeight}" fill="${fill}" stroke="${borderColor}" stroke-width="1" />
+        <text x="${paddingX + 10}" y="${y + 20}" ${font} fill="${textColor}">${escapeXml(col1[i] || '')}</text>
+        <text x="${paddingX + colWidth[0] + 10}" y="${y + 20}" ${font} fill="${textColor}">${escapeXml(col2[i] || '')}</text>
       `;
     }).join('');
 
-    // Model Texts
     const modelTexts = modelOptions.map((m, i) => {
-      const y = startY + i * rowHeight + 20;
-      return `<text x="${colWidth[0] + colWidth[1] + 10}" y="${y}" ${font} fill="${textColor}">${escapeXml(m.label)}</text>`;
+      const y = startY + i * rowHeight;
+      const fill = i % 2 === 0 ? rowEven : rowOdd;
+
+      return `
+        <rect x="${paddingX + colWidth[0] + colWidth[1]}" y="${y}" width="${colWidth[2]}" height="${rowHeight}" fill="${fill}" stroke="${borderColor}" stroke-width="1" />
+        <text x="${paddingX + colWidth[0] + colWidth[1] + 10}" y="${y + 20}" ${font} fill="${textColor}">${escapeXml(m.label)}</text>
+      `;
     }).join('');
 
-    // Final SVG
     const svg = `
-      <svg width="${svgWidth}" height="${svgHeight}" xmlns="http://www.w3.org/2000/svg">
-        <rect width="100%" height="100%" rx="16" ry="16" fill="${bgColor}" stroke="${borderColor}" stroke-width="2" />
-        
-        <text x="${svgWidth / 2}" y="20" text-anchor="middle" fill="${headText}" ${font}>
+      <svg width="${svgWidth + paddingX * 2}" height="${svgHeight}" viewBox="${viewBox}" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="100%" height="100%" rx="16" ry="16" fill="${bgColor}" stroke="${borderColor}" stroke-width="2" />
+
+        <text x="${(svgWidth + paddingX * 2) / 2}" y="20" text-anchor="middle" fill="${headText}" ${font}>
           ${escapeXml("All inBuilt Theme & Style")}
         </text>
 
@@ -105,10 +104,10 @@ module.exports = async (req, res) => {
         ${rows}
         ${modelTexts}
 
-        <text x="${svgWidth / 2}" y="${svgHeight - 30}" text-anchor="middle" fill="${textColor}" ${font}>
+        <text x="${(svgWidth + paddingX * 2) / 2}" y="${svgHeight - 30}" text-anchor="middle" fill="${textColor}" ${font}>
           GitHub Crypto Market Card
         </text>
-        <text x="${svgWidth / 2}" y="${svgHeight - 12}" text-anchor="middle" fill="${textColor}" ${font}>
+        <text x="${(svgWidth + paddingX * 2) / 2}" y="${svgHeight - 12}" text-anchor="middle" fill="${textColor}" ${font}>
           ${currentYear} © DeisGoku All Reserved
         </text>
       </svg>
