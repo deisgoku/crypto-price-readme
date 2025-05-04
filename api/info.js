@@ -62,7 +62,15 @@ module.exports = async (req, res) => {
     const currentYear = new Date().getFullYear();
 
     const tableHeader = `
-      <rect x="${paddingX}" y="${headerY}" width="${svgWidth}" height="${rowHeight}" fill="${headBg}" stroke="${borderColor}" stroke-width="1" />
+          <defs>
+        <linearGradient id="aurora" x1="0" y1="0" x2="${svgWidth}" y2="0" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#00f0ff"/>
+          <stop offset="100%" stop-color="#a100ff"/>
+        </linearGradient>
+         </defs>
+    
+    
+      <rect x="${paddingX}" y="${headerY}" width="${svgWidth}" height="${rowHeight}" fill="url(#aurora)" stroke="${borderColor}" stroke-width="1" />
       <text x="${paddingX + (colWidth[0] + colWidth[1]) / 2}" y="${headerY + 20}" fill="${headText}" text-anchor="middle" ${font}>
         ${escapeXml("THEMES")}
       </text>
