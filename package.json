@@ -33,9 +33,8 @@
   ],
   "scripts": {
     "dev": "next dev",
-    "build": "next build && next-sitemap && next export",
+    "build": "next build && next-sitemap",
     "start": "next start",
-    "postbuild": "next-sitemap",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
