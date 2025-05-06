@@ -15,4 +15,16 @@ module.exports = {
     '/preview',
     // other pages
   ],
+  robotsTxtOptions: {
+    policies: [
+      {
+        userAgent: '*',
+        disallow: '/',
+        allow: '/unlock',
+      },
+    ],
+    additionalSitemaps: [
+      'https://crypto-price-on.vercel.app/sitemap-0.xml',
+    ],
+  },
 };
