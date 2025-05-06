@@ -1,9 +1,18 @@
 module.exports = {
   siteUrl: 'https://crypto-price-on.vercel.app',
-  generateRobotsTxt: true,  
-  output: 'public',  
+  generateRobotsTxt: true,
+  output: 'public',
   sitemapSize: 7000,
   changefreq: 'weekly',
   priority: 0.7,
-  generateIndexSitemap: true,  
+  generateIndexSitemap: true,
+  exclude: [
+    '/', // homepage
+    '/CategoryDropdown',
+    '/ModelDropdown',
+    '/ThemeDropdown',
+    '/custom',
+    '/preview',
+    // other pages
+  ],
 };
