@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /
+Allow: /unlock
+Sitemap: https://crypto-price-on.vercel.app/sitemap.xml
