@@ -27,12 +27,15 @@
     "chart",
     "card",
     "svg",
-    "coin"
+    "coin",
+    "cryptocurrency",
+    "github crypto market card"
   ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "postbuild": "next-sitemap",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
@@ -55,6 +58,7 @@
     "eslint": "^9.1.0",
     "postcss": "^8.4.24",
     "prettier": "^3.2.5",
-    "tailwindcss": "^3.4.1"
+    "tailwindcss": "^3.4.1",
+    "next-sitemap": "^4.2.4"
   }
 }
