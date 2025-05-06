@@ -29,7 +29,7 @@
     "svg",
     "coin",
     "cryptocurrency",
-    "github crypto market card"
+    "github_crypto_market_card"
   ],
   "scripts": {
     "dev": "next dev",
