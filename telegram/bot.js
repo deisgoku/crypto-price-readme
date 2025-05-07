@@ -230,13 +230,5 @@ bot.on('text', async ctx => {
 });
 
 // ==========================
-// Webhook or Polling
-if (WEBHOOK_URL) {
-  bot.telegram.setWebhook(`${WEBHOOK_URL}/bot`);
-  console.log('Webhook mode aktif');
-} else {
-  bot.launch();
-  console.log('Polling mode aktif');
-}
 
 module.exports = { bot };
