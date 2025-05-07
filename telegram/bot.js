@@ -1,22 +1,21 @@
 //    telegram/bot.js
-//    Author : Deisgoku
-
+//    author : deisgoku
 
 const { Telegraf, Markup } = require('telegraf');
 const fetch = require('node-fetch');
 const { Resvg } = require('@resvg/resvg-js');
 const bcrypt = require('bcrypt');
-const { BOT_TOKEN, BASE_URL } = require('./config');
+const { BOT_TOKEN, BASE_URL, WEBHOOK_URL } = require('./config');
 const { models, themes } = require('./lists');
 const { getGeckoCategories } = require('./gecko');
 const { redis } = require('../lib/redis');
+const { addAdmin, removeAdmin, isAdmin, listAdmins } = require('./admin');
 
 const SESSION_PREFIX = 'tg:session:';
 const LINK_PREFIX = 'tg:link:';
+const USER_SET = 'tg:users';
 
 const bot = new Telegraf(BOT_TOKEN);
-
-
 
 // Session helpers
 async function getSession(userId) {
@@ -28,17 +27,17 @@ async function getSession(userId) {
 
 async function setSession(userId, data) {
   await redis.set(SESSION_PREFIX + userId, JSON.stringify(data), { ex: 3600 });
+  await redis.sadd(USER_SET, userId);
 }
 
-
 // ----------------------------
-// Start
-bot.command('start', ctx => {
+// Commands
+
+bot.start(ctx => {
   ctx.reply('Selamat datang di Crypto Card Bot!\nGunakan /card untuk buat kartu crypto.');
 });
 
-// Link
-bot.command('link', async (ctx) => {
+bot.command('link', async ctx => {
   const userId = ctx.from.id.toString();
   const args = ctx.message.text.split(' ').slice(1);
   const [username, password] = args;
@@ -56,15 +55,13 @@ bot.command('link', async (ctx) => {
   ctx.reply(`Berhasil terhubung dengan akun '${username}'`);
 });
 
-// Unlink
-bot.command('unlink', async (ctx) => {
+bot.command('unlink', async ctx => {
   const userId = ctx.from.id.toString();
   await redis.del(LINK_PREFIX + userId);
   ctx.reply('Akun Telegram kamu sudah di-unlink.');
 });
 
-// /me
-bot.command('me', async (ctx) => {
+bot.command('me', async ctx => {
   const userId = ctx.from.id.toString();
   const linkedUsername = await redis.get(LINK_PREFIX + userId);
 
@@ -75,14 +72,10 @@ bot.command('me', async (ctx) => {
   }
 });
 
-
 // ----------------------------
-// admin area
+// Admin
 
-const { addAdmin, removeAdmin, isAdmin, listAdmins } = require('./admin');
-
-// /addadmin
-bot.command('addadmin', async (ctx) => {
+bot.command('addadmin', async ctx => {
   const fromId = ctx.from.id.toString();
   if (!(await isAdmin(fromId))) return ctx.reply('Kamu bukan admin.');
 
@@ -94,8 +87,7 @@ bot.command('addadmin', async (ctx) => {
   ctx.reply(`Admin ${targetId} berhasil ditambahkan.`);
 });
 
-// /removeadmin
-bot.command('removeadmin', async (ctx) => {
+bot.command('removeadmin', async ctx => {
   const fromId = ctx.from.id.toString();
   if (!(await isAdmin(fromId))) return ctx.reply('Kamu bukan admin.');
 
@@ -107,8 +99,7 @@ bot.command('removeadmin', async (ctx) => {
   ctx.reply(`Admin ${targetId} berhasil dihapus.`);
 });
 
-// /admin
-bot.command('admins', async (ctx) => {
+bot.command('admins', async ctx => {
   const fromId = ctx.from.id.toString();
   if (!(await isAdmin(fromId))) return ctx.reply('Kamu bukan admin.');
 
@@ -120,8 +111,7 @@ bot.command('admins', async (ctx) => {
   }
 });
 
-// /broadcast
-bot.command('broadcast', async (ctx) => {
+bot.command('broadcast', async ctx => {
   const fromId = ctx.from.id.toString();
   if (!(await isAdmin(fromId))) return ctx.reply('Kamu bukan admin.');
 
@@ -143,10 +133,10 @@ bot.command('broadcast', async (ctx) => {
   ctx.reply(`Broadcast terkirim ke ${success} user.`);
 });
 
-
 // ----------------------------
-// Card
-bot.command('card', async (ctx) => {
+// Card Flow
+
+bot.command('card', async ctx => {
   const userId = ctx.from.id.toString();
   const session = await getSession(userId);
   session.step = 'model';
@@ -157,8 +147,7 @@ bot.command('card', async (ctx) => {
   ));
 });
 
-// Callback (model > theme > category)
-bot.on('callback_query', async (ctx) => {
+bot.on('callback_query', async ctx => {
   const userId = ctx.from.id.toString();
   const data = ctx.callbackQuery.data;
   const session = await getSession(userId);
@@ -190,14 +179,13 @@ bot.on('callback_query', async (ctx) => {
     session.category = data.split(':')[1];
     session.step = 'coin';
     await setSession(userId, session);
-    await ctx.editMessageText('Masukkan jumlah coin (misal: 5)');
+    await ctx.editMessageText('Masukkan jumlah coin (1-50)');
   }
 
   await ctx.answerCbQuery();
 });
 
-// Final input: jumlah coin
-bot.on('text', async (ctx) => {
+bot.on('text', async ctx => {
   const userId = ctx.from.id.toString();
   const session = await getSession(userId);
 
@@ -228,4 +216,12 @@ bot.on('text', async (ctx) => {
   }
 });
 
-bot.launch();
+// ----------------------------
+// Launch mode
+
+if (WEBHOOK_URL) {
+  bot.telegram.setWebhook(`${WEBHOOK_URL}/bot`);
+  console.log('Webhook mode aktif');
+} 
+
+module.exports = { bot };
