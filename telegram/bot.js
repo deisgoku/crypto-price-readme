@@ -1,5 +1,5 @@
-//    telegram/bot.js
-//    author : deisgoku
+// telegram/bot.js
+// author : deisgoku
 
 const { Telegraf, Markup } = require('telegraf');
 const fetch = require('node-fetch');
@@ -17,6 +17,7 @@ const USER_SET = 'tg:users';
 
 const bot = new Telegraf(BOT_TOKEN);
 
+// ==========================
 // Session helpers
 async function getSession(userId) {
   const raw = await redis.get(SESSION_PREFIX + userId);
@@ -30,21 +31,43 @@ async function setSession(userId, data) {
   await redis.sadd(USER_SET, userId);
 }
 
-// ----------------------------
-// Commands
+// ==========================
+// General Commands
 
 bot.start(ctx => {
-  ctx.reply('Selamat datang di Crypto Card Bot!\nGunakan /card untuk buat kartu crypto.');
+  ctx.reply(
+    `Selamat datang di *Crypto Card Bot!*\n\nGunakan /card untuk membuat kartu crypto.\nGunakan /help untuk melihat perintah lain.`,
+    { parse_mode: 'Markdown' }
+  );
 });
+
+bot.command('help', ctx => {
+  ctx.replyWithMarkdown(
+    `*Daftar Perintah:*
+/start - Mulai bot
+/help - Bantuan
+/card - Buat kartu crypto
+/link <username> <password> - Hubungkan akun
+/unlink - Putuskan akun
+/me - Lihat akun terhubung
+
+*Admin Commands:*
+/addadmin <userId> - Tambah admin
+/removeadmin <userId> - Hapus admin
+/admins - Lihat semua admin
+/broadcast <pesan> - Kirim pesan ke semua user`
+  );
+});
+
+// ==========================
+// Link & User Account
 
 bot.command('link', async ctx => {
   const userId = ctx.from.id.toString();
   const args = ctx.message.text.split(' ').slice(1);
   const [username, password] = args;
 
-  if (!username || !password) {
-    return ctx.reply('Format: /link <username> <password>');
-  }
+  if (!username || !password) return ctx.reply('Format: /link <username> <password>');
 
   const hash = await redis.get(`user:${username}`);
   if (!hash) return ctx.reply('Username tidak ditemukan.');
@@ -64,7 +87,6 @@ bot.command('unlink', async ctx => {
 bot.command('me', async ctx => {
   const userId = ctx.from.id.toString();
   const linkedUsername = await redis.get(LINK_PREFIX + userId);
-
   if (linkedUsername) {
     ctx.reply(`Akun kamu terhubung ke: *${linkedUsername}*`, { parse_mode: 'Markdown' });
   } else {
@@ -72,17 +94,16 @@ bot.command('me', async ctx => {
   }
 });
 
-// ----------------------------
-// Admin
+// ==========================
+// Admin Commands
 
 bot.command('addadmin', async ctx => {
   const fromId = ctx.from.id.toString();
   if (!(await isAdmin(fromId))) return ctx.reply('Kamu bukan admin.');
 
-  const args = ctx.message.text.split(' ');
-  if (args.length < 2) return ctx.reply('Gunakan: /addadmin <userId>');
+  const targetId = ctx.message.text.split(' ')[1];
+  if (!targetId) return ctx.reply('Gunakan: /addadmin <userId>');
 
-  const targetId = args[1];
   await addAdmin(targetId);
   ctx.reply(`Admin ${targetId} berhasil ditambahkan.`);
 });
@@ -91,10 +112,9 @@ bot.command('removeadmin', async ctx => {
   const fromId = ctx.from.id.toString();
   if (!(await isAdmin(fromId))) return ctx.reply('Kamu bukan admin.');
 
-  const args = ctx.message.text.split(' ');
-  if (args.length < 2) return ctx.reply('Gunakan: /removeadmin <userId>');
+  const targetId = ctx.message.text.split(' ')[1];
+  if (!targetId) return ctx.reply('Gunakan: /removeadmin <userId>');
 
-  const targetId = args[1];
   await removeAdmin(targetId);
   ctx.reply(`Admin ${targetId} berhasil dihapus.`);
 });
@@ -104,11 +124,7 @@ bot.command('admins', async ctx => {
   if (!(await isAdmin(fromId))) return ctx.reply('Kamu bukan admin.');
 
   const admins = await listAdmins();
-  if (admins.length === 0) {
-    ctx.reply('Belum ada admin yang terdaftar.');
-  } else {
-    ctx.reply(`Daftar Admin:\n${admins.map(id => `- ${id}`).join('\n')}`);
-  }
+  ctx.reply(admins.length ? `Daftar Admin:\n${admins.map(id => `- ${id}`).join('\n')}` : 'Belum ada admin.');
 });
 
 bot.command('broadcast', async ctx => {
@@ -120,10 +136,9 @@ bot.command('broadcast', async ctx => {
 
   const userIds = await redis.smembers(USER_SET);
   let success = 0;
-
   for (const uid of userIds) {
     try {
-      await ctx.telegram.sendMessage(uid, `ðŸ“¢ *Broadcast:*\n${message}`, { parse_mode: 'Markdown' });
+      await ctx.telegram.sendMessage(uid, `📢 *Broadcast:*\n${message}`, { parse_mode: 'Markdown' });
       success++;
     } catch (err) {
       console.error(`Gagal kirim ke ${uid}`, err);
@@ -133,7 +148,7 @@ bot.command('broadcast', async ctx => {
   ctx.reply(`Broadcast terkirim ke ${success} user.`);
 });
 
-// ----------------------------
+// ==========================
 // Card Flow
 
 bot.command('card', async ctx => {
@@ -156,30 +171,27 @@ bot.on('callback_query', async ctx => {
     session.model = data.split(':')[1];
     session.step = 'theme';
     await setSession(userId, session);
-    await ctx.editMessageText('Pilih theme:', Markup.inlineKeyboard(
+    return ctx.editMessageText('Pilih theme:', Markup.inlineKeyboard(
       themes.map(t => Markup.button.callback(t, `theme:${t}`)), { columns: 2 }
     ));
   }
 
-  else if (data.startsWith('theme:')) {
+  if (data.startsWith('theme:')) {
     session.theme = data.split(':')[1];
     session.step = 'category';
-    await setSession(userId, session);
-
     const categories = await getGeckoCategories();
     session.allCategories = categories;
     await setSession(userId, session);
-
-    await ctx.editMessageText('Pilih kategori:', Markup.inlineKeyboard(
+    return ctx.editMessageText('Pilih kategori:', Markup.inlineKeyboard(
       categories.map(c => Markup.button.callback(`cat:${c}`, `cat:${c}`)), { columns: 2 }
     ));
   }
 
-  else if (data.startsWith('cat:')) {
+  if (data.startsWith('cat:')) {
     session.category = data.split(':')[1];
     session.step = 'coin';
     await setSession(userId, session);
-    await ctx.editMessageText('Masukkan jumlah coin (1-50)');
+    return ctx.editMessageText('Masukkan jumlah coin (1-50)');
   }
 
   await ctx.answerCbQuery();
@@ -191,9 +203,7 @@ bot.on('text', async ctx => {
 
   if (session.step === 'coin') {
     const coin = parseInt(ctx.message.text.trim());
-    if (isNaN(coin) || coin < 1 || coin > 50) {
-      return ctx.reply('Jumlah coin harus angka 1-50 bro!');
-    }
+    if (isNaN(coin) || coin < 1 || coin > 50) return ctx.reply('Jumlah coin harus antara 1-50 bro!');
 
     session.coin = coin;
     session.step = 'done';
@@ -208,7 +218,10 @@ bot.on('text', async ctx => {
       const resvg = new Resvg(svg);
       const png = resvg.render().asPng();
 
-      await ctx.replyWithPhoto({ source: png }, { caption: `Hasil untuk ${model} - ${theme}` });
+      await ctx.replyWithPhoto({ source: png }, {
+        caption: `✅ Kartu berhasil dibuat: *${model} - ${theme}*`,
+        parse_mode: 'Markdown'
+      });
     } catch (err) {
       console.error(err);
       ctx.reply('Gagal ambil kartu bro. Coba lagi nanti!');
@@ -216,12 +229,14 @@ bot.on('text', async ctx => {
   }
 });
 
-// ----------------------------
-// Launch mode
-
+// ==========================
+// Webhook or Polling
 if (WEBHOOK_URL) {
   bot.telegram.setWebhook(`${WEBHOOK_URL}/bot`);
   console.log('Webhook mode aktif');
-} 
+} else {
+  bot.launch();
+  console.log('Polling mode aktif');
+}
 
 module.exports = { bot };
