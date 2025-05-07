@@ -241,3 +241,5 @@ bot.on('text', async ctx => {
 });
 
 // ==========================
+
+module.exports = { bot };
