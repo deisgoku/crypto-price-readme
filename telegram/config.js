@@ -1,4 +1,5 @@
 // telegram/config.js
+// author: deisgoku
 
 const BASE_URL = 'https://crypto-price-on.vercel.app/cards';
 
