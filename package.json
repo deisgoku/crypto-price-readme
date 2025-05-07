@@ -36,7 +36,8 @@
     "build": "next build && next-sitemap",
     "start": "next start",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "bot": "node telegram/bot.js"
   },
   "dependencies": {
     "axios": "^1.6.7",
