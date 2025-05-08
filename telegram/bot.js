@@ -42,6 +42,14 @@ async function setSession(userId, data) {
   await redis.sadd(USER_SET, userId);
 }
 
+
+async function updateSession(userId, newData) {
+  const current = await getSession(userId);
+  const updated = { ...current, ...newData };
+  await setSession(userId, updated);
+}
+
+
 // ===== General Commands =====
 
 bot.start(ctx => {
@@ -155,7 +163,7 @@ bot.command('card', async ctx => {
   const userId = ctx.from.id.toString();
   const session = await getSession(userId);
   session.step = 'model';
-  await setSession(userId, session);
+  await updateSession(userId, session);
 
   await ctx.reply('Pilih model:', Markup.inlineKeyboard(
     modelsName.map(m => Markup.button.callback(`🖼️ ${m}`, `model:${m}`)),
@@ -172,7 +180,7 @@ bot.on('callback_query', async ctx => {
   if (data.startsWith('model:')) {
     session.model = data.split(':')[1];
     session.step = 'theme';  // Pindah ke step pemilihan theme
-    await setSession(userId, session);
+    await updateSession(userId, session);
 
     return ctx.editMessageText('Pilih theme:', Markup.inlineKeyboard(
       themeNames.map(t => Markup.button.callback(`🎨 ${t}`, `theme:${t}`)),
@@ -188,11 +196,11 @@ bot.on('callback_query', async ctx => {
     const { markdown, categories } = await getCategoryMarkdownList();
     session.allCategories = categories.map(c => c.name);  // Simpan semua kategori name ( alias )
     session.categories = categories;  // Simpan kategori lengkap (name, id, icon)
-    await setSession(userId, session);
+    await updateSession(userId, session);
 
     return ctx.editMessageText(
       `Ketik nama *kategori* atau pilih angka kategori dari daftar berikut:\n\n${markdown}`,
-      { parse_mode: 'MarkdownV2' }
+      { parse_mode: 'Markdown' }
     );
   }
 
@@ -218,12 +226,12 @@ bot.on('text', async ctx => {
     // Validasi input kategori
     if (!validCategoryId) {
       const { markdown } = await getCategoryMarkdownList();
-      return ctx.reply(`Kategori tidak valid. Silakan pilih dengan mengetikkan angka atau nama kategori dari daftar berikut:\n\n${markdown}`, { parse_mode: 'MarkdownV2' });
+      return ctx.reply(`Kategori tidak valid. Silakan pilih dengan mengetikkan angka atau nama kategori dari daftar berikut:\n\n${markdown}`, { parse_mode: 'Markdown' });
     }
 
     session.category = validCategoryId;  // Menyimpan kategori yang valid
     session.step = 'coin';  // Pindah ke step input jumlah coin
-    await setSession(userId, session);
+    await updateSession(userId, session);
 
     return ctx.reply('Masukkan jumlah coin (1-50):');
   }
