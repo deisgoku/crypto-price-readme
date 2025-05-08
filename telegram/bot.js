@@ -158,6 +158,7 @@ bot.command('broadcast', async ctx => {
 });
 
 // ===== Card Flow =====
+
 bot.command('card', async ctx => {
   const userId = ctx.from.id.toString();
   const session = await getSession(userId);
@@ -193,15 +194,29 @@ bot.on('callback_query', async ctx => {
     session.theme = data.split(':')[1];  // Menyimpan pilihan theme
     session.step = 'category';  // Pindah ke step pemilihan kategori
 
-    // Ambil daftar kategori dan kirim ke pengguna
-    const { markdown, categories } = await getCategoryMarkdownList();
-    session.categories = categories;  // Menyimpan kategori (name, id)
+    const { categories } = await getCategoryMarkdownList();
+    session.categories = categories;
     await updateSession(userId, session);
 
-    return ctx.editMessageText(
-      `Pilih kategori dari daftar berikut dengan angka atau ketik nama kategori:\n\n${markdown}`,
-      { parse_mode: 'Markdown' }
-    );
+    return ctx.editMessageText('Pilih kategori:', Markup.inlineKeyboard(
+      categories.map(c => Markup.button.callback(`📁 ${c.name}`, `category:${c.name}`)),
+      { columns: 2 }
+    ));
+  }
+
+  // Step 3: Pilih Kategori Inline
+  if (data.startsWith('category:')) {
+    const categoryName = data.split(':')[1];
+    const found = session.categories?.find(c => c.name === categoryName);
+    if (!found) {
+      return ctx.answerCbQuery('Kategori tidak valid.');
+    }
+
+    session.category = categoryName;
+    session.step = 'coin';
+    await updateSession(userId, session);
+
+    return ctx.editMessageText('Masukkan jumlah coin (1-50):');
   }
 
   await ctx.answerCbQuery();
@@ -211,34 +226,6 @@ bot.on('text', async ctx => {
   const userId = ctx.from.id.toString();
   const session = await getSession(userId);
   const input = ctx.message.text.trim();
-
-  // Step 3: Pilih Kategori (nama atau nomor)
-  if (session.step === 'category') {
-    let category;
-
-    // Cek jika input berupa angka untuk memilih kategori
-    const categoryIndex = parseInt(input);
-    if (!isNaN(categoryIndex)) {
-      category = session.categories[categoryIndex - 1];  // Angka kategori dimulai dari 1
-    } else {
-      // Jika input bukan angka, coba cari berdasarkan nama kategori
-      const categoryInput = input.toLowerCase();
-      category = session.categories.find(c => c.name.toLowerCase() === categoryInput);
-    }
-
-    // Validasi kategori
-    if (!category) {
-      return ctx.reply(`Kategori *${input}* tidak ditemukan. Coba pilih angka kategori atau periksa ejaan nama kategori.`);
-    }
-
-    session.category = category.name;  // Menyimpan kategori yang valid
-
-    // Lanjutkan ke langkah input jumlah coin
-    session.step = 'coin';  // Pindah ke step pemilihan jumlah coin
-    await updateSession(userId, session);
-
-    return ctx.reply('Masukkan jumlah coin (1-50):');
-  }
 
   // Step 4: Pilih Jumlah Coin
   if (session.step === 'coin') {
