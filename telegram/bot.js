@@ -21,23 +21,23 @@ const bot = new Telegraf(BOT_TOKEN);
 // Session helpers
 async function getSession(userId) {
   const raw = await redis.get(SESSION_PREFIX + userId);
-  console.log('Raw session data:', raw);  // Log data yang diterima dari Redis
+  console.log('Raw session data:', raw);
 
   let session = {};
   try {
-    session = raw ? JSON.parse(raw) : {};  // Menangani error jika parsing JSON gagal
+    session = raw ? JSON.parse(raw) : {};
   } catch (err) {
-    console.error('Error parsing session:', err);  // Log error parsing
-    session = {};  // Kembali ke objek kosong jika parsing gagal
+    console.error('Error parsing session:', err);
+    session = {};
   }
 
   session.username = await redis.get(LINK_PREFIX + userId) || `tg-${userId}`;
-  console.log('Parsed session:', session);  // Log hasil session yang sudah diparse
+  console.log('Parsed session:', session);
   return session;
 }
 
 async function setSession(userId, data) {
-  console.log('Setting session for user:', userId, 'Data:', data);  // Log untuk debugging
+  console.log('Setting session for user:', userId, 'Data:', data);
   await redis.set(SESSION_PREFIX + userId, JSON.stringify(data), { ex: 3600 });
   await redis.sadd(USER_SET, userId);
 }
