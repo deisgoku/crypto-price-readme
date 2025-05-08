@@ -195,8 +195,7 @@ bot.on('callback_query', async ctx => {
     session.step = 'category';  // Pindah ke step pemilihan kategori
 
     const { categories } = await getCategoryMarkdownList();
-    session.categories = categories;
-    await updateSession(userId, session);
+    
 
     return ctx.editMessageText('Pilih kategori:', Markup.inlineKeyboard(
       categories.map(c => Markup.button.callback(`📁 ${c.name}`, `category:${c.category_id}`)),
