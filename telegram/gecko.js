@@ -2,10 +2,10 @@
 //   author: Deisgoku
 
 const axios = require('axios');
-const redis = require('../lib/redis'); 
+const redis = require('../lib/redis'); // Sesuaikan path-nya
 
 const CACHE_KEY = 'gecko:categories:v1';
-const CACHE_DURATION = 60 * 10; // 10 menit (dalam detik)
+const CACHE_DURATION = 60 * 10; // 10 menit
 
 async function getCategoryMarkdownList(minCoinCount = 3, maxItems = 30) {
   try {
@@ -19,7 +19,7 @@ async function getCategoryMarkdownList(minCoinCount = 3, maxItems = 30) {
     const res = await axios.get('https://api.coingecko.com/api/v3/coins/categories', { timeout: 5000 });
     const data = res.data;
 
-    const filtered = data
+    let filtered = data
       .filter(cat => (cat.coins_count || 0) >= minCoinCount)
       .sort((a, b) => b.coins_count - a.coins_count)
       .slice(0, maxItems)
@@ -30,11 +30,10 @@ async function getCategoryMarkdownList(minCoinCount = 3, maxItems = 30) {
         icon: cat.image || ''
       }));
 
-    
     const columnCount = 3;
     const colWidth = 28;
-    const rows = Math.ceil(filtered.length / columnCount);
-    const lines = [];
+    let rows = Math.ceil(filtered.length / columnCount);
+    let lines = [];
 
     for (let i = 0; i < rows; i++) {
       let line = '';
@@ -50,17 +49,39 @@ async function getCategoryMarkdownList(minCoinCount = 3, maxItems = 30) {
       lines.push(line.trimEnd());
     }
 
-    const markdown = `*Pilih Kategori:*\n\n` +
-      lines.join('\n') +
-      `\n\nBalas dengan angka atau nama kategori.\nContoh: \`3\` atau \`DeFi\``;
+    let markdown = `*Pilih Kategori:*\n\n` +
+                   lines.join('\n') +
+                   `\n\nBalas dengan angka atau nama kategori.\nContoh: \`3\` atau \`DeFi\``;
+
+    // Batas Telegram: 4096, amankan di bawah 4000
+    const MAX_LEN = 4000;
+    while (markdown.length > MAX_LEN && filtered.length > 3) {
+      filtered = filtered.slice(0, filtered.length - columnCount); // potong 1 baris
+      rows = Math.ceil(filtered.length / columnCount);
+      lines = [];
+
+      for (let i = 0; i < rows; i++) {
+        let line = '';
+        for (let j = 0; j < columnCount; j++) {
+          const index = i + j * rows;
+          const item = filtered[index];
+          if (item) {
+            const num = index + 1;
+            const text = `${num}. ${item.name} (${item.coins})`;
+            line += text.padEnd(colWidth);
+          }
+        }
+        lines.push(line.trimEnd());
+      }
+
+      markdown = `*Pilih Kategori:*\n\n` +
+                 lines.join('\n') +
+                 `\n\nBalas dengan angka atau nama kategori.\nContoh: \`3\` atau \`DeFi\``;
+    }
 
     const result = {
       markdown,
-      categories: filtered.map(c => ({
-        name: c.name,
-        category_id: c.category_id,
-        icon: c.icon
-      }))
+      categories: filtered.map(c => ({ name: c.name, category_id: c.category_id, icon: c.icon }))
     };
 
     await redis.set(CACHE_KEY, result, { ex: CACHE_DURATION });
