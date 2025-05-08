@@ -2,7 +2,9 @@
 // author: Deisgoku
 
 const { themesName } = require('../lib/settings/model/theme');
-const { modelsName } = require('../lib/settings/model/list');
+const { renderers } = require('../lib/settings/model/list');
+
+const modelsName = Object.keys(renderers);
 
 async function generateLists() {
   const themes = themesName.map(t => `🎨 ${t}`).join('\n');
