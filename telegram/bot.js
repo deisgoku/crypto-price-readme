@@ -44,10 +44,10 @@ async function setSession(userId, data) {
 
 
 async function updateSession(userId, newData) {
-  const key = `session:${userId}`;
-  const existing = await getSession(userId); // Ambil data lama
-  const merged = { ...existing, ...newData }; // Gabungkan
-  await redis.set(key, JSON.stringify(merged)); // Simpan ulang
+  const key = SESSION_PREFIX + userId;
+  const existing = await getSession(userId);
+  const merged = { ...existing, ...newData };
+  await redis.set(key, JSON.stringify(merged), { ex: 3600 }); // biar sesuai dengan setSession
 }
 
 
