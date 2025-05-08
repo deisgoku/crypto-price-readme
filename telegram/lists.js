@@ -1,8 +1,8 @@
 // telegram/lists.js
 // author: Deisgoku
 
-const { themesName } = require('../lib/settings/theme');
-const { modelsName } = require('../lib/settings/model');
+const { themesName } = require('../lib/settings/model/theme');
+const { modelsName } = require('../lib/settings/model/list');
 
 async function generateLists() {
   const themes = themesName.map(t => `🎨 ${t}`).join('\n');
