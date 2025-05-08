@@ -48,7 +48,17 @@ async function updateSession(userId, newData) {
   const updated = { ...current, ...newData };
   await setSession(userId, updated);
 }
+// ======== LOCAL TEMP =======
 
+const tempSessionMap = new Map(); // Tidak masuk Redis
+
+function getTempSession(userId) {
+  return tempSessionMap.get(userId) || { step: 'model' };
+}
+
+function updateTempSession(userId, data) {
+  tempSessionMap.set(userId, { ...getTempSession(userId), ...data });
+}
 
 // ===== General Commands =====
 
@@ -161,11 +171,9 @@ bot.command('broadcast', async ctx => {
 
 bot.command('card', async ctx => {
   const userId = ctx.from.id.toString();
-  const session = await getSession(userId);
-  session.step = 'model';  // Menyimpan state ke 'model'
-  await updateSession(userId, session);
 
-  // Kirim pilihan model
+  updateTempSession(userId, { step: 'model' });
+
   await ctx.reply('Pilih model:', Markup.inlineKeyboard(
     modelsName.map(m => Markup.button.callback(`🖼️ ${m}`, `model:${m}`)),
     { columns: 2 }
@@ -174,13 +182,14 @@ bot.command('card', async ctx => {
 
 bot.on('callback_query', async ctx => {
   const userId = ctx.from.id.toString();
-  const session = await getSession(userId);
+  const temp = getTempSession(userId);
   const data = ctx.callbackQuery.data;
+  const session = await getSession(userId); // real data dari Redis
 
   // Step 1: Pilih Model
   if (data.startsWith('model:')) {
-    session.model = data.split(':')[1]; // Menyimpan pilihan model
-    session.step = 'theme';  // Pindah ke step pemilihan theme
+    session.model = data.split(':')[1];
+    updateTempSession(userId, { step: 'theme' });
     await updateSession(userId, session);
 
     return ctx.editMessageText('Pilih theme:', Markup.inlineKeyboard(
@@ -191,12 +200,11 @@ bot.on('callback_query', async ctx => {
 
   // Step 2: Pilih Theme
   if (data.startsWith('theme:')) {
-    session.theme = data.split(':')[1];  // Menyimpan pilihan theme
-    session.step = 'category';  // Pindah ke step pemilihan kategori
+    session.theme = data.split(':')[1];
+    updateTempSession(userId, { step: 'category' });
     await updateSession(userId, session);
 
     const { categories } = await getCategoryMarkdownList();
-    
 
     return ctx.editMessageText('Pilih kategori:', Markup.inlineKeyboard(
       categories.map(c => Markup.button.callback(`📁 ${c.name}`, `category:${c.category_id}`)),
@@ -204,61 +212,57 @@ bot.on('callback_query', async ctx => {
     ));
   }
 
-  // Step 3: Pilih Kategori Inline
+  // Step 3: Pilih Category
   if (data.startsWith('category:')) {
-  const categoryId = data.split(':')[1].trim();
-  const category = session.categories?.find(c => c.category_id === categoryId);
+    const categoryId = data.split(':')[1].trim();
+    session.category = categoryId;
+    updateTempSession(userId, { step: 'coin' });
+    await updateSession(userId, session);
 
-  if (!category) {
-    return ctx.answerCbQuery('⚠️ Kategori tidak valid.', { show_alert: true });
+    return ctx.editMessageText('Masukkan jumlah coin (1-50):');
   }
-
-  session.category = category.category_id; // Gunakan category_id untuk ke URL
-  session.step = 'coin';
-  await updateSession(userId, session);
-
-  return ctx.editMessageText('Masukkan jumlah coin (1-50):');
- }
 
   await ctx.answerCbQuery();
 });
 
 bot.on('text', async ctx => {
   const userId = ctx.from.id.toString();
+  const temp = getTempSession(userId);
+
+  if (temp.step !== 'coin') return;
+
   const session = await getSession(userId);
   const input = ctx.message.text.trim();
+  const count = parseInt(input);
 
-  // Step 4: Pilih Jumlah Coin
-  if (session.step === 'coin') {
-    const count = parseInt(input);
-    if (count < 1 || count > 50) {
-      return ctx.reply('Jumlah coin harus antara 1 - 50.');
-    }
-
-    session.coin = count;  // Menyimpan jumlah coin
-    session.step = 'done';  // Pindah ke step konfirmasi
-    await updateSession(userId, session);
-
-    // Ambil URL dan generate kartu
-    const { username, model, theme, category: sessionCategory, coin } = session;
-    const url = `${BASE_URL}?user=${username}&model=${model}&theme=${theme}&coin=${coin}&category=${sessionCategory}`;
-
-    try {
-      const res = await fetch(url);
-      const svg = await res.text();
-      const resvg = new Resvg(svg);
-      const png = resvg.render().asPng();
-
-      // Kirim foto kartu ke pengguna
-      await ctx.replyWithPhoto({ source: png }, {
-        caption: `🖼️ Kartu siap: *${model} - ${theme}*`,
-        parse_mode: 'Markdown'
-      });
-    } catch (err) {
-      console.error(err);
-      return ctx.reply('Gagal ambil kartu. Coba lagi nanti.');
-    }
+  if (isNaN(count) || count < 1 || count > 50) {
+    return ctx.reply('Jumlah coin harus antara 1 - 50.');
   }
+
+  session.coin = count;
+  await updateSession(userId, session);
+
+  // Buat URL akhir
+  const { username, model, theme, category, coin } = session;
+  const url = `${BASE_URL}?user=${username}&model=${model}&theme=${theme}&coin=${coin}&category=${category}`;
+
+  try {
+    const res = await fetch(url);
+    const svg = await res.text();
+    const resvg = new Resvg(svg);
+    const png = resvg.render().asPng();
+
+    await ctx.replyWithPhoto({ source: png }, {
+      caption: `🖼️ Kartu siap: *${model} - ${theme}*`,
+      parse_mode: 'Markdown'
+    });
+  } catch (err) {
+    console.error(err);
+    return ctx.reply('Gagal ambil kartu. Coba lagi nanti.');
+  }
+
+  // Reset temp session
+  tempSessionMap.delete(userId);
 });
 
 module.exports = { bot };
