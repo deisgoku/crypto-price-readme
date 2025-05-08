@@ -1,39 +1,23 @@
 const axios = require('axios');
 
-/**
- * Ambil daftar kategori dari CoinGecko dan format ke markdown 2 kolom + array ID dan ikon.
- * @returns {Promise<{ markdown: string, categories: { name: string, category_id: string, icon: string }[] }>}
- */
-async function getCategoryMarkdownList(minCoinCount = 3, maxItems = 30) {
-  const url = 'https://api.coingecko.com/api/v3/coins/categories';
-
+async function getCategoryMarkdownList(maxItems = 40) {
   try {
-    const res = await axios.get(url);
-    const data = res.data;
+    const res = await axios.get('https://api.coingecko.com/api/v3/coins/categories/list');
+    const data = res.data.slice(0, maxItems);
 
-    const filtered = data
-      .filter(cat => (cat.coins_count || 0) >= minCoinCount)
-      .sort((a, b) => b.coins_count - a.coins_count)
-      .slice(0, maxItems)
-      .map(cat => ({
-        name: cat.name,
-        alias: cat.name || '' 
-      }));
-
-    // Format ke 2 kolom vertikal
     const columnCount = 2;
     const colWidth = 32;
-    const rows = Math.ceil(filtered.length / columnCount);
+    const rows = Math.ceil(data.length / columnCount);
     const lines = [];
 
     for (let i = 0; i < rows; i++) {
       let line = '';
       for (let j = 0; j < columnCount; j++) {
         const index = i + j * rows;
-        const item = filtered[index];
+        const item = data[index];
         if (item) {
           const num = index + 1;
-          const text = `${num}. ${item.alias}`;
+          const text = `${num}. ${item.name}`;
           line += text.padEnd(colWidth);
         }
       }
@@ -46,12 +30,16 @@ async function getCategoryMarkdownList(minCoinCount = 3, maxItems = 30) {
 
     return {
       markdown,
-      categories: filtered.map(c => ({ name: c.name, alias: c.name}))
+      categories: data.map((c, i) => ({
+        name: c.name,
+        category_id: c.category_id,
+        alias: c.name
+      }))
     };
   } catch (err) {
-    console.error('Gagal ambil kategori dari CoinGecko:', err.message);
+    console.error('Gagal fetch kategori:', err.message);
     return {
-      markdown: '*Gagal memuat kategori. Coba lagi nanti.*',
+      markdown: '*Gagal memuat kategori.*',
       categories: []
     };
   }
