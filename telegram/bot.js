@@ -199,25 +199,26 @@ bot.on('callback_query', async ctx => {
     await updateSession(userId, session);
 
     return ctx.editMessageText('Pilih kategori:', Markup.inlineKeyboard(
-      categories.map(c => Markup.button.callback(`📁 ${c.name}`, `category:${c.name}`)),
+      categories.map(c => Markup.button.callback(`📁 ${c.name}`, `category:${c.category_id}`)),
       { columns: 2 }
     ));
   }
 
   // Step 3: Pilih Kategori Inline
   if (data.startsWith('category:')) {
-    const categoryName = data.split(':')[1];
-    const found = session.categories?.find(c => c.name === categoryName);
-    if (!found) {
-      return ctx.answerCbQuery('Kategori tidak valid.');
-    }
+  const categoryId = data.split(':')[1];
+  const category = session.categories?.find(c => c.category_id === categoryId);
 
-    session.category = categoryName;
-    session.step = 'coin';
-    await updateSession(userId, session);
-
-    return ctx.editMessageText('Masukkan jumlah coin (1-50):');
+  if (!category) {
+    return ctx.answerCbQuery('Kategori tidak valid.', { show_alert: true });
   }
+
+  session.category = category.category_id; // Gunakan category_id untuk ke URL
+  session.step = 'coin';
+  await updateSession(userId, session);
+
+  return ctx.editMessageText('Masukkan jumlah coin (1-50):');
+ }
 
   await ctx.answerCbQuery();
 });
