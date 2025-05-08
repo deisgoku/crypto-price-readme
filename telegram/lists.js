@@ -1,9 +1,17 @@
-// telegram/list.js
-// author : Deisgoku
+// telegram/lists.js
+// author: Deisgoku
 
-const renderers = require('../lib/settings/model/list');
-const themes = Object.keys(require('../lib/settings/model/theme'));
+const { themesName } = require('../lib/settings/theme');
+const { modelsName } = require('../lib/settings/model');
 
-const models = Object.keys(renderers); 
+async function generateLists() {
+  const themes = themesName.map(t => `🎨 ${t}`).join('\n');
+  const models = modelsName.map(m => `🤖 ${m}`).join('\n');
 
-module.exports = { models, themes };
+  return {
+    themes,
+    models,
+  };
+}
+
+module.exports = { generateLists };
