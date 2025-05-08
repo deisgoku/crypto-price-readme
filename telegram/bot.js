@@ -193,6 +193,7 @@ bot.on('callback_query', async ctx => {
   if (data.startsWith('theme:')) {
     session.theme = data.split(':')[1];  // Menyimpan pilihan theme
     session.step = 'category';  // Pindah ke step pemilihan kategori
+    await updateSession(userId, session);
 
     const { categories } = await getCategoryMarkdownList();
     
