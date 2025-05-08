@@ -158,6 +158,7 @@ bot.command('broadcast', async ctx => {
 });
 
 // ===== Card Flow =====
+// ===== Card Flow =====
 
 bot.command('card', async ctx => {
   const userId = ctx.from.id.toString();
@@ -194,8 +195,7 @@ bot.on('callback_query', async ctx => {
     session.step = 'category';  // Pindah ke step pemilihan kategori
 
     const { markdown, categories } = await getCategoryMarkdownList();
-    session.allCategories = categories.map(c => c.name);  // Simpan semua kategori name ( alias )
-    session.categories = categories;  // Simpan kategori lengkap (name, id, icon)
+    session.categories = categories;  // Simpan kategori lengkap (name, id,)
     await updateSession(userId, session);
 
     return ctx.editMessageText(
@@ -214,22 +214,23 @@ bot.on('text', async ctx => {
 
   // Step 3: Pilih Kategori
   if (session.step === 'category') {
-    let validCategoryId;
-    // Jika input adalah angka, cocokkan dengan kategori ID
+    let selectedCategory;
+
+    // Jika input adalah angka, cocokkan dengan kategori berdasarkan ID
     if (!isNaN(input)) {
-      validCategoryId = session.allCategories[parseInt(input) - 1];  // Indeks berdasarkan angka yang dipilih
+      selectedCategory = session.categories[parseInt(input) - 1];  // Indeks berdasarkan angka yang dipilih
     } else {
-      // Jika input adalah nama kategori, cocokkan dengan nama kategori
-      validCategoryId = session.categories.find(cat => cat.name.toLowerCase() === input.toLowerCase())?.name;
+      // Jika input adalah nama kategori, cari kategori berdasarkan nama
+      selectedCategory = session.categories.find(cat => cat.name.toLowerCase() === input.toLowerCase());
     }
 
     // Validasi input kategori
-    if (!validCategoryId) {
+    if (!selectedCategory) {
       const { markdown } = await getCategoryMarkdownList();
       return ctx.reply(`Kategori tidak valid. Silakan pilih dengan mengetikkan angka atau nama kategori dari daftar berikut:\n\n${markdown}`, { parse_mode: 'Markdown' });
     }
 
-    session.category = validCategoryId;  // Menyimpan kategori yang valid
+    session.category = selectedCategory.name;  // Menyimpan kategori yang valid
     session.step = 'coin';  // Pindah ke step input jumlah coin
     await updateSession(userId, session);
 
