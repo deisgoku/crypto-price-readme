@@ -46,7 +46,7 @@ bot.start(ctx => {
 bot.command('help', async ctx => {
   const { markdown } = await getCategoryMarkdownList();
   ctx.replyWithMarkdown(
-`*Perintah:*
+    `*Perintah:*
 /start - Mulai bot
 /help - Bantuan
 /card - Buat kartu crypto
@@ -87,10 +87,12 @@ bot.command('unlink', async ctx => {
 
 bot.command('me', async ctx => {
   const linkedUsername = await redis.get(LINK_PREFIX + ctx.from.id.toString());
-  ctx.reply(linkedUsername
-    ? `Akun kamu terhubung ke: *${linkedUsername}*`
-    : 'Belum terhubung. Gunakan /link <username> <password>',
-    { parse_mode: 'Markdown' });
+  ctx.reply(
+    linkedUsername
+      ? `Akun kamu terhubung ke: *${linkedUsername}*`
+      : 'Belum terhubung. Gunakan /link <username> <password>',
+    { parse_mode: 'Markdown' }
+  );
 });
 
 // ===== Admin Commands =====
@@ -146,7 +148,8 @@ bot.command('card', async ctx => {
   await setSession(userId, session);
 
   await ctx.reply('Pilih model:', Markup.inlineKeyboard(
-    modelsName.map(m => Markup.button.callback(m, `model:${m}`)), { columns: 2 }
+    modelsName.map(m => Markup.button.callback(`🤖 ${m}`, `model:${m}`)),
+    { columns: 2 }
   ));
 });
 
@@ -155,25 +158,30 @@ bot.on('callback_query', async ctx => {
   const session = await getSession(userId);
   const data = ctx.callbackQuery.data;
 
+  // Step 1: Pilih Model
   if (data.startsWith('model:')) {
     session.model = data.split(':')[1];
-    session.step = 'theme';
+    session.step = 'theme';  // Pindah ke step pemilihan theme
     await setSession(userId, session);
+
     return ctx.editMessageText('Pilih theme:', Markup.inlineKeyboard(
-      themesName.map(t => Markup.button.callback(t, `theme:${t}`)), { columns: 2 }
+      themesName.map(t => Markup.button.callback(`🎨 ${t}`, `theme:${t}`)),
+      { columns: 2 }
     ));
   }
 
+  // Step 2: Pilih Theme
   if (data.startsWith('theme:')) {
     session.theme = data.split(':')[1];
-    session.step = 'category';
+    session.step = 'category';  // Pindah ke step pemilihan kategori
 
     const { markdown, categories } = await getCategoryMarkdownList();
-    session.allCategories = categories.map(c => c.category_id);
+    session.allCategories = categories.map(c => c.category_id);  // Simpan semua kategori ID
+    session.categories = categories;  // Simpan kategori lengkap (name, id, icon)
     await setSession(userId, session);
 
     return ctx.editMessageText(
-      `Ketik nama *ID kategori* dari daftar berikut:\n\n${markdown}`,
+      `Ketik nama *ID kategori* atau pilih angka kategori dari daftar berikut:\n\n${markdown}`,
       { parse_mode: 'Markdown' }
     );
   }
@@ -186,24 +194,37 @@ bot.on('text', async ctx => {
   const session = await getSession(userId);
   const input = ctx.message.text.trim();
 
+  // Step 3: Pilih Kategori
   if (session.step === 'category') {
-    const valid = session.allCategories?.includes(input);
-    if (!valid) {
-      const { markdown } = await getCategoryMarkdownList();
-      return ctx.reply(`Kategori tidak valid. Ketik salah satu dari berikut:\n\n${markdown}`, { parse_mode: 'Markdown' });
+    let validCategoryId;
+    // Jika input adalah angka, cocokkan dengan kategori ID
+    if (!isNaN(input)) {
+      validCategoryId = session.allCategories[parseInt(input) - 1];  // Indeks berdasarkan angka yang dipilih
+    } else {
+      // Jika input adalah nama kategori, cocokkan dengan nama kategori
+      validCategoryId = session.categories.find(cat => cat.name.toLowerCase() === input.toLowerCase())?.category_id;
     }
 
-    session.category = input;
-    session.step = 'coin';
+    // Validasi input kategori
+    if (!validCategoryId) {
+      const { markdown } = await getCategoryMarkdownList();
+      return ctx.reply(`Kategori tidak valid. Silakan pilih dengan mengetikkan angka atau nama kategori dari daftar berikut:\n\n${markdown}`, { parse_mode: 'Markdown' });
+    }
+
+    session.category = validCategoryId;  // Menyimpan kategori yang valid
+    session.step = 'coin';  // Pindah ke step input jumlah coin
     await setSession(userId, session);
+
     return ctx.reply('Masukkan jumlah coin (1-50):');
   }
 
+  // Step 4: Masukkan Jumlah Coin
   if (session.step === 'coin') {
     const count = parseInt(input);
     if (isNaN(count) || count < 1 || count > 50) return ctx.reply('Jumlah coin harus antara 1 - 50.');
+    
     session.coin = count;
-    session.step = 'done';
+    session.step = 'done';  // Pindah ke step konfirmasi
     await setSession(userId, session);
 
     const { username, model, theme, category, coin } = session;
@@ -221,7 +242,7 @@ bot.on('text', async ctx => {
       });
     } catch (err) {
       console.error(err);
-      ctx.reply('Gagal ambil kartu. Coba lagi nanti.');
+      return ctx.reply('Gagal ambil kartu. Coba lagi nanti.');
     }
   }
 });
