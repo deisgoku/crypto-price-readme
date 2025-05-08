@@ -6,7 +6,7 @@ const fetch = require('node-fetch');
 const { Resvg } = require('@resvg/resvg-js');
 const bcrypt = require('bcrypt');
 const { BOT_TOKEN, BASE_URL } = require('./config');
-const { models, themes } = require('./lists');
+const { modelsName, themesName } = require('./lists');
 const { getCategoryMarkdownList } = require('./gecko');
 const { redis } = require('../lib/redis');
 const { addAdmin, removeAdmin, isAdmin, listAdmins } = require('./admin');
@@ -146,7 +146,7 @@ bot.command('card', async ctx => {
   await setSession(userId, session);
 
   await ctx.reply('Pilih model:', Markup.inlineKeyboard(
-    models.map(m => Markup.button.callback(m, `model:${m}`)), { columns: 2 }
+    modelsName.map(m => Markup.button.callback(m, `model:${m}`)), { columns: 2 }
   ));
 });
 
@@ -160,7 +160,7 @@ bot.on('callback_query', async ctx => {
     session.step = 'theme';
     await setSession(userId, session);
     return ctx.editMessageText('Pilih theme:', Markup.inlineKeyboard(
-      themes.map(t => Markup.button.callback(t, `theme:${t}`)), { columns: 2 }
+      themesName.map(t => Markup.button.callback(t, `theme:${t}`)), { columns: 2 }
     ));
   }
 
