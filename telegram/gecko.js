@@ -2,16 +2,21 @@
 //   author: Deisgoku
 
 const axios = require('axios');
+const redis = require('../lib/redis'); 
 
-/**
- * Ambil daftar kategori dari CoinGecko dan format ke markdown 2 kolom + array ID dan ikon.
- * @returns {Promise<{ markdown: string, categories: { name: string, category_id: string, icon: string }[] }>}
- */
+const CACHE_KEY = 'gecko:categories:v1';
+const CACHE_DURATION = 60 * 10; // 10 menit (dalam detik)
+
 async function getCategoryMarkdownList(minCoinCount = 3, maxItems = 30) {
-  const url = 'https://api.coingecko.com/api/v3/coins/categories';
-
   try {
-    const res = await axios.get(url);
+    const cached = await redis.get(CACHE_KEY);
+    if (cached) {
+      console.log('[Gecko] Menggunakan data dari Redis cache.');
+      return cached;
+    }
+
+    console.log('[Gecko] Fetching dari CoinGecko...');
+    const res = await axios.get('https://api.coingecko.com/api/v3/coins/categories', { timeout: 5000 });
     const data = res.data;
 
     const filtered = data
@@ -22,12 +27,12 @@ async function getCategoryMarkdownList(minCoinCount = 3, maxItems = 30) {
         name: cat.name,
         category_id: cat.id,
         coins: cat.coins_count,
-        icon: cat.image || ''  // Menambahkan ikon kategori
+        icon: cat.image || ''
       }));
 
-    // Format ke 2 kolom vertikal
-    const columnCount = 2;
-    const colWidth = 32;
+    
+    const columnCount = 3;
+    const colWidth = 28;
     const rows = Math.ceil(filtered.length / columnCount);
     const lines = [];
 
@@ -38,7 +43,7 @@ async function getCategoryMarkdownList(minCoinCount = 3, maxItems = 30) {
         const item = filtered[index];
         if (item) {
           const num = index + 1;
-          const text = `${num}. ${item.icon ? `![${item.name}](${item.icon})` : ''} ${item.name} (${item.coins})`;
+          const text = `${num}. ${item.name} (${item.coins})`;
           line += text.padEnd(colWidth);
         }
       }
@@ -49,12 +54,20 @@ async function getCategoryMarkdownList(minCoinCount = 3, maxItems = 30) {
       lines.join('\n') +
       `\n\nBalas dengan angka atau nama kategori.\nContoh: \`3\` atau \`DeFi\``;
 
-    return {
+    const result = {
       markdown,
-      categories: filtered.map(c => ({ name: c.name, category_id: c.category_id, icon: c.icon }))
+      categories: filtered.map(c => ({
+        name: c.name,
+        category_id: c.category_id,
+        icon: c.icon
+      }))
     };
+
+    await redis.set(CACHE_KEY, result, { ex: CACHE_DURATION });
+    console.log('[Gecko] Data disimpan ke Redis cache.');
+    return result;
   } catch (err) {
-    console.error('Gagal ambil kategori dari CoinGecko:', err.message);
+    console.error('[Gecko] Gagal fetch kategori:', err.message);
     return {
       markdown: '*Gagal memuat kategori. Coba lagi nanti.*',
       categories: []
