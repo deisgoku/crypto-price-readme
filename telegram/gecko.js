@@ -2,19 +2,9 @@
 //   author: Deisgoku
 
 const axios = require('axios');
-const redis = require('../lib/redis'); // Sesuaikan path-nya
-
-const CACHE_KEY = 'gecko:categories:v1';
-const CACHE_DURATION = 60 * 10; // 10 menit
 
 async function getCategoryMarkdownList(minCoinCount = 3, maxItems = 30) {
   try {
-    const cached = await redis.get(CACHE_KEY);
-    if (cached) {
-      console.log('[Gecko] Menggunakan data dari Redis cache.');
-      return cached;
-    }
-
     console.log('[Gecko] Fetching dari CoinGecko...');
     const res = await axios.get('https://api.coingecko.com/api/v3/coins/categories', { timeout: 5000 });
     const data = res.data;
@@ -79,14 +69,10 @@ async function getCategoryMarkdownList(minCoinCount = 3, maxItems = 30) {
                  `\n\nBalas dengan angka atau nama kategori.\nContoh: \`3\` atau \`DeFi\``;
     }
 
-    const result = {
+    return {
       markdown,
       categories: filtered.map(c => ({ name: c.name, category_id: c.category_id, icon: c.icon }))
     };
-
-    await redis.set(CACHE_KEY, result, { ex: CACHE_DURATION });
-    console.log('[Gecko] Data disimpan ke Redis cache.');
-    return result;
   } catch (err) {
     console.error('[Gecko] Gagal fetch kategori:', err.message);
     return {
