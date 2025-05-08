@@ -2,7 +2,7 @@
 // author: Deisgoku
 
 const { themesName } = require('../lib/settings/model/theme');
-const { renderers } = require('../lib/settings/model/list');
+const renderers = require('../lib/settings/model/list');
 
 const modelsName = Object.keys(renderers);
 
