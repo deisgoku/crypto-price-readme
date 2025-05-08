@@ -44,10 +44,13 @@ async function setSession(userId, data) {
 
 
 async function updateSession(userId, newData) {
-  const current = await getSession(userId);
-  const updated = { ...current, ...newData };
-  await setSession(userId, updated);
+  const key = `session:${userId}`;
+  const existing = await getSession(userId); // Ambil data lama
+  const merged = { ...existing, ...newData }; // Gabungkan
+  await redis.set(key, JSON.stringify(merged)); // Simpan ulang
 }
+
+
 // ======== LOCAL TEMP =======
 
 const tempSessionMap = new Map(); // Tidak masuk Redis
