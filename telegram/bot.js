@@ -1,3 +1,4 @@
+
 // telegram/bot.js
 // author: deisgoku
 
@@ -6,8 +7,12 @@ const fetch = require('node-fetch');
 const { Resvg } = require('@resvg/resvg-js');
 const bcrypt = require('bcrypt');
 const { BOT_TOKEN, BASE_URL } = require('./config');
-const { generateLists } = require('./lists');
 const { getCategoryMarkdownList } = require('./gecko');
+const { themesName } = require('../lib/settings/model/theme');
+const { modelsName } = require('../lib/settings/model/list');
+
+//const { models, themes } = require('./lists');
+
 const { redis } = require('../lib/redis');
 const { addAdmin, removeAdmin, isAdmin, listAdmins } = require('./admin');
 
@@ -16,6 +21,10 @@ const LINK_PREFIX = 'tg:link:';
 const USER_SET = 'tg:users';
 
 const bot = new Telegraf(BOT_TOKEN);
+
+
+const themes = themesName.map(t => `${t}`).join('\n');
+const models = modelsName.map(m => `${m}`).join('\n');
 
 // ===== Session Helpers =====
 async function getSession(userId) {
@@ -46,7 +55,7 @@ bot.start(ctx => {
 bot.command('help', async ctx => {
   const { markdown } = await getCategoryMarkdownList();
   ctx.replyWithMarkdown(
-    `*Perintah:*
+`*Perintah:*
 /start - Mulai bot
 /help - Bantuan
 /card - Buat kartu crypto
@@ -87,12 +96,10 @@ bot.command('unlink', async ctx => {
 
 bot.command('me', async ctx => {
   const linkedUsername = await redis.get(LINK_PREFIX + ctx.from.id.toString());
-  ctx.reply(
-    linkedUsername
-      ? `Akun kamu terhubung ke: *${linkedUsername}*`
-      : 'Belum terhubung. Gunakan /link <username> <password>',
-    { parse_mode: 'Markdown' }
-  );
+  ctx.reply(linkedUsername
+    ? `Akun kamu terhubung ke: *${linkedUsername}*`
+    : 'Belum terhubung. Gunakan /link <username> <password>',
+    { parse_mode: 'Markdown' });
 });
 
 // ===== Admin Commands =====
@@ -131,7 +138,7 @@ bot.command('broadcast', async ctx => {
   let count = 0;
   for (const uid of userIds) {
     try {
-      await ctx.telegram.sendMessage(uid, `📢 *Broadcast:*\n${message}`, { parse_mode: 'Markdown' });
+      await ctx.telegram.sendMessage(uid, `ðŸ“¢ *Broadcast:*\n${message}`, { parse_mode: 'Markdown' });
       count++;
     } catch (e) {
       console.error(`Gagal kirim ke ${uid}`, e);
@@ -148,7 +155,7 @@ bot.command('card', async ctx => {
   await setSession(userId, session);
 
   await ctx.reply('Pilih model:', Markup.inlineKeyboard(
-    modelsName.map(m => Markup.button.callback(`🤖 ${m}`, `model:${m}`)),
+    models.map(m => Markup.button.callback(` ${m}`, `model:${m}`)),
     { columns: 2 }
   ));
 });
@@ -165,7 +172,7 @@ bot.on('callback_query', async ctx => {
     await setSession(userId, session);
 
     return ctx.editMessageText('Pilih theme:', Markup.inlineKeyboard(
-      themesName.map(t => Markup.button.callback(`🎨 ${t}`, `theme:${t}`)),
+      themes.map(t => Markup.button.callback(` ${t}`, `theme:${t}`)),
       { columns: 2 }
     ));
   }
@@ -237,7 +244,7 @@ bot.on('text', async ctx => {
       const png = resvg.render().asPng();
 
       await ctx.replyWithPhoto({ source: png }, {
-        caption: `✅ Kartu siap: *${model} - ${theme}*`,
+        caption: ` Kartu siap: *${model} - ${theme}*`,
         parse_mode: 'Markdown'
       });
     } catch (err) {
