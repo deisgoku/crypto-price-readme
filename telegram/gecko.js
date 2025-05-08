@@ -17,7 +17,8 @@ async function getCategoryMarkdownList(minCoinCount = 3, maxItems = 30) {
         name: cat.name,
         category_id: cat.id,
         coins: cat.coins_count,
-        icon: cat.image || ''
+        icon: cat.image || '',
+        alias: cat.name.split(' ')[0] // Alias diambil dari kata pertama nama kategori
       }));
 
     const columnCount = 3;
@@ -32,7 +33,8 @@ async function getCategoryMarkdownList(minCoinCount = 3, maxItems = 30) {
         const item = filtered[index];
         if (item) {
           const num = index + 1;
-          const text = `${num}. ${item.name} (${item.coins})`;
+          const safeName = item.alias.replace(/([*_`()])/g, '\\$1'); // Menggunakan alias di sini
+          const text = `${num}. ${safeName}`;
           line += text.padEnd(colWidth);
         }
       }
@@ -57,7 +59,8 @@ async function getCategoryMarkdownList(minCoinCount = 3, maxItems = 30) {
           const item = filtered[index];
           if (item) {
             const num = index + 1;
-            const text = `${num}. ${item.name} (${item.coins})`;
+            const safeName = item.alias.replace(/([*_`()])/g, '\\$1'); // Menggunakan alias di sini
+            const text = `${num}. ${safeName}`;
             line += text.padEnd(colWidth);
           }
         }
@@ -71,7 +74,12 @@ async function getCategoryMarkdownList(minCoinCount = 3, maxItems = 30) {
 
     return {
       markdown,
-      categories: filtered.map(c => ({ name: c.name, category_id: c.category_id, icon: c.icon }))
+      categories: filtered.map(c => ({
+        name: c.name,
+        category_id: c.category_id,
+        icon: c.icon,
+        alias: c.alias
+      }))
     };
   } catch (err) {
     console.error('[Gecko] Gagal fetch kategori:', err.message);
