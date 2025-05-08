@@ -1,4 +1,3 @@
-
 // telegram/bot.js
 // author: deisgoku
 
@@ -8,10 +7,8 @@ const { Resvg } = require('@resvg/resvg-js');
 const bcrypt = require('bcrypt');
 const { BOT_TOKEN, BASE_URL } = require('./config');
 const { getCategoryMarkdownList } = require('./gecko');
-const { themesName } = require('../lib/settings/model/theme');
-const { modelsName } = require('../lib/settings/model/list');
-
-//const { models, themes } = require('./lists');
+const { themeNames } = require('../lib/settings/model/theme');  
+const renderers = require('../lib/settings/model/list');
 
 const { redis } = require('../lib/redis');
 const { addAdmin, removeAdmin, isAdmin, listAdmins } = require('./admin');
@@ -22,11 +19,12 @@ const USER_SET = 'tg:users';
 
 const bot = new Telegraf(BOT_TOKEN);
 
-
-const themes = themesName.map(t => `${t}`).join('\n');
-const models = modelsName.map(m => `${m}`).join('\n');
+// Define available themes and models
+const themes = themeNames.join('\n'); 
+const modelsName = Object.keys(renderers);
 
 // ===== Session Helpers =====
+
 async function getSession(userId) {
   const raw = await redis.get(SESSION_PREFIX + userId);
   let session = {};
@@ -45,6 +43,7 @@ async function setSession(userId, data) {
 }
 
 // ===== General Commands =====
+
 bot.start(ctx => {
   ctx.reply(
     `Selamat datang di *Crypto Card Bot!*\n\nGunakan /card untuk membuat kartu crypto.\nGunakan /help untuk melihat perintah lain.`,
@@ -55,7 +54,7 @@ bot.start(ctx => {
 bot.command('help', async ctx => {
   const { markdown } = await getCategoryMarkdownList();
   ctx.replyWithMarkdown(
-`*Perintah:*
+    `*Perintah:*
 /start - Mulai bot
 /help - Bantuan
 /card - Buat kartu crypto
@@ -75,6 +74,7 @@ ${markdown}`
 });
 
 // ===== Link & Account =====
+
 bot.command('link', async ctx => {
   const userId = ctx.from.id.toString();
   const args = ctx.message.text.split(' ').slice(1);
@@ -103,6 +103,7 @@ bot.command('me', async ctx => {
 });
 
 // ===== Admin Commands =====
+
 bot.command('addadmin', async ctx => {
   const fromId = ctx.from.id.toString();
   if (!(await isAdmin(fromId))) return ctx.reply('Kamu bukan admin.');
@@ -138,7 +139,7 @@ bot.command('broadcast', async ctx => {
   let count = 0;
   for (const uid of userIds) {
     try {
-      await ctx.telegram.sendMessage(uid, `ðŸ“¢ *Broadcast:*\n${message}`, { parse_mode: 'Markdown' });
+      await ctx.telegram.sendMessage(uid, `📡 *Broadcast:*\n${message}`, { parse_mode: 'Markdown' });
       count++;
     } catch (e) {
       console.error(`Gagal kirim ke ${uid}`, e);
@@ -148,6 +149,7 @@ bot.command('broadcast', async ctx => {
 });
 
 // ===== Card Flow =====
+
 bot.command('card', async ctx => {
   const userId = ctx.from.id.toString();
   const session = await getSession(userId);
@@ -155,7 +157,7 @@ bot.command('card', async ctx => {
   await setSession(userId, session);
 
   await ctx.reply('Pilih model:', Markup.inlineKeyboard(
-    models.map(m => Markup.button.callback(` ${m}`, `model:${m}`)),
+    modelsName.map(m => Markup.button.callback(`🖼️ ${m}`, `model:${m}`)),
     { columns: 2 }
   ));
 });
@@ -172,7 +174,7 @@ bot.on('callback_query', async ctx => {
     await setSession(userId, session);
 
     return ctx.editMessageText('Pilih theme:', Markup.inlineKeyboard(
-      themes.map(t => Markup.button.callback(` ${t}`, `theme:${t}`)),
+      themeNames.map(t => Markup.button.callback(`🎨 ${t}`, `theme:${t}`)),
       { columns: 2 }
     ));
   }
@@ -244,7 +246,7 @@ bot.on('text', async ctx => {
       const png = resvg.render().asPng();
 
       await ctx.replyWithPhoto({ source: png }, {
-        caption: ` Kartu siap: *${model} - ${theme}*`,
+        caption: `🖼️ Kartu siap: *${model} - ${theme}*`,
         parse_mode: 'Markdown'
       });
     } catch (err) {
