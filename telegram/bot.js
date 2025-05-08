@@ -52,28 +52,26 @@ bot.start(ctx => {
 });
 
 bot.command('help', async ctx => {
-  try {
-    const categoryData = await getCategoryMarkdownList();
-    console.log("Data kategori sebelum escape:", categoryData);
-    const escapedMarkdown = categoryData.replace(/([_*[\]()~`>#+=-])/g, '\\$1');
-    console.log("Data kategori setelah escape:", escapedMarkdown);
+  const { markdown } = await getCategoryMarkdownList();
 
-    const helpText = `*Perintah:*
-    /start - Mulai bot
-    /help - Bantuan
-    /card - Buat kartu crypto
-    /link <username> <password> - Hubungkan akun
-    /unlink - Putuskan akun
-    /me - Info akun
+  const helpText = `*Perintah:*
+  /start - Mulai bot
+  /help - Bantuan
+  /card - Buat kartu crypto
+  /link <username> <password> - Hubungkan akun
+  /unlink - Putuskan akun
+  /me - Info akun
 
-    *Kategori:*
-    ${escapedMarkdown}`;
+  *Admin:*
+  /addadmin <userId>
+  /removeadmin <userId>
+  /admins
+  /broadcast <pesan>
 
-    await ctx.reply(helpText, { parse_mode: 'MarkdownV2' });
-  } catch (error) {
-    console.error("Error di /help:", error);
-    ctx.reply("Terjadi kesalahan saat menampilkan kategori.");
-  }
+  *Kategori:*
+  ${markdown}`;
+
+  ctx.reply(helpText, { parse_mode: 'Markdown' });
 });
 
 // ===== Link & Account =====
