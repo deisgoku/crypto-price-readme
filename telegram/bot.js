@@ -206,11 +206,11 @@ bot.on('callback_query', async ctx => {
 
   // Step 3: Pilih Kategori Inline
   if (data.startsWith('category:')) {
-  const categoryId = data.split(':')[1];
+  const categoryId = data.split(':')[1].trim();
   const category = session.categories?.find(c => c.category_id === categoryId);
 
   if (!category) {
-    return ctx.answerCbQuery('Kategori tidak valid.', { show_alert: true });
+    return ctx.answerCbQuery('⚠️ Kategori tidak valid.', { show_alert: true });
   }
 
   session.category = category.category_id; // Gunakan category_id untuk ke URL
