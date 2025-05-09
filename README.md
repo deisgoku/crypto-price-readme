@@ -10,7 +10,7 @@ Explore the pages to get started, learn how it works, and contribute.
 - [Usage](#how-to-use)
 - [API Reference](#api-reference)
 - [Customization](#customization-guide)
-- [FAQ](#faq)
+- [FAQ](#frequently-asked-questions--faq-)
 - [Contributing](#contributing-guide)
 - [Supports](#supports)
 
@@ -33,17 +33,50 @@ Explore the pages to get started, learn how it works, and contribute.
 
 ![](https://crypto-price-on.vercel.app/api/info?theme=aurora)
 
-- Crypto Market Mini Card
+---
+# Demo Card
 
-
+- **Aurora style**  -   `with  theme=aurora category=coinbase-50-index`
 [![deisgoku](https://crypto-price-on.vercel.app/cards?user=nana&model=aurora&theme=aurora&coin=6&category=coinbase-50-index)](https://crypto-price-on.vercel.app/unlock)
 
+Copy and paste this into your markdown, and that's it. Simple!
+
+> Change the `?user=` value to your GitHub username or twiter X username
+
+> Change the `?model=` value e.g modern , futuristic, classic, aurora
+
+```md
+[![Github Crypto Market CARD](https://crypto-price-on.vercel.app/cards?user=deisgoku&model=aurora&theme=aurora&coin=6&category=coinbase-50-index)](https://crypto-price-on.vercel.app/unlock)
+```
+
+> [!WARNING]\
+> By default, the card only shows category layer-1 like BTC , ETH, BNB, SOL, ADA and etc with `model=modern, theme=dark, coin=5 . To show your own style , you should [set models ,themes, category, and coint count](#how-to-use) using our app or manualy .
+
+> [!NOTE]\
+> This CARD require your username , if not this card are show locked so register firt to use it.
+
+---
+
+- **Modern style**  - `with  model=modern theme=aurora category=depin`
 [![ CARD MODERN AURORA](https://crypto-price-on.vercel.app/cards?user=nana&model=modern&theme=aurora&coin=6&category=depin)](https://crypto-price-on.vercel.app/unlock)
 
+```md
+[![Github Crypto Market CARD](https://crypto-price-on.vercel.app/cards?user=deisgoku&model=modern&theme=aurora&coin=6&category=depin)](https://crypto-price-on.vercel.app/unlock)
+```
+---
+
+- **Futuristic style** -  `with  model=futuristic theme=tokyonight category=meme-token`
 [![My Crypto Card](https://crypto-price-on.vercel.app/cards?user=deisgoku&model=futuristic&theme=tokyonight&coin=5&category=meme-token)](https://crypto-price-on.vercel.app/unlock)
+```md
+[![Github Crypto Market CARD](https://crypto-price-on.vercel.app/cards?user=deisgoku&model=futuristic&theme=tokyonight&coin=6&category=meme-token)](https://crypto-price-on.vercel.app/unlock)
+```
+---
 
-[![nana](https://crypto-price-on.vercel.app/cards?user=nana&model=classic&theme=light&coin=6&category=binance-smart-chain)](https://crypto-price-on.vercel.app/unlock)
-
+- **Classic style**  - `with  model=classic theme=light category=binance-smart-chain`
+[![My Crypto Card](https://crypto-price-on.vercel.app/cards?user=nana&model=classic&theme=light&coin=6&category=binance-smart-chain)](https://crypto-price-on.vercel.app/unlock)
+```md
+[![Github Crypto Market CARD](https://crypto-price-on.vercel.app/cards?user=deisgoku&model=classic&theme=light&coin=6&category=binance-smart-chain)](https://crypto-price-on.vercel.app/unlock)
+```
 ---
 ## 🧠 The Idea
 
@@ -165,8 +198,7 @@ Founder of a Web3 education community.
 Please keep code clean and follow formatting used in the repo.
 
 ---
-# FAQ
-> Frequently Asked Questions (FAQ)
+# Frequently Asked Questions (FAQ)
 
 ### Q: Can I embed the crypto card in my GitHub README?
 A: Yes! The SVG card URL is static and compatible with GitHub markdown.
