@@ -27,14 +27,14 @@ const modelsName = Object.keys(renderers);
 const themes = themeNames.join('\n');
 
 // ===== Temp Memory for State Tracking =====
-const tempSessionMap = new Map();
+const userState = new Map();
 
 function getTempSession(userId) {
-  return tempSessionMap.get(userId) || { step: 'model' };
+  return userState.get(userId) || { step: 'model' };
 }
 
 function updateTempSession(userId, data) {
-  tempSessionMap.set(userId, { ...getTempSession(userId), ...data });
+  userState.set(userId, { ...getTempSession(userId), ...data });
 }
 
 // ===== Commands =====
