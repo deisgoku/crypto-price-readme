@@ -135,66 +135,73 @@ bot.command('broadcast', async ctx => {
   ctx.reply(`Broadcast terkirim ke ${count} user.`);
 });
 
-// ===== Card Flow =====
+const userState = new Map(); // userId -> { model, theme, category }
 
-// ===== Card Flow =====
+// Mulai flow
 bot.command('card', async ctx => {
+  userState.set(ctx.from.id, {}); // reset state user
   await ctx.reply('Pilih model:', Markup.inlineKeyboard(
     modelsName.map(m => Markup.button.callback(`🖼️ ${m}`, `model:${m}`)),
     { columns: 2 }
   ));
 });
 
+// Handle callback buttons
 bot.on('callback_query', async ctx => {
   const data = ctx.callbackQuery.data;
+  const userId = ctx.from.id;
+  const state = userState.get(userId) || {};
 
-  // Handle model selection
   if (data.startsWith('model:')) {
-    const model = data.split(':')[1];
+    state.model = data.split(':')[1];
+    userState.set(userId, state);
 
-    // Store model in the callback state, asking for theme
+    await ctx.answerCbQuery();
     return ctx.editMessageText('Pilih theme:', Markup.inlineKeyboard(
       themeNames.map(t => Markup.button.callback(`🎨 ${t}`, `theme:${t}`)),
       { columns: 2 }
     ));
   }
 
-  // Handle theme selection
   if (data.startsWith('theme:')) {
-    const theme = data.split(':')[1];
+    state.theme = data.split(':')[1];
+    userState.set(userId, state);
 
-    // Store theme in the callback state, asking for category
     const { categories } = await getCategoryMarkdownList();
+    await ctx.answerCbQuery();
     return ctx.editMessageText('Pilih kategori:', Markup.inlineKeyboard(
       categories.map(c => Markup.button.callback(`📁 ${c.name}`, `category:${c.category_id}`)),
       { columns: 2 }
     ));
   }
 
-  // Handle category selection
   if (data.startsWith('category:')) {
-    const category = data.split(':')[1];
+    state.category = data.split(':')[1];
+    userState.set(userId, state);
 
-    // Ask for coin count
+    await ctx.answerCbQuery();
     return ctx.editMessageText('Masukkan jumlah coin (1-50):');
   }
 
-  await ctx.answerCbQuery();
+  await ctx.answerCbQuery(); // fallback
 });
 
+// Handle text input (jumlah coin)
 bot.on('text', async ctx => {
   const input = ctx.message.text.trim();
   const count = parseInt(input);
+  const userId = ctx.from.id;
+  const state = userState.get(userId);
+
+  if (!state || !state.model || !state.theme || !state.category) {
+    return ctx.reply('Silakan mulai dengan perintah /card.');
+  }
 
   if (isNaN(count) || count < 1 || count > 50) {
     return ctx.reply('Jumlah coin harus antara 1 - 50.');
   }
 
-  // After receiving all data: model, theme, category, and coin count, build the URL
-  const model = ctx.callbackQuery.data.split(':')[1];
-  const theme = ctx.callbackQuery.data.split(':')[1];
-  const category = ctx.callbackQuery.data.split(':')[1];
-  const url = `${BASE_URL}?user=deisgoku&model=${model}&theme=${theme}&coin=${count}&category=${category}`;
+  const url = `${BASE_URL}?user=deisgoku&model=${state.model}&theme=${state.theme}&coin=${count}&category=${state.category}`;
 
   try {
     const res = await fetch(url);
@@ -203,13 +210,14 @@ bot.on('text', async ctx => {
     const png = resvg.render().asPng();
 
     await ctx.replyWithPhoto({ source: png }, {
-      caption: `🖼️ Kartu siap: *${model} - ${theme}*`,
+      caption: `🖼️ Kartu siap: *${state.model} - ${state.theme}*`,
       parse_mode: 'Markdown'
     });
+
+    userState.delete(userId); // reset state setelah selesai
   } catch (err) {
     console.error(err);
     return ctx.reply('Gagal ambil kartu. Coba lagi nanti.');
   }
 });
-
 module.exports = {bot};
