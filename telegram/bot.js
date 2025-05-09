@@ -135,7 +135,7 @@ bot.command('broadcast', async ctx => {
   ctx.reply(`Broadcast terkirim ke ${count} user.`);
 });
 
-const userState = new Map(); // userId -> { model, theme, category }
+
 
 // Mulai flow
 bot.command('card', async ctx => {
