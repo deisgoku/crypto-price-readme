@@ -7,13 +7,13 @@ const { Resvg } = require('@resvg/resvg-js');
 const bcrypt = require('bcrypt');
 const { BOT_TOKEN, BASE_URL } = require('./config');
 const { getCategoryMarkdownList } = require('./gecko');
-const { themeNames } = require('../lib/settings/model/theme');  
+const { themeNames } = require('../lib/settings/model/theme');
 const renderers = require('../lib/settings/model/list');
 const { redis } = require('../lib/redis');
 const { addAdmin, removeAdmin, isAdmin, listAdmins } = require('./admin');
 
-const SESSION_PREFIX = 'tg:session:';
-const LINK_PREFIX = 'tg:link:';
+const SESSION_KEY = 'tg:sessions'; // Redis Hash
+const LINK_KEY = 'tg:links';       // Redis Hash
 const USER_SET = 'tg:users';
 
 const bot = new Telegraf(BOT_TOKEN);
@@ -23,31 +23,28 @@ const themes = themeNames.join('\n');
 // ===== Session Helpers =====
 
 async function getSession(userId) {
-  const raw = await redis.get(SESSION_PREFIX + userId);
+  const raw = await redis.hget(SESSION_KEY, userId);
   let session = {};
   try {
     session = raw ? JSON.parse(raw) : {};
   } catch {
     session = {};
   }
-  session.username = await redis.get(LINK_PREFIX + userId) || `tg-${userId}`;
+  session.username = await redis.hget(LINK_KEY, userId) || `tg-${userId}`;
   return session;
 }
 
 async function updateSession(userId, newData) {
   const current = await getSession(userId);
   const updated = { ...current, ...newData };
-  await redis.set(SESSION_PREFIX + userId, JSON.stringify(updated), { ex: 3600 });
+  await redis.hset(SESSION_KEY, userId, JSON.stringify(updated));
   await redis.sadd(USER_SET, userId);
 }
 
 // ===== Bot Commands =====
 
 bot.start(ctx => {
-  ctx.reply(
-    `Selamat datang di *Crypto Card Bot!*\n\nGunakan /card untuk membuat kartu crypto.\nGunakan /help untuk melihat perintah lain.`,
-    { parse_mode: 'Markdown' }
-  );
+  ctx.reply(`Selamat datang di *Crypto Card Bot!*\n\nGunakan /card untuk membuat kartu crypto.\nGunakan /help untuk melihat perintah lain.`, { parse_mode: 'Markdown' });
 });
 
 bot.command('help', async ctx => {
@@ -81,17 +78,17 @@ bot.command('link', async ctx => {
   if (!hash) return ctx.reply('Username tidak ditemukan.');
   if (!(await bcrypt.compare(password, hash))) return ctx.reply('Password salah.');
 
-  await redis.set(LINK_PREFIX + userId, username);
+  await redis.hset(LINK_KEY, userId, username);
   ctx.reply(`Berhasil terhubung dengan akun '${username}'`);
 });
 
 bot.command('unlink', async ctx => {
-  await redis.del(LINK_PREFIX + ctx.from.id.toString());
+  await redis.hdel(LINK_KEY, ctx.from.id.toString());
   ctx.reply('Akun Telegram kamu sudah di-unlink.');
 });
 
 bot.command('me', async ctx => {
-  const username = await redis.get(LINK_PREFIX + ctx.from.id.toString());
+  const username = await redis.hget(LINK_KEY, ctx.from.id.toString());
   ctx.reply(username
     ? `Akun kamu terhubung ke: *${username}*`
     : 'Belum terhubung. Gunakan /link <username> <password>', { parse_mode: 'Markdown' });
