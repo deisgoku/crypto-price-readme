@@ -23,10 +23,13 @@ const themes = themeNames.join('\n');
 
 // ===== Session Helpers =====
 
-// Mendapatkan session dengan key yang sudah dinormalisasi
+function normalizeUserId(userId) {
+  return `user:${userId.toString().trim().toLowerCase()}`;
+}
+
 async function getSession(userId) {
-  const normalizedGet = userId.toString().trim().toLowerCase();
-  const raw = await redis.hget(SESSION_KEY, normalizedGet);
+  const key = normalizeUserId(userId);
+  const raw = await redis.hget(SESSION_KEY, key);
   try {
     return raw ? JSON.parse(raw) : {};
   } catch {
@@ -34,16 +37,15 @@ async function getSession(userId) {
   }
 }
 
-// Menyimpan atau memperbarui session dengan merge data
 async function updateSession(userId, newData = {}) {
-  const normalizedUpdt = userId.toString().trim().toLowerCase();
-  const current = await getSession(normalizedUpdt);
+  const key = normalizeUserId(userId);
+  const current = await getSession(userId);
   const updated = {
     ...current,
     ...newData
   };
-  await redis.hset(SESSION_KEY, normalizedUpdt, JSON.stringify(updated));
-  await redis.sadd(USER_SET, normalizedUpdt);
+  await redis.hset(SESSION_KEY, key, JSON.stringify(updated));
+  await redis.sadd(USER_SET, key);
   return updated;
 }
 
