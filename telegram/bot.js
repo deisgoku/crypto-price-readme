@@ -24,26 +24,26 @@ const themes = themeNames.join('\n');
 // ===== Session Helpers =====
 
 function normalizeUserId(userId) {
-  return `user:${userId.toString().trim().toLowerCase()}`;
+  return `tg:${userId.toString().trim()}`;
 }
 
 async function getSession(userId) {
   const key = normalizeUserId(userId);
   const raw = await redis.hget(SESSION_KEY, key);
+  let session = {};
   try {
-    return raw ? JSON.parse(raw) : {};
+    session = raw ? JSON.parse(raw) : {};
   } catch {
-    return {};
+    session = {};
   }
+  session.username = session.username || key; // fallback
+  return session;
 }
 
 async function updateSession(userId, newData = {}) {
   const key = normalizeUserId(userId);
   const current = await getSession(userId);
-  const updated = {
-    ...current,
-    ...newData
-  };
+  const updated = { ...current, ...newData };
   await redis.hset(SESSION_KEY, key, JSON.stringify(updated));
   await redis.sadd(USER_SET, key);
   return updated;
