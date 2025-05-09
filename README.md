@@ -1,6 +1,19 @@
 # ⚡️ About 
 
+This project allows users to create stylish cryptocurrency cards with real-time data and customizable themes. It's ideal for showcasing dynamic crypto market info on GitHub and personal websites.
+
 > Not just another README project. This one's alive.
+> No code required needed , this make simple
+
+Explore the pages to get started, learn how it works, and contribute.
+
+- [Usage](#how-to-use)
+- [API Reference](#api-reference)
+- [Customization](#customization-guide)
+- [FAQ](#faq)
+- [Contributing](#contributing-guide)
+- [Supports](#supports)
+
 
 ---
 
@@ -14,144 +27,8 @@
 ![BNB](https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=binancecoin&label=BNB&color=yellow&style=flat&logo=binance)
 ![XRP](https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=ripple&label=XRP&color=blueviolet&style=flat&logo=ripple)
 
-- Crypto Price Market (Live Badge Table)
-
-<table align="center" style="border-collapse: collapse; text-align: center;">
-  <tr>
-    <td style="padding: 6px;">
-      <img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=bitcoin&label=BTC&logo=bitcoin&style=flat-square" height="28">
-    </td>
-    <td style="padding: 6px;">
-      <img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=ethereum&label=ETH&logo=ethereum&style=flat-square" height="28">
-    </td>
-    <td style="padding: 6px;">
-      <img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=binancecoin&label=BNB&logo=binance&style=flat-square" height="28">
-    </td>
-  </tr>
-  <tr>
-    <td style="padding: 6px;">
-      <img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=solana&label=SOL&logo=solana&style=flat-square" height="28">
-    </td>
-    <td style="padding: 6px;">
-      <img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=ripple&label=XRP&logo=ripple&style=flat-square" height="28">
-    </td>
-    <td style="padding: 6px;">
-      <img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=dogecoin&label=DOGE&logo=dogecoin&style=flat-square" height="28">
-    </td>
-  </tr>
-  <tr>
-    <td style="padding: 6px;">
-      <img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=the-open-network&label=TON&logo=ton&style=flat-square" height="28">
-    </td>
-    <td style="padding: 6px;">
-      <img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=cardano&label=ADA&logo=cardano&style=flat-square" height="28">
-    </td>
-    <td style="padding: 6px;">
-      <img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=avalanche-2&label=AVAX&logo=avalanche&style=flat-square" height="28">
-    </td>
-  </tr>
-  <tr>
-    <td style="padding: 6px;">
-      <img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=polkadot&label=DOT&logo=polkadot&style=flat-square" height="28">
-    </td>
-    <td style="padding: 6px;">
-      <img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=tron&label=TRX&logo=tron&style=flat-square" height="28">
-    </td>
-    <td style="padding: 6px;">
-      <img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=chainlink&label=LINK&logo=chainlink&style=flat-square" height="28">
-    </td>
-  </tr>
-</table>
-
-
-- Crypto market mini with tabel `( volume , trend )`
-<!-- Crypto Market Mini Table (Top 12 Coins, Responsive) -->
-<div style="overflow-x:auto; max-width:100%;">
-  <table style="min-width:400px; width:100%; border-collapse:collapse; font-family:sans-serif; font-size:14px;">
-    <thead>
-      <tr style="background-color:#0f172a; color:#fff;">
-        <th style="padding:8px; text-align:center;">Name</th>
-        <th style="padding:8px; text-align:center;">Price</th>
-        <th style="padding:8px; text-align:center;">Vol</th>
-        <th style="padding:8px; text-align:center;">Trend</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr style="background-color:#f8fafc;"><td style="padding:6px;">Bitcoin (BTC)</td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=bitcoin&label=BTC&logo=bitcoin&style=flat-square" height="20"></td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/volume?coin=bitcoin&label=Vol&style=flat-square" height="20"></td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/trend?coin=bitcoin&label=Trend&style=flat-square" height="20"></td></tr>
-      <tr style="background-color:#f1f5f9;"><td style="padding:6px;">Ethereum (ETH)</td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=ethereum&label=ETH&logo=ethereum&style=flat-square" height="20"></td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/volume?coin=ethereum&label=Vol&style=flat-square" height="20"></td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/trend?coin=ethereum&label=Trend&style=flat-square" height="20"></td></tr>
-      <tr style="background-color:#f8fafc;"><td style="padding:6px;">BNB (BNB)</td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=binancecoin&label=BNB&logo=binance&style=flat-square" height="20"></td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/volume?coin=binancecoin&label=Vol&style=flat-square" height="20"></td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/trend?coin=binancecoin&label=Trend&style=flat-square" height="20"></td></tr>
-      <tr style="background-color:#f1f5f9;"><td style="padding:6px;">Solana (SOL)</td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=solana&label=SOL&logo=solana&style=flat-square" height="20"></td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/volume?coin=solana&label=Vol&style=flat-square" height="20"></td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/trend?coin=solana&label=Trend&style=flat-square" height="20"></td></tr>
-      <tr style="background-color:#f8fafc;"><td style="padding:6px;">XRP (XRP)</td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=ripple&label=XRP&logo=ripple&style=flat-square" height="20"></td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/volume?coin=ripple&label=Vol&style=flat-square" height="20"></td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/trend?coin=ripple&label=Trend&style=flat-square" height="20"></td></tr>
-      <tr style="background-color:#f1f5f9;"><td style="padding:6px;">Cardano (ADA)</td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=cardano&label=ADA&logo=cardano&style=flat-square" height="20"></td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/volume?coin=cardano&label=Vol&style=flat-square" height="20"></td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/trend?coin=cardano&label=Trend&style=flat-square" height="20"></td></tr>
-      <tr style="background-color:#f8fafc;"><td style="padding:6px;">Dogecoin (DOGE)</td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=dogecoin&label=DOGE&logo=dogecoin&style=flat-square" height="20"></td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/volume?coin=dogecoin&label=Vol&style=flat-square" height="20"></td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/trend?coin=dogecoin&label=Trend&style=flat-square" height="20"></td></tr>
-      <tr style="background-color:#f1f5f9;"><td style="padding:6px;">Avalanche (AVAX)</td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=avalanche-2&label=AVAX&logo=avalanche&style=flat-square" height="20"></td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/volume?coin=avalanche-2&label=Vol&style=flat-square" height="20"></td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/trend?coin=avalanche-2&label=Trend&style=flat-square" height="20"></td></tr>
-      <tr style="background-color:#f8fafc;"><td style="padding:6px;">Polkadot (DOT)</td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=polkadot&label=DOT&logo=polkadot&style=flat-square" height="20"></td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/volume?coin=polkadot&label=Vol&style=flat-square" height="20"></td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/trend?coin=polkadot&label=Trend&style=flat-square" height="20"></td></tr>
-      <tr style="background-color:#f1f5f9;"><td style="padding:6px;">TRON (TRX)</td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=tron&label=TRX&logo=tron&style=flat-square" height="20"></td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/volume?coin=tron&label=Vol&style=flat-square" height="20"></td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/trend?coin=tron&label=Trend&style=flat-square" height="20"></td></tr>
-      <tr style="background-color:#f8fafc;"><td style="padding:6px;">Chainlink (LINK)</td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=chainlink&label=LINK&logo=chainlink&style=flat-square" height="20"></td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/volume?coin=chainlink&label=Vol&style=flat-square" height="20"></td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/trend?coin=chainlink&label=Trend&style=flat-square" height="20"></td></tr>
-      <tr style="background-color:#f1f5f9;"><td style="padding:6px;">Toncoin (TON)</td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=the-open-network&label=TON&logo=ton&style=flat-square" height="20"></td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/volume?coin=the-open-network&label=Vol&style=flat-square" height="20"></td><td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/trend?coin=the-open-network&label=Trend&style=flat-square" height="20"></td></tr>
-    </tbody>
-  </table>
-</div>
-
-- Crypto Market Mini Table with `Volume, Trend, Chart`
-
-<!-- Crypto Market Mini Table (Top 6 Coins, Safe for README) -->
-<div style="overflow-x:auto; max-width:100%;">
-  <table style="min-width:400px; width:100%; border-collapse:collapse; font-family:sans-serif; font-size:14px;">
-    <tr style="background-color:#0f172a; color:#fff;">
-      <th style="padding:8px; text-align:center;">Name</th>
-      <th style="padding:8px; text-align:center;">Price</th>
-      <th style="padding:8px; text-align:center;">Vol</th>
-      <th style="padding:8px; text-align:center;">Trend</th>
-      <th style="padding:8px; text-align:center;">Chart</th>
-    </tr>
-    <tr style="background-color:#f8fafc;">
-      <td style="padding:6px;">Bitcoin (BTC)</td>
-      <td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=bitcoin&label=BTC&logo=bitcoin&style=flat-square" height="20"></td>
-      <td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/volume?coin=bitcoin&label=Vol&style=flat-square" height="20"></td>
-      <td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/trend?coin=bitcoin&label=Trend&style=flat-square" height="20"></td>
-      <td style="padding:6px; text-align:right;"><img src="https://crypto-price-on.vercel.app/api/chart?coin=bitcoin" height="24"></td>
-    </tr>
-    <tr style="background-color:#f1f5f9;">
-      <td style="padding:6px;">Ethereum (ETH)</td>
-      <td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=ethereum&label=ETH&logo=ethereum&style=flat-square" height="20"></td>
-      <td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/volume?coin=ethereum&label=Vol&style=flat-square" height="20"></td>
-      <td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/trend?coin=ethereum&label=Trend&style=flat-square" height="20"></td>
-      <td style="padding:6px; text-align:right;"><img src="https://crypto-price-on.vercel.app/api/chart?coin=ethereum" height="24"></td>
-    </tr>
-    <tr style="background-color:#f8fafc;">
-      <td style="padding:6px;">BNB (BNB)</td>
-      <td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=binancecoin&label=BNB&logo=binance&style=flat-square" height="20"></td>
-      <td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/volume?coin=binancecoin&label=Vol&style=flat-square" height="20"></td>
-      <td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/trend?coin=binancecoin&label=Trend&style=flat-square" height="20"></td>
-      <td style="padding:6px; text-align:right;"><img src="https://crypto-price-on.vercel.app/api/chart?coin=binancecoin" height="24"></td>
-    </tr>
-    <tr style="background-color:#f1f5f9;">
-      <td style="padding:6px;">Solana (SOL)</td>
-      <td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=solana&label=SOL&logo=solana&style=flat-square" height="20"></td>
-      <td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/volume?coin=solana&label=Vol&style=flat-square" height="20"></td>
-      <td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/trend?coin=solana&label=Trend&style=flat-square" height="20"></td>
-      <td style="padding:6px; text-align:right;"><img src="https://crypto-price-on.vercel.app/api/chart?coin=solana" height="24"></td>
-    </tr>
-    <tr style="background-color:#f8fafc;">
-      <td style="padding:6px;">XRP (XRP)</td>
-      <td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=ripple&label=XRP&logo=ripple&style=flat-square" height="20"></td>
-      <td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/volume?coin=ripple&label=Vol&style=flat-square" height="20"></td>
-      <td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/trend?coin=ripple&label=Trend&style=flat-square" height="20"></td>
-      <td style="padding:6px; text-align:right;"><img src="https://crypto-price-on.vercel.app/api/chart?coin=ripple" height="24"></td>
-    </tr>
-    <tr style="background-color:#f1f5f9;">
-      <td style="padding:6px;">Cardano (ADA)</td>
-      <td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/prices?coin=cardano&label=ADA&logo=cardano&style=flat-square" height="20"></td>
-      <td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/volume?coin=cardano&label=Vol&style=flat-square" height="20"></td>
-      <td style="padding:6px; text-align:right;"><img src="https://img.shields.io/endpoint?url=https://crypto-price-on.vercel.app/api/trend?coin=cardano&label=Trend&style=flat-square" height="20"></td>
-      <td style="padding:6px; text-align:right;"><img src="https://crypto-price-on.vercel.app/api/chart?coin=cardano" height="24"></td>
-    </tr>
-  </table>
-</div>
 
 ---
-
  ## All in One Features 
 
 ![](https://crypto-price-on.vercel.app/api/info?theme=aurora)
@@ -161,16 +38,13 @@
 
 [![deisgoku](https://crypto-price-on.vercel.app/cards?user=nana&model=aurora&theme=aurora&coin=6&category=coinbase-50-index)](https://crypto-price-on.vercel.app/unlock)
 
-[![My Crypto Card](https://crypto-price-on.vercel.app/card?user=deisgoku&theme=dark&coin=5&category=meme-token)](https://crypto-price-on.vercel.app/unlock)
-
-[![ Your Username](https://crypto-price-on.vercel.app/cards?user=nana&model=modern&theme=aurora&coin=6&category=depin)](https://crypto-price-on.vercel.app/unlock)
+[![ CARD MODERN AURORA](https://crypto-price-on.vercel.app/cards?user=nana&model=modern&theme=aurora&coin=6&category=depin)](https://crypto-price-on.vercel.app/unlock)
 
 [![My Crypto Card](https://crypto-price-on.vercel.app/cards?user=deisgoku&model=futuristic&theme=tokyonight&coin=5&category=meme-token)](https://crypto-price-on.vercel.app/unlock)
 
 [![nana](https://crypto-price-on.vercel.app/cards?user=nana&model=classic&theme=light&coin=6&category=binance-smart-chain)](https://crypto-price-on.vercel.app/unlock)
 
 ---
-
 ## 🧠 The Idea
 
 Crypto is fast. Crypto is volatile.  
@@ -189,14 +63,71 @@ This project brings **real-time crypto prices** directly into your GitHub profil
 
 ---
 
-## 🎯 Goals
+# How to Use
 
-- Catch the eye of contributors, and fellow degens  
-- Inspire devs to make their GitHub profiles speak *who they are*  
-- Showcase what’s possible when code meets creativity
+## Features
+- No required coding this make simple
+- Select card model (Modern, Futuristic, Classic, Aurora)
+- Choose from multiple themes
+- Select data category (meme-token, dePin , Ai ,etc)
+- Generate and preview crypto cards
+- Copy the embed URL and MARKDOWN like '![YOURUSERNAME](url with query dropdown your chooise )'
+
+
+## Steps
+1. Open [App URL](https://crypto-price-on.vercel.app/unlock)
+2. Select your preferred model and theme
+3. Choose category filters
+4. Click **Generate Card**
+5. Copy the generated embed URL and use it anywhere
 
 ---
+# Customization Guide
 
+## Models
+- **Modern**: Minimal, balanced layout
+- **Futuristic**: Curved chart with glowing effects
+- **Classic**: Retro table with hover highlight
+- **Aurora**: Glassmorphism-inspired layout
+
+## Themes
+Choose from preset color schemes in `theme.js`. Each theme defines background, text, border, and trend colors.
+
+## Fonts
+The system uses preset font styles:
+- `fontRow`: monospace, 13px
+- `fontHeader`: Arial bold, 13px
+- `fontTitle`: Verdana bold, 14px
+- `fontFooter1`: Verdana bold, 12px
+- `fontFooter2`: sans-serif, 12px
+
+---
+# API Reference
+
+## Endpoint: `/api/cards`
+
+### Parameters
+- `user` : require user for this usage, so you must register first and login (unlock)
+- `model`: Layout style (modern, futuristic, etc.)
+- `theme`: Color theme (dark, neon, etc.)
+- `coin count`: Count  (1 Up to +100 and more)
+- `category`: Categoory data types (e.g meme-token , layer-1, layer-2, depin and etc)
+
+### Example Request
+```
+https://crypto-price-on.vercel.app/api/card?model=modern&theme=dark&category=price,chart
+```
+
+### Response
+Returns an SVG crypto card that can be embedded.
+
+
+## Other Internal APIs
+
+- `/api/prices`: Fetches historical price data
+- `/api/chart`: Fetches historical chart data
+
+---
 ## 🧑‍💻 Creator Spotlight
 
 **`@deisgoku`** —  
@@ -215,13 +146,44 @@ Founder of a Web3 education community.
 </p>
 
 ---
-## ⛓️ Want to contribute?
+# Contributing Guide
 
-Feel free to fork, star, and send a pull request. Open to ideas, collabs, or just say hi!
+
+
+## Steps
+1. Fork the repo
+2. Create a branch: `git checkout -b feature-name`
+3. Commit your changes
+4. Open a Pull Request
+
+## Suggestions
+- Fix bugs
+- Add new themes or models
+- Improve UI or UX
+- Help write better docs
+
+Please keep code clean and follow formatting used in the repo.
 
 ---
+# FAQ
+> Frequently Asked Questions (FAQ)
 
-## ☕ Tips for a cigarette and a cup of coffee 
+### Q: Can I embed the crypto card in my GitHub README?
+A: Yes! The SVG card URL is static and compatible with GitHub markdown.
+
+### Q: Is the data live?
+A: Yes, data is fetched in real-time from CoinGecko, Binance, and CMC.
+
+### Q: How do I preview my card?
+A: Use the unlock page to see a live draggable/resizable preview popup.
+
+### Q: Is there a way to support this project?
+A: Yes, you can support the project via Ko-fi: https://ko-fi.com/deisgoku
+
+---
+# Supports
+
+## ☕ --Tips for a cigarette-- and a cup of coffee 
 
 If you find this project helpful and want to support me:
 
