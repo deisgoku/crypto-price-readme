@@ -167,7 +167,9 @@ bot.on('callback_query', async ctx => {
   if (data.startsWith('theme:')) {
     const theme = data.split(':')[1];
     const { categories } = await getCategoryMarkdownList();
-    await updateSession(userId, { theme, categories, step: 'category' });
+	const allowed = categories.map(c => c.name);	
+	await updateSession(userId, { theme, allowedCategories: allowed, step: 'category' });
+
     return ctx.editMessageText('Pilih kategori:', Markup.inlineKeyboard(
       categories.map(c => Markup.button.callback(`📁 ${c.name}`, `category:${c.name}`)),
       { columns: 2 }
@@ -176,7 +178,8 @@ bot.on('callback_query', async ctx => {
 
   if (data.startsWith('category:')) {
     const category = data.split(':')[1];
-    const valid = session.categories?.some(c => c.name === category);
+    const valid = session.allowedCategories?.includes(category);
+
     if (!valid) return ctx.answerCbQuery('Kategori tidak valid.');
 
     await updateSession(userId, { category, step: 'coin' });
