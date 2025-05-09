@@ -12,8 +12,8 @@ const renderers = require('../lib/settings/model/list');
 const { redis } = require('../lib/follow-check');
 const { addAdmin, removeAdmin, isAdmin, listAdmins } = require('./admin');
 
-const SESSION_KEY = 'tg:sessions'; 
-const LINK_KEY = 'user_passwords';      
+const SESSION_KEY = 'tg:sessions';
+const LINK_KEY = 'user_passwords';
 const USER_SET = 'tg:users';
 
 const bot = new Telegraf(BOT_TOKEN);
@@ -30,8 +30,12 @@ async function getSession(userId) {
   } catch {
     session = {};
   }
-  const normalized = username.trim().toLowerCase();
-  session.username = await redis.hget(LINK_KEY, normalized, userId);
+
+  const linkedUsername = await redis.hget(LINK_KEY, userId);
+  if (linkedUsername) {
+    session.username = linkedUsername;
+  }
+
   return session;
 }
 
@@ -45,12 +49,16 @@ async function updateSession(userId, newData) {
 // ===== Bot Commands =====
 
 bot.start(ctx => {
-  ctx.reply(`Selamat datang di *Crypto Card Bot!*\n\nGunakan /card untuk membuat kartu crypto.\nGunakan /help untuk melihat perintah lain.`, { parse_mode: 'Markdown' });
+  ctx.reply(
+    `Selamat datang di *Crypto Card Bot!*\n\nGunakan /card untuk membuat kartu crypto.\nGunakan /help untuk melihat perintah lain.`,
+    { parse_mode: 'Markdown' }
+  );
 });
 
 bot.command('help', async ctx => {
   const { markdown } = await getCategoryMarkdownList();
-  ctx.reply(`*Perintah:*
+  ctx.reply(
+    `*Perintah:*
 /start - Mulai bot
 /help - Bantuan
 /card - Buat kartu crypto
@@ -65,7 +73,9 @@ bot.command('help', async ctx => {
 /broadcast <pesan>
 
 *Kategori:*
-${markdown}`, { parse_mode: 'Markdown' });
+${markdown}`,
+    { parse_mode: 'Markdown' }
+  );
 });
 
 // ===== Account Linkage =====
@@ -73,13 +83,22 @@ ${markdown}`, { parse_mode: 'Markdown' });
 bot.command('link', async ctx => {
   const userId = ctx.from.id.toString();
   const [_, username, password] = ctx.message.text.trim().split(' ');
-  if (!username || !password) return ctx.reply('Format: /link <username> <password>');
 
+  if (!username || !password) {
+    return ctx.reply('Format: /link <username> <password>');
+  }
 
   const normalized = username.trim().toLowerCase();
-  const storedHashedPassword = await redis.hget(KEYS.LINK_KEY, normalized);
-  if (!storedHashedPassword) return ctx.reply('Username tidak ditemukan.');
-  if (!(await bcrypt.compare(password, storedHashedPassword)) return ctx.reply('Password salah.');
+  const storedHashedPassword = await redis.hget(LINK_KEY, normalized);
+
+  if (!storedHashedPassword) {
+    return ctx.reply('Username tidak ditemukan.');
+  }
+
+  const match = await bcrypt.compare(password, storedHashedPassword);
+  if (!match) {
+    return ctx.reply('Password salah.');
+  }
 
   await redis.hset(LINK_KEY, userId, username);
   ctx.reply(`Berhasil terhubung dengan akun '${username}'`);
@@ -92,9 +111,12 @@ bot.command('unlink', async ctx => {
 
 bot.command('me', async ctx => {
   const username = await redis.hget(LINK_KEY, ctx.from.id.toString());
-  ctx.reply(username
-    ? `Akun kamu terhubung ke: *${username}*`
-    : 'Belum terhubung. Gunakan /link <username> <password>', { parse_mode: 'Markdown' });
+  ctx.reply(
+    username
+      ? `Akun kamu terhubung ke: *${username}*`
+      : 'Belum terhubung. Gunakan /link <username> <password>',
+    { parse_mode: 'Markdown' }
+  );
 });
 
 // ===== Admin Commands =====
@@ -102,8 +124,10 @@ bot.command('me', async ctx => {
 bot.command('addadmin', async ctx => {
   const fromId = ctx.from.id.toString();
   if (!(await isAdmin(fromId))) return ctx.reply('Kamu bukan admin.');
+
   const targetId = ctx.message.text.split(' ')[1];
   if (!targetId) return ctx.reply('Gunakan: /addadmin <userId>');
+
   await addAdmin(targetId);
   ctx.reply(`Admin ${targetId} ditambahkan.`);
 });
@@ -111,8 +135,10 @@ bot.command('addadmin', async ctx => {
 bot.command('removeadmin', async ctx => {
   const fromId = ctx.from.id.toString();
   if (!(await isAdmin(fromId))) return ctx.reply('Kamu bukan admin.');
+
   const targetId = ctx.message.text.split(' ')[1];
   if (!targetId) return ctx.reply('Gunakan: /removeadmin <userId>');
+
   await removeAdmin(targetId);
   ctx.reply(`Admin ${targetId} dihapus.`);
 });
@@ -120,8 +146,13 @@ bot.command('removeadmin', async ctx => {
 bot.command('admins', async ctx => {
   const fromId = ctx.from.id.toString();
   if (!(await isAdmin(fromId))) return ctx.reply('Kamu bukan admin.');
+
   const admins = await listAdmins();
-  ctx.reply(admins.length ? `Daftar Admin:\n${admins.map(id => `- ${id}`).join('\n')}` : 'Tidak ada admin.');
+  ctx.reply(
+    admins.length
+      ? `Daftar Admin:\n${admins.map(id => `- ${id}`).join('\n')}`
+      : 'Tidak ada admin.'
+  );
 });
 
 bot.command('broadcast', async ctx => {
@@ -130,16 +161,21 @@ bot.command('broadcast', async ctx => {
 
   const message = ctx.message.text.replace('/broadcast', '').trim();
   if (!message) return ctx.reply('Gunakan: /broadcast <pesan>');
+
   const userIds = await redis.smembers(USER_SET);
   let count = 0;
+
   for (const uid of userIds) {
     try {
-      await ctx.telegram.sendMessage(uid, `📡 *Broadcast:*\n${message}`, { parse_mode: 'Markdown' });
+      await ctx.telegram.sendMessage(uid, `📡 *Broadcast:*\n${message}`, {
+        parse_mode: 'Markdown'
+      });
       count++;
     } catch (e) {
       console.error(`Gagal kirim ke ${uid}`, e);
     }
   }
+
   ctx.reply(`Broadcast terkirim ke ${count} user.`);
 });
 
@@ -148,10 +184,13 @@ bot.command('broadcast', async ctx => {
 bot.command('card', async ctx => {
   const userId = ctx.from.id.toString();
   await updateSession(userId, { step: 'model' });
-  ctx.reply('Pilih model:', Markup.inlineKeyboard(
-    modelsName.map(m => Markup.button.callback(`🖼️ ${m}`, `model:${m}`)),
-    { columns: 2 }
-  ));
+  ctx.reply(
+    'Pilih model:',
+    Markup.inlineKeyboard(
+      modelsName.map(m => Markup.button.callback(`🖼️ ${m}`, `model:${m}`)),
+      { columns: 2 }
+    )
+  );
 });
 
 bot.on('callback_query', async ctx => {
@@ -160,23 +199,39 @@ bot.on('callback_query', async ctx => {
   const data = ctx.callbackQuery.data;
 
   if (data.startsWith('model:')) {
-    await updateSession(userId, { model: data.split(':')[1], step: 'theme' });
-    return ctx.editMessageText('Pilih theme:', Markup.inlineKeyboard(
-      themeNames.map(t => Markup.button.callback(`🎨 ${t}`, `theme:${t}`)),
-      { columns: 2 }
-    ));
+    await updateSession(userId, {
+      model: data.split(':')[1],
+      step: 'theme'
+    });
+    return ctx.editMessageText(
+      'Pilih theme:',
+      Markup.inlineKeyboard(
+        themeNames.map(t => Markup.button.callback(`🎨 ${t}`, `theme:${t}`)),
+        { columns: 2 }
+      )
+    );
   }
 
   if (data.startsWith('theme:')) {
     const theme = data.split(':')[1];
     const { categories } = await getCategoryMarkdownList();
-	const allowed = categories.map(c => c.name);	
-	await updateSession(userId, { theme, allowedCategories: allowed, step: 'category' });
+    const allowed = categories.map(c => c.name);
 
-    return ctx.editMessageText('Pilih kategori:', Markup.inlineKeyboard(
-      categories.map(c => Markup.button.callback(`📁 ${c.name}`, `category:${c.name}`)),
-      { columns: 2 }
-    ));
+    await updateSession(userId, {
+      theme,
+      allowedCategories: allowed,
+      step: 'category'
+    });
+
+    return ctx.editMessageText(
+      'Pilih kategori:',
+      Markup.inlineKeyboard(
+        categories.map(c =>
+          Markup.button.callback(`📁 ${c.name}`, `category:${c.name}`)
+        ),
+        { columns: 2 }
+      )
+    );
   }
 
   if (data.startsWith('category:')) {
