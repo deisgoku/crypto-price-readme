@@ -15,6 +15,7 @@ const { addAdmin, removeAdmin, isAdmin, listAdmins } = require('./admin');
 const SESSION_KEY = 'tg:sessions';
 const LINK_KEY = 'user_passwords';
 const USER_SET = 'tg:users';
+const GARAM = parseInt(process.env.GARAM || '10', 10);
 
 const bot = new Telegraf(BOT_TOKEN);
 const modelsName = Object.keys(renderers);
@@ -22,28 +23,28 @@ const themes = themeNames.join('\n');
 
 // ===== Session Helpers =====
 
+// Mendapatkan session dengan key yang sudah dinormalisasi
 async function getSession(userId) {
-  const raw = await redis.hget(SESSION_KEY, userId);
-  let session = {};
+  const normalized = userId.toString().trim().toLowerCase();
+  const raw = await redis.hget(SESSION_KEY, normalized);
   try {
-    session = raw ? JSON.parse(raw) : {};
+    return raw ? JSON.parse(raw) : {};
   } catch {
-    session = {};
+    return {};
   }
-
-  const linkedUsername = await redis.hget(LINK_KEY, userId);
-  if (linkedUsername) {
-    session.username = linkedUsername;
-  }
-
-  return session;
 }
 
-async function updateSession(userId, newData) {
-  const current = await getSession(userId);
-  const updated = { ...current, ...newData };
-  await redis.hset(SESSION_KEY, userId, JSON.stringify(updated));
-  await redis.sadd(USER_SET, userId);
+// Menyimpan atau memperbarui session dengan merge data
+async function updateSession(userId, newData = {}) {
+  const normalized = userId.toString().trim().toLowerCase();
+  const current = await getSession(normalized);
+  const updated = {
+    ...current,
+    ...newData
+  };
+  await redis.hset(SESSION_KEY, normalized, JSON.stringify(updated));
+  await redis.sadd(USER_SET, normalized);
+  return updated;
 }
 
 // ===== Bot Commands =====
@@ -99,8 +100,10 @@ bot.command('link', async ctx => {
   if (!match) {
     return ctx.reply('Password salah.');
   }
-
-  await redis.hset(LINK_KEY, userId, username);
+  
+  const normalized = username.trim().toLowerCase();
+  const hashedPassword = await bcrypt.hash(password, GARAM);
+  await redis.hset(LINK_KEY, { [normalized]: hashedPassword });
   ctx.reply(`Berhasil terhubung dengan akun '${username}'`);
 });
 
@@ -110,7 +113,8 @@ bot.command('unlink', async ctx => {
 });
 
 bot.command('me', async ctx => {
-  const username = await redis.hget(LINK_KEY, ctx.from.id.toString());
+  const normalized = username.trim().toLowerCase();
+  const username = await redis.hexists(LINK_KEY, normalized);
   ctx.reply(
     username
       ? `Akun kamu terhubung ke: *${username}*`
