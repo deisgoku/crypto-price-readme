@@ -40,7 +40,7 @@ function updateTempSession(userId, data) {
 // ===== Commands =====
 
 bot.start(ctx => {
-  ctx.reply(`Selamat datang di *Crypto Card Bot!*\n\nGunakan /card untuk membuat kartu crypto.\nGunakan /help untuk melihat perintah lain.`, { parse_mode: 'Markdown' });
+  ctx.reply(`Selamat datang di *Crypto Card Bot!*\n\nGunakan /card untuk membuat kartu crypto.\nnGunakan /help untuk melihat perintah lain.`, { parse_mode: 'Markdown' });
 });
 
 bot.command('help', async ctx => {
@@ -137,46 +137,45 @@ bot.command('broadcast', async ctx => {
 
 // ===== Card Flow =====
 
+// ===== Card Flow =====
 bot.command('card', async ctx => {
-  const userId = ctx.from.id.toString();
-  updateTempSession(userId, { step: 'model' });
-
   await ctx.reply('Pilih model:', Markup.inlineKeyboard(
-    modelsName.map(m => Markup.button.callback(`🖼️ ${m}`, `model:${m}`)), { columns: 2 }
+    modelsName.map(m => Markup.button.callback(`🖼️ ${m}`, `model:${m}`)),
+    { columns: 2 }
   ));
 });
 
 bot.on('callback_query', async ctx => {
-  const userId = ctx.from.id.toString();
-  const temp = getTempSession(userId);
   const data = ctx.callbackQuery.data;
 
+  // Handle model selection
   if (data.startsWith('model:')) {
     const model = data.split(':')[1];
-    await setField(userId, 'model', model);
-    updateTempSession(userId, { step: 'theme' });
 
+    // Store model in the callback state, asking for theme
     return ctx.editMessageText('Pilih theme:', Markup.inlineKeyboard(
-      themeNames.map(t => Markup.button.callback(`🎨 ${t}`, `theme:${t}`)), { columns: 2 }
+      themeNames.map(t => Markup.button.callback(`🎨 ${t}`, `theme:${t}`)),
+      { columns: 2 }
     ));
   }
 
+  // Handle theme selection
   if (data.startsWith('theme:')) {
     const theme = data.split(':')[1];
-    await setField(userId, 'theme', theme);
-    updateTempSession(userId, { step: 'category' });
 
+    // Store theme in the callback state, asking for category
     const { categories } = await getCategoryMarkdownList();
     return ctx.editMessageText('Pilih kategori:', Markup.inlineKeyboard(
-      categories.map(c => Markup.button.callback(`📁 ${c.name}`, `category:${c.category_id}`)), { columns: 2 }
+      categories.map(c => Markup.button.callback(`📁 ${c.name}`, `category:${c.category_id}`)),
+      { columns: 2 }
     ));
   }
 
+  // Handle category selection
   if (data.startsWith('category:')) {
     const category = data.split(':')[1];
-    await setField(userId, 'category', category);
-    updateTempSession(userId, { step: 'coin' });
 
+    // Ask for coin count
     return ctx.editMessageText('Masukkan jumlah coin (1-50):');
   }
 
@@ -184,32 +183,19 @@ bot.on('callback_query', async ctx => {
 });
 
 bot.on('text', async ctx => {
-  const userId = ctx.from.id.toString();
-  const temp = getTempSession(userId);
-  if (temp.step !== 'coin') return;
-
   const input = ctx.message.text.trim();
   const count = parseInt(input);
+
   if (isNaN(count) || count < 1 || count > 50) {
     return ctx.reply('Jumlah coin harus antara 1 - 50.');
   }
 
-  await setField(userId, 'coin', count);
+  // After receiving all data: model, theme, category, and coin count, build the URL
+  const model = ctx.callbackQuery.data.split(':')[1];
+  const theme = ctx.callbackQuery.data.split(':')[1];
+  const category = ctx.callbackQuery.data.split(':')[1];
+  const url = `${BASE_URL}?user=deisgoku&model=${model}&theme=${theme}&coin=${count}&category=${category}`;
 
-  let username = await getField(userId, 'username');
-  if (!username) {
-    const linked = await redis.get(LINK_PREFIX + userId);
-    username = linked || `tg-${userId}`;
-    await setField(userId, 'username', username);
-  }
-
-  const [model, theme, category] = await Promise.all([
-    getField(userId, 'model'),
-    getField(userId, 'theme'),
-    getField(userId, 'category'),
-  ]);
-
-  const url = `${BASE_URL}?user=${username}&model=${model}&theme=${theme}&coin=${count}&category=${category}`;
   try {
     const res = await fetch(url);
     const svg = await res.text();
@@ -217,12 +203,12 @@ bot.on('text', async ctx => {
     const png = resvg.render().asPng();
 
     await ctx.replyWithPhoto({ source: png }, {
-      caption: `🖼️ *Crypto Card*\nModel: ${model}\nTheme: ${theme}\nCoin: ${count}\nKategori: ${category}`,
+      caption: `🖼️ Kartu siap: *${model} - ${theme}*`,
       parse_mode: 'Markdown'
     });
   } catch (err) {
     console.error(err);
-    ctx.reply('Gagal mengambil gambar kartu.');
+    return ctx.reply('Gagal ambil kartu. Coba lagi nanti.');
   }
 });
 
