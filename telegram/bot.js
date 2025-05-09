@@ -25,8 +25,8 @@ const themes = themeNames.join('\n');
 
 // Mendapatkan session dengan key yang sudah dinormalisasi
 async function getSession(userId) {
-  const normalized = userId.toString().trim().toLowerCase();
-  const raw = await redis.hget(SESSION_KEY, normalized);
+  const normalizedGet = userId.toString().trim().toLowerCase();
+  const raw = await redis.hget(SESSION_KEY, normalizedGet);
   try {
     return raw ? JSON.parse(raw) : {};
   } catch {
@@ -36,14 +36,14 @@ async function getSession(userId) {
 
 // Menyimpan atau memperbarui session dengan merge data
 async function updateSession(userId, newData = {}) {
-  const normalized = userId.toString().trim().toLowerCase();
-  const current = await getSession(normalized);
+  const normalizedUpdt = userId.toString().trim().toLowerCase();
+  const current = await getSession(normalizedUpdt);
   const updated = {
     ...current,
     ...newData
   };
-  await redis.hset(SESSION_KEY, normalized, JSON.stringify(updated));
-  await redis.sadd(USER_SET, normalized);
+  await redis.hset(SESSION_KEY, normalizedUpdt, JSON.stringify(updated));
+  await redis.sadd(USER_SET, normalizedUpdt);
   return updated;
 }
 
@@ -89,8 +89,8 @@ bot.command('link', async ctx => {
     return ctx.reply('Format: /link <username> <password>');
   }
 
-  const normalized = username.trim().toLowerCase();
-  const storedHashedPassword = await redis.hget(LINK_KEY, normalized);
+  const normalizedUser = username.trim().toLowerCase();
+  const storedHashedPassword = await redis.hget(LINK_KEY, normalizedUser);
 
   if (!storedHashedPassword) {
     return ctx.reply('Username tidak ditemukan.');
@@ -101,9 +101,9 @@ bot.command('link', async ctx => {
     return ctx.reply('Password salah.');
   }
   
-  const normalized = username.trim().toLowerCase();
+  const normalizedPwd = username.trim().toLowerCase();
   const hashedPassword = await bcrypt.hash(password, GARAM);
-  await redis.hset(LINK_KEY, { [normalized]: hashedPassword });
+  await redis.hset(LINK_KEY, { [normalizedPwd]: hashedPassword });
   ctx.reply(`Berhasil terhubung dengan akun '${username}'`);
 });
 
@@ -113,8 +113,8 @@ bot.command('unlink', async ctx => {
 });
 
 bot.command('me', async ctx => {
-  const normalized = username.trim().toLowerCase();
-  const username = await redis.hexists(LINK_KEY, normalized);
+  const normalizedMe = username.trim().toLowerCase();
+  const username = await redis.hexists(LINK_KEY, normalizedMe);
   ctx.reply(
     username
       ? `Akun kamu terhubung ke: *${username}*`
