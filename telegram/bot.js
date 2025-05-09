@@ -188,7 +188,7 @@ bot.command('broadcast', async ctx => {
 // ===== Card Creation Flow =====
 
 bot.command('card', async ctx => {
-  const userId = `user:${ctx.from.id.toString()}`;
+  const userId = ctx.from.id; // Jangan tambahkan prefix manual!
   await updateSession(userId, { step: 'model' });
   ctx.reply(
     'Pilih model:',
@@ -200,7 +200,7 @@ bot.command('card', async ctx => {
 });
 
 bot.on('callback_query', async ctx => {
-  const userId = `user:${ctx.from.id.toString()}`;
+  const userId = ctx.from.id; // Jangan tambahkan 'user:' di sini!
   const session = await getSession(userId);
   const data = ctx.callbackQuery.data;
 
@@ -254,7 +254,7 @@ bot.on('callback_query', async ctx => {
 });
 
 bot.on('text', async ctx => {
-  const userId = `user:${ctx.from.id.toString()}`;
+  const userId = ctx.from.id; // Tetap konsisten
   const session = await getSession(userId);
   const input = ctx.message.text.trim();
 
