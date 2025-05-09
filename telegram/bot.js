@@ -9,7 +9,7 @@ const { BOT_TOKEN, BASE_URL } = require('./config');
 const { getCategoryMarkdownList } = require('./gecko');
 const { themeNames } = require('../lib/settings/model/theme');
 const renderers = require('../lib/settings/model/list');
-const { redis } = require('../lib/follow-check');
+const { redis } = require('../lib/redis');
 const { addAdmin, removeAdmin, isAdmin, listAdmins } = require('./admin');
 
 const SESSION_KEY = 'tg:sessions';
