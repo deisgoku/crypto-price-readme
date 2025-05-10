@@ -1,6 +1,10 @@
+// telegram/bot.js
+// author: deisgoku (refactored to store session only after completion)
+
 const { Telegraf, Markup } = require('telegraf');
 const fetch = require('node-fetch');
 const { Resvg } = require('@resvg/resvg-js');
+const bcrypt = require('bcrypt');
 const { BOT_TOKEN, BASE_URL } = require('./config');
 const { getCategoryMarkdownList } = require('./gecko');
 const { themeNames } = require('../lib/settings/model/theme');
@@ -8,85 +12,227 @@ const renderers = require('../lib/settings/model/list');
 const { redis } = require('../lib/redis');
 const { addAdmin, removeAdmin, isAdmin, listAdmins } = require('./admin');
 
+const LINK_KEY = 'user_passwords';
+const USER_SET = 'tg:users';
+const GARAM = parseInt(process.env.GARAM || '10', 10);
+
 const bot = new Telegraf(BOT_TOKEN);
+const modelsName = Object.keys(renderers);
+const themes = themeNames.join('\n');
 
-const SESSION_KEY = 'tg:sessions';
+const tempSession = new Map();
 
-async function getSession(userId) {
-  const session = await redis.hget(SESSION_KEY, userId);
-  return session ? JSON.parse(session) : {};
-}
+bot.start(ctx => {
+  ctx.reply(
+    `Selamat datang di *Crypto Card Bot!*\n\nGunakan /card untuk membuat kartu crypto.\nGunakan /help untuk melihat perintah lain.`,
+    { parse_mode: 'Markdown' }
+  );
+});
 
-async function setSession(userId, sessionData) {
-  await redis.hset(SESSION_KEY, userId, JSON.stringify(sessionData));
-}
+bot.command('help', async ctx => {
+  const { markdown } = await getCategoryMarkdownList();
+  ctx.reply(
+    `*Perintah:*
+/start - Mulai bot
+/help - Bantuan
+/card - Buat kartu crypto
+/link <username> <password> - Hubungkan akun
+/unlink - Putuskan akun
+/me - Info akun
 
-// Handler untuk memulai percakapan
-bot.start(async (ctx) => {
-  const userId = ctx.from.id;
-  await ctx.reply('Selamat datang! Silakan pilih model:', Markup.inlineKeyboard(
-    renderers.map(m => Markup.button.callback(`🖼️ ${m}`, `model:${m}`)),
+*Admin:*
+/addadmin <userId>
+/removeadmin <userId>
+/admins
+/broadcast <pesan>
+
+*Kategori:*
+${markdown}`,
+    { parse_mode: 'Markdown' }
+  );
+});
+
+bot.command('link', async ctx => {
+  const userId = ctx.from.id.toString();
+  const [_, username, password] = ctx.message.text.trim().split(' ');
+
+  if (!username || !password) {
+    return ctx.reply('Format: /link <username> <password>');
+  }
+
+  const normalizedUser = username.trim().toLowerCase();
+  const storedHashedPassword = await redis.hget(LINK_KEY, normalizedUser);
+
+  if (!storedHashedPassword) {
+    return ctx.reply('Username tidak ditemukan.');
+  }
+
+  const match = await bcrypt.compare(password, storedHashedPassword);
+  if (!match) {
+    return ctx.reply('Password salah.');
+  }
+
+  const hashedPassword = await bcrypt.hash(password, GARAM);
+  await redis.hset(LINK_KEY, { [normalizedUser]: hashedPassword });
+  ctx.reply(`Berhasil terhubung dengan akun '${username}'`);
+});
+
+bot.command('unlink', async ctx => {
+  await redis.hdel(LINK_KEY, ctx.from.id.toString());
+  ctx.reply('Akun Telegram kamu sudah di-unlink.');
+});
+
+bot.command('me', async ctx => {
+  const telegramUsername = ctx.from?.username?.trim().toLowerCase();
+  if (!telegramUsername) {
+    return ctx.reply('Username Telegram kamu tidak tersedia.');
+  }
+  const allUsernames = await redis.hkeys(LINK_KEY);
+  const isLinked = allUsernames.includes(telegramUsername);
+  ctx.reply(
+    isLinked
+      ? `Akun kamu terhubung ke: *${telegramUsername}*`
+      : 'Belum terhubung. Gunakan /link <username> <password>',
+    { parse_mode: 'Markdown' }
+  );
+});
+
+bot.command('addadmin', async ctx => {
+  const fromId = ctx.from.id.toString();
+  if (!(await isAdmin(fromId))) return ctx.reply('Kamu bukan admin.');
+
+  const targetId = ctx.message.text.split(' ')[1];
+  if (!targetId) return ctx.reply('Gunakan: /addadmin <userId>');
+
+  await addAdmin(targetId);
+  ctx.reply(`Admin ${targetId} ditambahkan.`);
+});
+
+bot.command('removeadmin', async ctx => {
+  const fromId = ctx.from.id.toString();
+  if (!(await isAdmin(fromId))) return ctx.reply('Kamu bukan admin.');
+
+  const targetId = ctx.message.text.split(' ')[1];
+  if (!targetId) return ctx.reply('Gunakan: /removeadmin <userId>');
+
+  await removeAdmin(targetId);
+  ctx.reply(`Admin ${targetId} dihapus.`);
+});
+
+bot.command('admins', async ctx => {
+  const fromId = ctx.from.id.toString();
+  if (!(await isAdmin(fromId))) return ctx.reply('Kamu bukan admin.');
+
+  const admins = await listAdmins();
+  ctx.reply(
+    admins.length
+      ? `Daftar Admin:\n${admins.map(id => `- ${id}`).join('\n')}`
+      : 'Tidak ada admin.'
+  );
+});
+
+bot.command('broadcast', async ctx => {
+  const fromId = ctx.from.id.toString();
+  if (!(await isAdmin(fromId))) return ctx.reply('Kamu bukan admin.');
+
+  const message = ctx.message.text.replace('/broadcast', '').trim();
+  if (!message) return ctx.reply('Gunakan: /broadcast <pesan>');
+
+  const userIds = await redis.smembers(USER_SET);
+  let count = 0;
+
+  for (const uid of userIds) {
+    try {
+      await ctx.telegram.sendMessage(uid, `\ud83d\udce1 *Broadcast:*\n${message}`, {
+        parse_mode: 'Markdown'
+      });
+      count++;
+    } catch (e) {
+      console.error(`Gagal kirim ke ${uid}`, e);
+    }
+  }
+
+  ctx.reply(`Broadcast terkirim ke ${count} user.`);
+});
+
+bot.command('card', async ctx => {
+  const userId = ctx.from.id.toString();
+  tempSession.set(userId, { step: 'model' });
+
+  await ctx.reply('Pilih model:', Markup.inlineKeyboard(
+    modelsName.map(m => Markup.button.callback(`\ud83d\uddbc\ufe0f ${m}`, `model:${m}`)),
     { columns: 2 }
   ));
 });
 
-// Handler untuk memilih model
-bot.action(/model:(.+)/, async (ctx) => {
-  const userId = ctx.from.id;
-  const model = ctx.match[1];
+bot.on('callback_query', async ctx => {
+  const userId = ctx.from.id.toString();
+  const session = tempSession.get(userId) || {};
+  const data = ctx.callbackQuery.data;
 
-  const session = await getSession(userId);
-  session.model = model;
-  await setSession(userId, session);
+  if (data.startsWith('model:')) {
+    session.model = data.split(':')[1];
+    session.step = 'theme';
+    tempSession.set(userId, session);
 
-  await ctx.editMessageText('Pilih theme:', Markup.inlineKeyboard(
-    themeNames.map(t => Markup.button.callback(`🎨 ${t}`, `theme:${t}`)),
-    { columns: 2 }
-  ));
+    await ctx.editMessageText('Pilih theme:', Markup.inlineKeyboard(
+      themeNames.map(t => Markup.button.callback(`\ud83c\udfa8 ${t}`, `theme:${t}`)),
+      { columns: 2 }
+    ));
+    return ctx.answerCbQuery();
+  }
+
+  if (data.startsWith('theme:')) {
+    session.theme = data.split(':')[1];
+    session.step = 'category';
+    tempSession.set(userId, session);
+
+    const { categories } = await getCategoryMarkdownList();
+    await ctx.editMessageText('Pilih kategori:', Markup.inlineKeyboard(
+      categories.map(c => Markup.button.callback(`\ud83d\udcc1 ${c.name}`, `category:${c.category_id}`)),
+      { columns: 2 }
+    ));
+    return ctx.answerCbQuery();
+  }
+
+  if (data.startsWith('category:')) {
+    const categoryId = data.split(':')[1].trim();
+    const { categories } = await getCategoryMarkdownList();
+    const category = categories.find(c => c.category_id === categoryId);
+    if (!category) {
+      return ctx.answerCbQuery('⚠️ Kategori tidak valid.', { show_alert: true });
+    }
+
+    session.category = category.category_id;
+    session.step = 'coin';
+    tempSession.set(userId, session);
+
+    await ctx.editMessageText('Masukkan jumlah coin (1-50):');
+    return ctx.answerCbQuery();
+  }
+
+  await ctx.answerCbQuery();
 });
 
-// Handler untuk memilih theme
-bot.action(/theme:(.+)/, async (ctx) => {
-  const userId = ctx.from.id;
-  const theme = ctx.match[1];
+bot.on('text', async ctx => {
+  const userId = ctx.from.id.toString();
+  const session = tempSession.get(userId);
+  if (!session || session.step !== 'coin') return;
 
-  const session = await getSession(userId);
-  session.theme = theme;
-  await setSession(userId, session);
+  const input = ctx.message.text.trim();
+  const count = parseInt(input);
+  if (count < 1 || count > 50) {
+    return ctx.reply('Jumlah coin harus antara 1 - 50.');
+  }
 
-  const categories = await getCategoryMarkdownList();
-  await ctx.editMessageText('Pilih kategori:', Markup.inlineKeyboard(
-    categories.map(c => Markup.button.callback(`📁 ${c.name}`, `category:${c.category_id}`)),
-    { columns: 2 }
-  ));
-});
+  session.coin = count;
+  session.step = 'done';
+  session.username = ctx.from?.username?.trim().toLowerCase() || `tg-${userId}`;
 
-// Handler untuk memilih kategori
-bot.action(/category:(\d+)/, async (ctx) => {
-  const userId = ctx.from.id;
-  const categoryId = ctx.match[1];
+  await redis.set(`card:${userId}`, JSON.stringify(session), { ex: 3600 });
+  await redis.sadd(USER_SET, userId);
 
-  const session = await getSession(userId);
-  session.category = categoryId;
-  await setSession(userId, session);
-
-  await ctx.editMessageText('Pilih jumlah coin:', Markup.inlineKeyboard(
-    [1, 5, 10, 25].map(c => Markup.button.callback(`💰 ${c}`, `coin:${c}`)),
-    { columns: 4 }
-  ));
-});
-
-// Handler untuk memilih jumlah coin
-bot.action(/coin:(\d+)/, async (ctx) => {
-  const userId = ctx.from.id;
-  const coin = parseInt(ctx.match[1], 10);
-
-  const session = await getSession(userId);
-  session.coin = coin;
-  await setSession(userId, session);
-
-  const { username, model, theme, category, coin: selectedCoin } = session;
-  const url = `${BASE_URL}?user=${username}&model=${model}&theme=${theme}&coin=${selectedCoin}&category=${category}`;
+  const url = `${BASE_URL}?user=${session.username}&model=${session.model}&theme=${session.theme}&coin=${session.coin}&category=${session.category}`;
 
   try {
     const res = await fetch(url);
@@ -95,14 +241,15 @@ bot.action(/coin:(\d+)/, async (ctx) => {
     const png = resvg.render().asPng();
 
     await ctx.replyWithPhoto({ source: png }, {
-      caption: `🖼️ Kartu siap: *${model} - ${theme}*`,
+      caption: `\ud83d\uddbc\ufe0f Kartu siap: *${session.model} - ${session.theme}*`,
       parse_mode: 'Markdown'
     });
   } catch (err) {
     console.error('Gagal membuat kartu:', err);
     ctx.reply('Terjadi kesalahan saat membuat kartu.');
   }
+
+  tempSession.delete(userId);
 });
 
-// Start bot
 module.exports = { bot };
