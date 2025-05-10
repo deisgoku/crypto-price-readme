@@ -115,15 +115,23 @@ bot.command('unlink', async ctx => {
 });
 
 bot.command('me', async ctx => {
-  const normalizedMe = username.trim().toLowerCase();
-  const username = await redis.hexists(LINK_KEY, normalizedMe);
+  const telegramUsername = ctx.from?.username?.trim().toLowerCase();
+
+  if (!telegramUsername) {
+    return ctx.reply('Username Telegram kamu tidak tersedia atau tidak sama dengan twiter. Pastikan akun Telegram kamu punya username.');
+  }
+
+  const allUsernames = await redis.hkeys(LINK_KEY);
+  const isLinked = allUsernames.includes(telegramUsername);
+
   ctx.reply(
-    username
-      ? `Akun kamu terhubung ke: *${username}*`
+    isLinked
+      ? `Akun kamu terhubung ke: *${telegramUsername}*`
       : 'Belum terhubung. Gunakan /link <username> <password>',
     { parse_mode: 'Markdown' }
   );
 });
+
 
 // ===== Admin Commands =====
 
