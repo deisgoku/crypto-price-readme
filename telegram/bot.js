@@ -220,7 +220,7 @@ bot.on('callback_query', async ctx => {
   if (data.startsWith('theme:')) {
     const theme = data.split(':')[1];
     const { categories } = await getCategoryMarkdownList();
-    await updateSession(userId, {model, theme, step: 'category' });
+    await updateSession(userId, {theme, step: 'category' });
 
     return ctx.editMessageText('Pilih kategori:', Markup.inlineKeyboard(
       categories.map(c => Markup.button.callback(`📁 ${c.name}`, `category:${c.category_id}`)),
