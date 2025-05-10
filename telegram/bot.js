@@ -24,7 +24,7 @@ const themes = themeNames.join('\n');
 const tempSession = new Map();
 
 registerAdminCommands(bot);
-require('./link')(bot);
+require('./auth')(bot);
 
 bot.start(ctx => {
   ctx.reply(
