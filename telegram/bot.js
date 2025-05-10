@@ -1,9 +1,9 @@
 // telegram/bot.js
-// author: deisgoku (refactored to store session only after completion)
+// author: deisgoku (refactored with Puppeteer svgToPng)
 
 const { Telegraf, Markup } = require('telegraf');
 const fetch = require('node-fetch');
-const { Resvg } = require('@resvg/resvg-js');
+const puppeteer = require('puppeteer');
 const bcrypt = require('bcrypt');
 const { BOT_TOKEN, BASE_URL } = require('./config');
 const { getCategoryMarkdownList } = require('./gecko');
@@ -21,6 +21,19 @@ const modelsName = Object.keys(renderers);
 const themes = themeNames.join('\n');
 
 const tempSession = new Map();
+
+// Fungsi konversi SVG ke PNG menggunakan Puppeteer
+async function svgToPng(svg) {
+  const browser = await puppeteer.launch({
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
+  const page = await browser.newPage();
+  await page.setContent(`<html><body>${svg}</body></html>`);
+  const element = await page.$('svg');
+  const pngBuffer = await element.screenshot();
+  await browser.close();
+  return pngBuffer;
+}
 
 bot.start(ctx => {
   ctx.reply(
@@ -237,8 +250,7 @@ bot.on('text', async ctx => {
   try {
     const res = await fetch(url);
     const svg = await res.text();
-    const resvg = new Resvg(svg);
-    const png = resvg.render().asPng();
+    const png = await svgToPng(svg);
 
     await ctx.replyWithPhoto({ source: png }, {
       caption: `\ud83d\uddbc\ufe0f Kartu siap: *${session.model} - ${session.theme}*`,
