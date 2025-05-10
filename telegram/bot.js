@@ -1,16 +1,11 @@
-// telegram/bot.js
-// author: deisgoku
-
 const { Telegraf, Markup } = require('telegraf');
 const fetch = require('node-fetch');
 const { Resvg } = require('@resvg/resvg-js');
-const bcrypt = require('bcrypt');
 const { BOT_TOKEN, BASE_URL } = require('./config');
 const { getCategoryMarkdownList } = require('./gecko');
 const { themeNames } = require('../lib/settings/model/theme');
 const renderers = require('../lib/settings/model/list');
 const { redis } = require('../lib/redis');
-const { addAdmin, removeAdmin, isAdmin, listAdmins } = require('./admin');
 
 const SESSION_PREFIX = 'tg:session:';
 const LINK_PREFIX = 'tg:link:';
@@ -33,15 +28,21 @@ async function getSession(userId) {
 
 async function updateSession(userId, newData) {
   const key = SESSION_PREFIX + userId;
-  const existing = await getSession(userId);
-  const merged = { ...existing, ...newData };
 
-  if (!merged.username) {
-    const linked = await redis.get(LINK_PREFIX + userId);
-    merged.username = linked || `tg-${userId}`;
-  }
+  // Baca data lama
+  const oldData = await getSession(userId);
 
+  // Gabungkan data lama dengan data baru, pastikan data penting tetap terjaga
+  const merged = {
+    ...oldData,
+    ...newData,
+    username: oldData.username || newData.username || `tg-${userId}`, // pastikan username ada
+  };
+
+  // Update ke Redis (hanya data yang baru atau berubah saja yang ditambahkan)
   await redis.set(key, JSON.stringify(merged), { ex: 3600 });
+
+  // Menambahkan user ke set pengguna jika belum ada
   await redis.sadd(USER_SET, userId);
 }
 
@@ -72,77 +73,6 @@ bot.command('help', async ctx => {
 ${markdown}`, { parse_mode: 'Markdown' });
 });
 
-bot.command('link', async ctx => {
-  const [username, password] = ctx.message.text.split(' ').slice(1);
-  const userId = ctx.from.id.toString();
-  if (!username || !password) return ctx.reply('Format: /link <username> <password>');
-
-  const hash = await redis.get(`user:${username}`);
-  if (!hash) return ctx.reply('Username tidak ditemukan.');
-  if (!(await bcrypt.compare(password, hash))) return ctx.reply('Password salah.');
-
-  await redis.set(LINK_PREFIX + userId, username);
-  ctx.reply(`Berhasil terhubung dengan akun '${username}'`);
-});
-
-bot.command('unlink', async ctx => {
-  await redis.del(LINK_PREFIX + ctx.from.id.toString());
-  ctx.reply('Akun Telegram kamu sudah di-unlink.');
-});
-
-bot.command('me', async ctx => {
-  const linked = await redis.get(LINK_PREFIX + ctx.from.id.toString());
-  ctx.reply(linked ? `Akun kamu terhubung ke: *${linked}*` : 'Belum terhubung. Gunakan /link <username> <password>', { parse_mode: 'Markdown' });
-});
-
-// ===== Admin =====
-
-bot.command('addadmin', async ctx => {
-  const fromId = ctx.from.id.toString();
-  if (!(await isAdmin(fromId))) return ctx.reply('Kamu bukan admin.');
-  const targetId = ctx.message.text.split(' ')[1];
-  if (!targetId) return ctx.reply('Gunakan: /addadmin <userId>');
-  await addAdmin(targetId);
-  ctx.reply(`Admin ${targetId} ditambahkan.`);
-});
-
-bot.command('removeadmin', async ctx => {
-  const fromId = ctx.from.id.toString();
-  if (!(await isAdmin(fromId))) return ctx.reply('Kamu bukan admin.');
-  const targetId = ctx.message.text.split(' ')[1];
-  if (!targetId) return ctx.reply('Gunakan: /removeadmin <userId>');
-  await removeAdmin(targetId);
-  ctx.reply(`Admin ${targetId} dihapus.`);
-});
-
-bot.command('admins', async ctx => {
-  const fromId = ctx.from.id.toString();
-  if (!(await isAdmin(fromId))) return ctx.reply('Kamu bukan admin.');
-  const admins = await listAdmins();
-  ctx.reply(admins.length ? `Daftar Admin:\n${admins.map(id => `- ${id}`).join('\n')}` : 'Tidak ada admin.');
-});
-
-bot.command('broadcast', async ctx => {
-  const fromId = ctx.from.id.toString();
-  if (!(await isAdmin(fromId))) return ctx.reply('Kamu bukan admin.');
-
-  const message = ctx.message.text.replace('/broadcast', '').trim();
-  if (!message) return ctx.reply('Gunakan: /broadcast <pesan>');
-  const userIds = await redis.smembers(USER_SET);
-  let count = 0;
-  for (const uid of userIds) {
-    try {
-      await ctx.telegram.sendMessage(uid, `📡 *Broadcast:*\n${message}`, { parse_mode: 'Markdown' });
-      count++;
-    } catch (e) {
-      console.error(`Gagal kirim ke ${uid}`, e);
-    }
-  }
-  ctx.reply(`Broadcast terkirim ke ${count} user.`);
-});
-
-// ===== Card Flow =====
-
 // ===== Card Flow =====
 
 bot.command('card', async ctx => {
@@ -162,7 +92,8 @@ bot.on('callback_query', async ctx => {
 
   switch (type) {
     case 'model': {
-      await updateSession(userId, { step: 'theme', model: value });
+      // Simpan model yang dipilih
+      await updateSession(userId, { model: value });
       return ctx.editMessageText('Pilih theme:', Markup.inlineKeyboard(
         themeNames.map(t => Markup.button.callback(`🎨 ${t}`, `theme:${t}`)),
         { columns: 2 }
@@ -170,7 +101,8 @@ bot.on('callback_query', async ctx => {
     }
 
     case 'theme': {
-      await updateSession(userId, { step: 'category', theme: value });
+      // Simpan theme yang dipilih
+      await updateSession(userId, { theme: value });
       const { categories } = await getCategoryMarkdownList();
       return ctx.editMessageText('Pilih kategori:', Markup.inlineKeyboard(
         categories.map(c => Markup.button.callback(`📁 ${c.name}`, `category:${c.category_id}`)),
@@ -179,7 +111,8 @@ bot.on('callback_query', async ctx => {
     }
 
     case 'category': {
-      await updateSession(userId, { step: 'coin', category: value.trim() });
+      // Simpan kategori yang dipilih
+      await updateSession(userId, { category: value.trim() });
       return ctx.editMessageText('Masukkan jumlah coin (1-50):');
     }
 
@@ -219,7 +152,7 @@ bot.on('text', async ctx => {
     ctx.reply('Gagal ambil kartu. Coba lagi nanti.');
   }
 
-  await redis.del(SESSION_PREFIX + userId);
+  await redis.del(SESSION_PREFIX + userId); // Hapus sesi setelah selesai
 });
 
 module.exports = { bot };
