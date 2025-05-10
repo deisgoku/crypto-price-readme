@@ -229,14 +229,14 @@ bot.on('callback_query', async ctx => {
 
   await updateSession(userId, { [key]: value, ...(nextStep && { step: nextStep }) });
 
-  if (key === 'model') {
+  if (key === 'theme') {
     return ctx.editMessageText('Pilih theme:', Markup.inlineKeyboard(
       themeNames.map(t => Markup.button.callback(`🎨 ${t}`, `theme:${t}`)),
       { columns: 2 }
     ));
   }
 
-  if (key === 'theme') {
+  if (key === 'category') {
     const { categories } = await getCategoryMarkdownList();
     return ctx.editMessageText('Pilih kategori:', Markup.inlineKeyboard(
       categories.map(c => Markup.button.callback(`📁 ${c.name}`, `category:${c.category_id}`)),
@@ -244,7 +244,7 @@ bot.on('callback_query', async ctx => {
     ));
   }
 
-  if (key === 'category') {
+  if (key === 'coin') {
     return ctx.editMessageText('Masukkan jumlah coin (1-50):');
   }
 
