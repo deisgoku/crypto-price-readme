@@ -194,8 +194,7 @@ bot.command('broadcast', async ctx => {
 bot.command('card', async ctx => {
   const userId = ctx.from.id.toString();
   const session = await getSession(userId);
-  session.step = 'model';
-  await updateSession(userId, session);
+  await updateSession(userId, { ...session, step: 'model' });
 
   await ctx.reply('Pilih model:', Markup.inlineKeyboard(
     modelsName.map(m => Markup.button.callback(`🖼️ ${m}`, `model:${m}`)),
@@ -208,10 +207,10 @@ bot.on('callback_query', async ctx => {
   const session = await getSession(userId);
   const data = ctx.callbackQuery.data;
 
+  // Model selection
   if (data.startsWith('model:')) {
-    session.model = data.split(':')[1];
-    session.step = 'theme';
-    await updateSession(userId, session);
+    const model = data.split(':')[1];
+    await updateSession(userId, { ...session, model, step: 'theme' });
 
     return ctx.editMessageText('Pilih theme:', Markup.inlineKeyboard(
       themeNames.map(t => Markup.button.callback(`🎨 ${t}`, `theme:${t}`)),
@@ -219,12 +218,11 @@ bot.on('callback_query', async ctx => {
     ));
   }
 
+  // Theme selection
   if (data.startsWith('theme:')) {
-    session.theme = data.split(':')[1];
-    session.step = 'category';
-    await updateSession(userId, session);
-
+    const theme = data.split(':')[1];
     const { categories } = await getCategoryMarkdownList();
+    await updateSession(userId, { ...session, theme, step: 'category' });
 
     return ctx.editMessageText('Pilih kategori:', Markup.inlineKeyboard(
       categories.map(c => Markup.button.callback(`📁 ${c.name}`, `category:${c.category_id}`)),
@@ -232,6 +230,7 @@ bot.on('callback_query', async ctx => {
     ));
   }
 
+  // Category selection
   if (data.startsWith('category:')) {
     const categoryId = data.split(':')[1].trim();
     const { categories } = await getCategoryMarkdownList();
@@ -241,9 +240,7 @@ bot.on('callback_query', async ctx => {
       return ctx.answerCbQuery('⚠️ Kategori tidak valid.', { show_alert: true });
     }
 
-    session.category = category.category_id;
-    session.step = 'coin';
-    await updateSession(userId, session);
+    await updateSession(userId, { ...session, category: category.category_id, step: 'coin' });
 
     return ctx.editMessageText('Masukkan jumlah coin (1-50):');
   }
@@ -258,16 +255,14 @@ bot.on('text', async ctx => {
 
   if (session.step === 'coin') {
     const count = parseInt(input);
-    if (count < 1 || count > 50) {
+    if (isNaN(count) || count < 1 || count > 50) {
       return ctx.reply('Jumlah coin harus antara 1 - 50.');
     }
 
-    session.coin = count;
-    session.step = 'done';
-    await updateSession(userId, session);
+    await updateSession(userId, { ...session, coin: count, step: 'done' });
 
-    const { username, model, theme, category: sessionCategory, coin } = session;
-    const url = `${BASE_URL}?user=${username}&model=${model}&theme=${theme}&coin=${coin}&category=${sessionCategory}`;
+    const { username, model, theme, category, coin } = await getSession(userId);
+    const url = `${BASE_URL}?user=${username}&model=${model}&theme=${theme}&coin=${coin}&category=${category}`;
 
     try {
       const res = await fetch(url);
