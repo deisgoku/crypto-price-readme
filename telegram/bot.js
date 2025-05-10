@@ -18,29 +18,26 @@ const modelsName = Object.keys(renderers);
 // ===== Session Helpers =====
 
 async function getSession(userId) {
-  const raw = await redis.get(SESSION_PREFIX + userId);
-  try {
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
+  const key = SESSION_PREFIX + userId;
+  const data = await redis.hgetall(key); // Mendapatkan seluruh field dalam Redis Hash
+  return data ? data : {};
 }
 
 async function updateSession(userId, newData) {
   const key = SESSION_PREFIX + userId;
 
-  // Baca data lama
-  const oldData = await getSession(userId);
+  // Update hanya field yang diperlukan di Redis Hash
+  for (const [field, value] of Object.entries(newData)) {
+    await redis.hset(key, field, value); // Mengupdate hanya field yang diperlukan
+  }
 
-  // Gabungkan data lama dengan data baru, pastikan data penting tetap terjaga
-  const merged = {
-    ...oldData,
-    ...newData,
-    username: oldData.username || newData.username || `tg-${userId}`, // pastikan username ada
-  };
-
-  // Update ke Redis (hanya data yang baru atau berubah saja yang ditambahkan)
-  await redis.set(key, JSON.stringify(merged), { ex: 3600 });
+  // Pastikan username tetap ada
+  const username = await redis.hget(key, 'username');
+  if (!username) {
+    const linked = await redis.get(LINK_PREFIX + userId);
+    const userNameToSave = linked || `tg-${userId}`;
+    await redis.hset(key, 'username', userNameToSave);
+  }
 
   // Menambahkan user ke set pengguna jika belum ada
   await redis.sadd(USER_SET, userId);
