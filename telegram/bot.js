@@ -189,6 +189,8 @@ bot.command('broadcast', async ctx => {
   ctx.reply(`Broadcast terkirim ke ${count} user.`);
 });
 
+
+
 // ===== Card Creation Flow =====
 
 bot.command('card', async ctx => {
@@ -205,41 +207,44 @@ bot.on('callback_query', async ctx => {
   const userId = ctx.from.id.toString();
   const data = ctx.callbackQuery.data;
 
-  // Model selection
-  if (data.startsWith('model:')) {
-    const model = data.split(':')[1];
-    await updateSession(userId, { model, step: 'theme' });
+  const [key, value] = data.split(':');
+  let nextStep = null;
 
+  if (key === 'model') {
+    nextStep = 'theme';
+  } else if (key === 'theme') {
+    nextStep = 'category';
+  } else if (key === 'category') {
+    nextStep = 'coin';
+  }
+
+  // Tangani kategori khusus
+  if (key === 'category') {
+    const { categories } = await getCategoryMarkdownList();
+    const category = categories?.find(c => c.category_id === value);
+    if (!category) {
+      return ctx.answerCbQuery('⚠️ Kategori tidak valid.', { show_alert: true });
+    }
+  }
+
+  await updateSession(userId, { [key]: value, ...(nextStep && { step: nextStep }) });
+
+  if (key === 'model') {
     return ctx.editMessageText('Pilih theme:', Markup.inlineKeyboard(
       themeNames.map(t => Markup.button.callback(`🎨 ${t}`, `theme:${t}`)),
       { columns: 2 }
     ));
   }
 
-  // Theme selection
-  if (data.startsWith('theme:')) {
-    const theme = data.split(':')[1];
+  if (key === 'theme') {
     const { categories } = await getCategoryMarkdownList();
-    await updateSession(userId, {theme, step: 'category' });
-
     return ctx.editMessageText('Pilih kategori:', Markup.inlineKeyboard(
       categories.map(c => Markup.button.callback(`📁 ${c.name}`, `category:${c.category_id}`)),
       { columns: 2 }
     ));
   }
 
-  // Category selection
-  if (data.startsWith('category:')) {
-    const categoryId = data.split(':')[1].trim();
-    const { categories } = await getCategoryMarkdownList();
-    const category = categories?.find(c => c.category_id === categoryId);
-
-    if (!category) {
-      return ctx.answerCbQuery('⚠️ Kategori tidak valid.', { show_alert: true });
-    }
-
-    await updateSession(userId, { category: category.category_id, step: 'coin' });
-
+  if (key === 'category') {
     return ctx.editMessageText('Masukkan jumlah coin (1-50):');
   }
 
