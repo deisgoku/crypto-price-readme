@@ -170,7 +170,7 @@ bot.command('broadcast', async ctx => {
   if (!(await isAdmin(fromId))) return ctx.reply('Kamu bukan admin.');
 
   const message = ctx.message.text.replace('/broadcast', '').trim();
-  if (!message) return ctx.reply('Gunakan: /broadcast <pesan>');
+  if (!message) return ctx.reply('Gunakan: /broadcast <pesan>')
 
   const userIds = await redis.smembers(USER_SET);
   let count = 0;
@@ -188,55 +188,6 @@ bot.command('broadcast', async ctx => {
 
   ctx.reply(`Broadcast terkirim ke ${count} user.`);
 });
-
-// ===== Card Creation Flow =====
-
-// telegram/bot.js
-// author: deisgoku
-
-const { Telegraf, Markup } = require('telegraf');
-const fetch = require('node-fetch');
-const { Resvg } = require('@resvg/resvg-js');
-const bcrypt = require('bcrypt');
-const { BOT_TOKEN, BASE_URL } = require('./config');
-const { getCategoryMarkdownList } = require('./gecko');
-const { themeNames } = require('../lib/settings/model/theme');
-const renderers = require('../lib/settings/model/list');
-const { redis } = require('../lib/redis');
-const { addAdmin, removeAdmin, isAdmin, listAdmins } = require('./admin');
-
-const SESSION_KEY = 'tg:sessions';
-const LINK_KEY = 'user_passwords';
-const USER_SET = 'tg:users';
-const GARAM = parseInt(process.env.GARAM || '10', 10);
-
-const bot = new Telegraf(BOT_TOKEN);
-const modelsName = Object.keys(renderers);
-
-// ===== Session Helpers =====
-
-async function getSession(userId) {
-  const raw = await redis.get(SESSION_KEY + userId);
-  let session = {};
-  try {
-    session = raw ? JSON.parse(raw) : {};
-  } catch {
-    session = {};
-  }
-  session.username = await redis.get(USER_SET + userId) || `tg-${userId}`;
-  return session;
-}
-
-async function setSession(userId, data) {
-  await redis.set(SESSION_KEY + userId, JSON.stringify(data), { ex: 3600 });
-  await redis.sadd(USER_SET, userId);
-}
-
-async function updateSession(userId, newData) {
-  const current = await getSession(userId);
-  const updated = { ...current, ...newData };
-  await setSession(userId, updated);
-}
 
 // ===== Card Creation Flow =====
 
