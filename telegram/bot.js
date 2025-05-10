@@ -23,30 +23,27 @@ const themes = themeNames.join('\n');
 
 // ===== Session Helpers =====
 
-function normalizeUserId(userId) {
-  return `tg:${userId.toString().trim()}`;
-}
-
 async function getSession(userId) {
-  const key = normalizeUserId(userId);
-  const raw = await redis.hget(SESSION_KEY, key);
+  const raw = await redis.get(SESSION_KEY + userId);
   let session = {};
   try {
     session = raw ? JSON.parse(raw) : {};
   } catch {
     session = {};
   }
-  session.username = session.username || key;
+  session.username = await redis.get(USER_SET + userId) || `tg-${userId}`;
   return session;
 }
 
-async function updateSession(userId, newData = {}) {
-  const key = normalizeUserId(userId);
+async function setSession(userId, data) {
+  await redis.set(SESSION_KEY + userId, JSON.stringify(data), { ex: 3600 });
+  await redis.sadd(USER_SET, userId);
+}
+
+async function updateSession(userId, newData) {
   const current = await getSession(userId);
   const updated = { ...current, ...newData };
-  await redis.hset(SESSION_KEY, key, JSON.stringify(updated));
-  await redis.sadd(USER_SET, key);
-  return updated;
+  await setSession(userId, updated);
 }
 
 // ===== Bot Commands =====
@@ -103,10 +100,9 @@ bot.command('link', async ctx => {
     return ctx.reply('Password salah.');
   }
 
-  const normalizedPwd = normalizedUser;
+  const normalizedPwd = username.trim().toLowerCase();
   const hashedPassword = await bcrypt.hash(password, GARAM);
   await redis.hset(LINK_KEY, { [normalizedPwd]: hashedPassword });
-
   ctx.reply(`Berhasil terhubung dengan akun '${username}'`);
 });
 
@@ -119,7 +115,7 @@ bot.command('me', async ctx => {
   const telegramUsername = ctx.from?.username?.trim().toLowerCase();
 
   if (!telegramUsername) {
-    return ctx.reply('Username Telegram kamu tidak tersedia atau tidak sama dengan twitter. Pastikan akun Telegram kamu punya username.');
+    return ctx.reply('Username Telegram kamu tidak tersedia atau tidak sama dengan twiter. Pastikan akun Telegram kamu punya username.');
   }
 
   const allUsernames = await redis.hkeys(LINK_KEY);
@@ -201,13 +197,10 @@ bot.command('card', async ctx => {
   session.step = 'model';
   await updateSession(userId, session);
 
-  await ctx.reply(
-    'Pilih model:',
-    Markup.inlineKeyboard(
-      modelsName.map(m => Markup.button.callback(`🖼️ ${m}`, `model:${m}`)),
-      { columns: 2 }
-    )
-  );
+  await ctx.reply('Pilih model:', Markup.inlineKeyboard(
+    modelsName.map(m => Markup.button.callback(`🖼️ ${m}`, `model:${m}`)),
+    { columns: 2 }
+  ));
 });
 
 bot.on('callback_query', async ctx => {
@@ -220,13 +213,10 @@ bot.on('callback_query', async ctx => {
     session.step = 'theme';
     await updateSession(userId, session);
 
-    return ctx.editMessageText(
-      'Pilih theme:',
-      Markup.inlineKeyboard(
-        themeNames.map(t => Markup.button.callback(`🎨 ${t}`, `theme:${t}`)),
-        { columns: 2 }
-      )
-    );
+    return ctx.editMessageText('Pilih theme:', Markup.inlineKeyboard(
+      themeNames.map(t => Markup.button.callback(`🎨 ${t}`, `theme:${t}`)),
+      { columns: 2 }
+    ));
   }
 
   if (data.startsWith('theme:')) {
@@ -236,13 +226,10 @@ bot.on('callback_query', async ctx => {
 
     const { categories } = await getCategoryMarkdownList();
 
-    return ctx.editMessageText(
-      'Pilih kategori:',
-      Markup.inlineKeyboard(
-        categories.map(c => Markup.button.callback(`📁 ${c.name}`, `category:${c.category_id}`)),
-        { columns: 2 }
-      )
-    );
+    return ctx.editMessageText('Pilih kategori:', Markup.inlineKeyboard(
+      categories.map(c => Markup.button.callback(`📁 ${c.name}`, `category:${c.category_id}`)),
+      { columns: 2 }
+    ));
   }
 
   if (data.startsWith('category:')) {
@@ -283,12 +270,15 @@ bot.on('text', async ctx => {
     const url = `${BASE_URL}?user=${username}&model=${model}&theme=${theme}&coin=${coin}&category=${sessionCategory}`;
 
     try {
-      const response = await fetch(url);
-      const buffer = await response.buffer();
+      const res = await fetch(url);
+      const svg = await res.text();
+      const resvg = new Resvg(svg);
+      const png = resvg.render().asPng();
 
-      const svg = new Resvg(buffer);
-      const png = svg.render().asPng();
-      await ctx.replyWithPhoto({ source: png });
+      await ctx.replyWithPhoto({ source: png }, {
+        caption: `🖼️ Kartu siap: *${model} - ${theme}*`,
+        parse_mode: 'Markdown'
+      });
     } catch (err) {
       console.error('Gagal membuat kartu:', err);
       ctx.reply('Terjadi kesalahan saat membuat kartu.');
@@ -296,4 +286,4 @@ bot.on('text', async ctx => {
   }
 });
 
-module.exports = {bot};
+module.exports = { bot };
