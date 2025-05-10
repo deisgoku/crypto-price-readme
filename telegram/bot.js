@@ -1,10 +1,12 @@
 // telegram/bot.js
-// author: deisgoku
+// author: deisgoku (refactored to store session only after completion)
 
 const { Telegraf, Markup } = require('telegraf');
 const fetch = require('node-fetch');
-const sharp = require('sharp');  // Mengimpor Sharp untuk konversi SVG ke PNG
+const { Resvg } = require('@resvg/resvg-js');
 const bcrypt = require('bcrypt');
+const fs = require('fs');
+const path = require('path');
 const { BOT_TOKEN, BASE_URL } = require('./config');
 const { getCategoryMarkdownList } = require('./gecko');
 const { themeNames } = require('../lib/settings/model/theme');
@@ -21,16 +23,6 @@ const modelsName = Object.keys(renderers);
 const themes = themeNames.join('\n');
 
 const tempSession = new Map();
-
-// Fungsi konversi SVG ke PNG menggunakan Sharp
-async function svgToPng(svg) {
-  // Mengonversi SVG menjadi buffer PNG menggunakan Sharp
-  const pngBuffer = await sharp(Buffer.from(svg))
-    .png()  // Convert SVG to PNG
-    .toBuffer();  // Mengembalikan buffer PNG
-
-  return pngBuffer;
-}
 
 bot.start(ctx => {
   ctx.reply(
@@ -153,7 +145,7 @@ bot.command('broadcast', async ctx => {
 
   for (const uid of userIds) {
     try {
-      await ctx.telegram.sendMessage(uid, `\ud83d\udce1 *Broadcast:*\n${message}`, {
+      await ctx.telegram.sendMessage(uid, `\u{1F4E1} *Broadcast:*\n${message}`, {
         parse_mode: 'Markdown'
       });
       count++;
@@ -170,7 +162,7 @@ bot.command('card', async ctx => {
   tempSession.set(userId, { step: 'model' });
 
   await ctx.reply('Pilih model:', Markup.inlineKeyboard(
-    modelsName.map(m => Markup.button.callback(`\ud83d\uddbc\ufe0f ${m}`, `model:${m}`)),
+    modelsName.map(m => Markup.button.callback(`\u{1F5BC} ${m}`, `model:${m}`)),
     { columns: 2 }
   ));
 });
@@ -186,7 +178,7 @@ bot.on('callback_query', async ctx => {
     tempSession.set(userId, session);
 
     await ctx.editMessageText('Pilih theme:', Markup.inlineKeyboard(
-      themeNames.map(t => Markup.button.callback(`\ud83c\udfa8 ${t}`, `theme:${t}`)),
+      themeNames.map(t => Markup.button.callback(`\u{1F3A8} ${t}`, `theme:${t}`)),
       { columns: 2 }
     ));
     return ctx.answerCbQuery();
@@ -199,7 +191,7 @@ bot.on('callback_query', async ctx => {
 
     const { categories } = await getCategoryMarkdownList();
     await ctx.editMessageText('Pilih kategori:', Markup.inlineKeyboard(
-      categories.map(c => Markup.button.callback(`\ud83d\udcc1 ${c.name}`, `category:${c.category_id}`)),
+      categories.map(c => Markup.button.callback(`\u{1F4C1} ${c.name}`, `category:${c.category_id}`)),
       { columns: 2 }
     ));
     return ctx.answerCbQuery();
@@ -247,10 +239,24 @@ bot.on('text', async ctx => {
   try {
     const res = await fetch(url);
     const svg = await res.text();
-    const png = await svgToPng(svg);  // Menggunakan Sharp untuk konversi SVG ke PNG
+
+    const fontDir = path.join(__dirname, '../lib/data/fonts');
+    const fonts = fs.readdirSync(fontDir).filter(f => f.endsWith('.ttf')).map(file => ({
+      name: path.parse(file).name,
+      data: fs.readFileSync(path.join(fontDir, file)),
+    }));
+
+    const resvg = new Resvg(svg, {
+      font: {
+        loadSystemFonts: false,
+        fonts,
+      },
+    });
+
+    const png = resvg.render().asPng();
 
     await ctx.replyWithPhoto({ source: png }, {
-      caption: `\ud83d\uddbc\ufe0f Kartu siap: *${session.model} - ${session.theme}*`,
+      caption: `\u{1F5BC} Kartu siap: *${session.model} - ${session.theme}*`,
       parse_mode: 'Markdown'
     });
   } catch (err) {
