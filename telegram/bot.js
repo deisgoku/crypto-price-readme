@@ -229,7 +229,7 @@ bot.on('callback_query', async ctx => {
 
   await updateSession(userId, { [key]: value, ...(nextStep && { step: nextStep }) });
 
-  if (step === 'theme') {
+  if (step = 'theme') {
     return ctx.editMessageText('Pilih theme:', Markup.inlineKeyboard(
       themeNames.map(t => Markup.button.callback(`🎨 ${t}`, `theme:${t}`)),
       { columns: 2 }
