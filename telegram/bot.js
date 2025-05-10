@@ -12,7 +12,7 @@ const { getCategoryMarkdownList } = require('./gecko');
 const { themeNames } = require('../lib/settings/model/theme');
 const renderers = require('../lib/settings/model/list');
 const { redis } = require('../lib/redis');
-const { addAdmin, removeAdmin, isAdmin, listAdmins } = require('./admin');
+const { registerAdminCommands } = require('./admin');
 
 const LINK_KEY = 'user_passwords';
 const USER_SET = 'tg:users';
@@ -21,8 +21,10 @@ const GARAM = parseInt(process.env.GARAM || '10', 10);
 const bot = new Telegraf(BOT_TOKEN);
 const modelsName = Object.keys(renderers);
 const themes = themeNames.join('\n');
-
 const tempSession = new Map();
+
+registerAdminCommands(bot);
+require('./link')(bot);
 
 bot.start(ctx => {
   ctx.reply(
@@ -52,109 +54,6 @@ bot.command('help', async ctx => {
 ${markdown}`,
     { parse_mode: 'Markdown' }
   );
-});
-
-bot.command('link', async ctx => {
-  const userId = ctx.from.id.toString();
-  const [_, username, password] = ctx.message.text.trim().split(' ');
-
-  if (!username || !password) {
-    return ctx.reply('Format: /link <username> <password>');
-  }
-
-  const normalizedUser = username.trim().toLowerCase();
-  const storedHashedPassword = await redis.hget(LINK_KEY, normalizedUser);
-
-  if (!storedHashedPassword) {
-    return ctx.reply('Username tidak ditemukan.');
-  }
-
-  const match = await bcrypt.compare(password, storedHashedPassword);
-  if (!match) {
-    return ctx.reply('Password salah.');
-  }
-
-  const hashedPassword = await bcrypt.hash(password, GARAM);
-  await redis.hset(LINK_KEY, { [normalizedUser]: hashedPassword });
-  ctx.reply(`Berhasil terhubung dengan akun '${username}'`);
-});
-
-bot.command('unlink', async ctx => {
-  await redis.hdel(LINK_KEY, ctx.from.id.toString());
-  ctx.reply('Akun Telegram kamu sudah di-unlink.');
-});
-
-bot.command('me', async ctx => {
-  const telegramUsername = ctx.from?.username?.trim().toLowerCase();
-  if (!telegramUsername) {
-    return ctx.reply('Username Telegram kamu tidak tersedia.');
-  }
-  const allUsernames = await redis.hkeys(LINK_KEY);
-  const isLinked = allUsernames.includes(telegramUsername);
-  ctx.reply(
-    isLinked
-      ? `Akun kamu terhubung ke: *${telegramUsername}*`
-      : 'Belum terhubung. Gunakan /link <username> <password>',
-    { parse_mode: 'Markdown' }
-  );
-});
-
-bot.command('addadmin', async ctx => {
-  const fromId = ctx.from.id.toString();
-  if (!(await isAdmin(fromId))) return ctx.reply('Kamu bukan admin.');
-
-  const targetId = ctx.message.text.split(' ')[1];
-  if (!targetId) return ctx.reply('Gunakan: /addadmin <userId>');
-
-  await addAdmin(targetId);
-  ctx.reply(`Admin ${targetId} ditambahkan.`);
-});
-
-bot.command('removeadmin', async ctx => {
-  const fromId = ctx.from.id.toString();
-  if (!(await isAdmin(fromId))) return ctx.reply('Kamu bukan admin.');
-
-  const targetId = ctx.message.text.split(' ')[1];
-  if (!targetId) return ctx.reply('Gunakan: /removeadmin <userId>');
-
-  await removeAdmin(targetId);
-  ctx.reply(`Admin ${targetId} dihapus.`);
-});
-
-bot.command('admins', async ctx => {
-  const fromId = ctx.from.id.toString();
-  if (!(await isAdmin(fromId))) return ctx.reply('Kamu bukan admin.');
-
-  const admins = await listAdmins();
-  ctx.reply(
-    admins.length
-      ? `Daftar Admin:\n${admins.map(id => `- ${id}`).join('\n')}`
-      : 'Tidak ada admin.'
-  );
-});
-
-bot.command('broadcast', async ctx => {
-  const fromId = ctx.from.id.toString();
-  if (!(await isAdmin(fromId))) return ctx.reply('Kamu bukan admin.');
-
-  const message = ctx.message.text.replace('/broadcast', '').trim();
-  if (!message) return ctx.reply('Gunakan: /broadcast <pesan>');
-
-  const userIds = await redis.smembers(USER_SET);
-  let count = 0;
-
-  for (const uid of userIds) {
-    try {
-      await ctx.telegram.sendMessage(uid, `\u{1F4E1} *Broadcast:*\n${message}`, {
-        parse_mode: 'Markdown'
-      });
-      count++;
-    } catch (e) {
-      console.error(`Gagal kirim ke ${uid}`, e);
-    }
-  }
-
-  ctx.reply(`Broadcast terkirim ke ${count} user.`);
 });
 
 bot.command('card', async ctx => {
@@ -241,15 +140,21 @@ bot.on('text', async ctx => {
     const svg = await res.text();
 
     const fontDir = path.join(__dirname, '../lib/data/fonts');
-    const fonts = fs.readdirSync(fontDir).filter(f => f.endsWith('.ttf')).map(file => ({
-      name: path.parse(file).name,
-      data: fs.readFileSync(path.join(fontDir, file)),
-    }));
+    const fonts = [
+      { name: 'Verdana', data: fs.readFileSync(path.join(fontDir, 'Verdana.ttf')) },
+      { name: 'monospace', data: fs.readFileSync(path.join(fontDir, 'monospace.ttf')) },
+      { name: 'Arial', data: fs.readFileSync(path.join(fontDir, 'Arial.ttf')) },
+      { name: 'sans-serif', data: fs.readFileSync(path.join(fontDir, 'sans-serif.ttf')) }
+    ];
 
     const resvg = new Resvg(svg, {
       font: {
         loadSystemFonts: false,
         fonts,
+      },
+      fitTo: {
+        mode: 'width',
+        value: 680,
       },
     });
 
