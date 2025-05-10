@@ -1,5 +1,5 @@
 // telegram/bot.js
-// author: deisgoku (refactored with Puppeteer svgToPng)
+// author: deisgoku
 
 const { Telegraf, Markup } = require('telegraf');
 const fetch = require('node-fetch');
