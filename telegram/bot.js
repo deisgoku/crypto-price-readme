@@ -142,7 +142,7 @@ bot.on('text', async ctx => {
     const fontDir = path.join(__dirname, '../lib/data/fonts');
     const fonts = [
       { name: 'Verdana', data: fs.readFileSync(path.join(fontDir, 'Verdana.ttf')) },
-      { name: 'monospace', data: fs.readFileSync(path.join(fontDir, 'monospace.ttf')) },
+      { name: 'monospace', data: fs.readFileSync(path.join(fontDir, 'Monospace.ttf')) },
       { name: 'Arial', data: fs.readFileSync(path.join(fontDir, 'Arial.ttf')) },
       { name: 'sans-serif', data: fs.readFileSync(path.join(fontDir, 'sans-serif.ttf')) }
     ];
