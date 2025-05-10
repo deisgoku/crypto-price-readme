@@ -196,86 +196,88 @@ bot.command('broadcast', async ctx => {
 // ===== Card Creation Flow =====
 
 bot.command('card', async ctx => {
-  const userId = ctx.from.id; // Jangan tambahkan prefix manual!
-  await updateSession(userId, { step: 'model' });
-  ctx.reply(
-    'Pilih model:',
-    Markup.inlineKeyboard(
-      modelsName.map(m => Markup.button.callback(`🖼️ ${m}`, `model:${m}`)),
-      { columns: 2 }
-    )
-  );
+  const userId = ctx.from.id.toString();
+  const session = await getSession(userId);
+  session.step = 'model';  // Menyimpan state ke 'model'
+  await updateSession(userId, session);
+
+  // Kirim pilihan model
+  await ctx.reply('Pilih model:', Markup.inlineKeyboard(
+    modelsName.map(m => Markup.button.callback(`🖼️ ${m}`, `model:${m}`)),
+    { columns: 2 }
+  ));
 });
 
 bot.on('callback_query', async ctx => {
-  const userId = ctx.from.id; // Jangan tambahkan 'user:' di sini!
+  const userId = ctx.from.id.toString();
   const session = await getSession(userId);
   const data = ctx.callbackQuery.data;
 
+  // Step 1: Pilih Model
   if (data.startsWith('model:')) {
-    await updateSession(userId, {
-      model: data.split(':')[1],
-      step: 'theme'
-    });
-    return ctx.editMessageText(
-      'Pilih theme:',
-      Markup.inlineKeyboard(
-        themeNames.map(t => Markup.button.callback(`🎨 ${t}`, `theme:${t}`)),
-        { columns: 2 }
-      )
-    );
+    session.model = data.split(':')[1]; // Menyimpan pilihan model
+    session.step = 'theme';  // Pindah ke step pemilihan theme
+    await updateSession(userId, session);
+
+    return ctx.editMessageText('Pilih theme:', Markup.inlineKeyboard(
+      themeNames.map(t => Markup.button.callback(`🎨 ${t}`, `theme:${t}`)),
+      { columns: 2 }
+    ));
   }
 
+  // Step 2: Pilih Theme
   if (data.startsWith('theme:')) {
-    const theme = data.split(':')[1];
+    session.theme = data.split(':')[1];  // Menyimpan pilihan theme
+    session.step = 'category';  // Pindah ke step pemilihan kategori
+    await updateSession(userId, session);
+
     const { categories } = await getCategoryMarkdownList();
-    const allowed = categories.map(c => c.name);
+    
 
-    await updateSession(userId, {
-      theme,
-      allowedCategories: allowed,
-      step: 'category'
-    });
-
-    return ctx.editMessageText(
-      'Pilih kategori:',
-      Markup.inlineKeyboard(
-        categories.map(c =>
-          Markup.button.callback(`📁 ${c.name}`, `category:${c.name}`)
-        ),
-        { columns: 2 }
-      )
-    );
+    return ctx.editMessageText('Pilih kategori:', Markup.inlineKeyboard(
+      categories.map(c => Markup.button.callback(`📁 ${c.name}`, `category:${c.category_id}`)),
+      { columns: 2 }
+    ));
   }
 
+  // Step 3: Pilih Kategori Inline
   if (data.startsWith('category:')) {
-    const category = data.split(':')[1];
-    const valid = session.allowedCategories?.includes(category);
+  const categoryId = data.split(':')[1].trim();
+  const category = categories?.find(c => c.category_id === categoryId);
 
-    if (!valid) return ctx.answerCbQuery('Kategori tidak valid.');
-
-    await updateSession(userId, { category, step: 'coin' });
-    return ctx.editMessageText('Masukkan jumlah coin (1-50):');
+  if (!category) {
+    return ctx.answerCbQuery('⚠️ Kategori tidak valid.', { show_alert: true });
   }
 
-  ctx.answerCbQuery();
+  session.category = category.category_id; // Gunakan category_id untuk ke URL
+  session.step = 'coin';
+  await updateSession(userId, session);
+
+  return ctx.editMessageText('Masukkan jumlah coin (1-50):');
+ }
+
+  await ctx.answerCbQuery();
 });
 
 bot.on('text', async ctx => {
-  const userId = ctx.from.id; // Tetap konsisten
+  const userId = ctx.from.id.toString();
   const session = await getSession(userId);
   const input = ctx.message.text.trim();
 
+  // Step 4: Pilih Jumlah Coin
   if (session.step === 'coin') {
     const count = parseInt(input);
-    if (isNaN(count) || count < 1 || count > 50) {
+    if (count < 1 || count > 50) {
       return ctx.reply('Jumlah coin harus antara 1 - 50.');
     }
 
-    await updateSession(userId, { coin: count, step: 'done' });
+    session.coin = count;  // Menyimpan jumlah coin
+    session.step = 'done';  // Pindah ke step konfirmasi
+    await updateSession(userId, session);
 
-    const { username, model, theme, category } = session;
-    const url = `${BASE_URL}?user=${username}&model=${model}&theme=${theme}&coin=${count}&category=${category}`;
+    // Ambil URL dan generate kartu
+    const { username, model, theme, category: sessionCategory, coin } = session;
+    const url = `${BASE_URL}?user=${username}&model=${model}&theme=${theme}&coin=${coin}&category=${sessionCategory}`;
 
     try {
       const res = await fetch(url);
@@ -283,13 +285,14 @@ bot.on('text', async ctx => {
       const resvg = new Resvg(svg);
       const png = resvg.render().asPng();
 
+      // Kirim foto kartu ke pengguna
       await ctx.replyWithPhoto({ source: png }, {
         caption: `🖼️ Kartu siap: *${model} - ${theme}*`,
         parse_mode: 'Markdown'
       });
     } catch (err) {
       console.error(err);
-      ctx.reply('Gagal mengambil kartu. Coba lagi nanti.');
+      return ctx.reply('Gagal ambil kartu. Coba lagi nanti.');
     }
   }
 });
