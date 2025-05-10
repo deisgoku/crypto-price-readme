@@ -143,6 +143,8 @@ bot.command('broadcast', async ctx => {
 
 // ===== Card Flow =====
 
+// ===== Card Flow =====
+
 bot.command('card', async ctx => {
   const userId = ctx.from.id.toString();
   await updateSession(userId, { step: 'model' });
@@ -156,35 +158,34 @@ bot.command('card', async ctx => {
 bot.on('callback_query', async ctx => {
   const userId = ctx.from.id.toString();
   const data = ctx.callbackQuery.data;
+  const [type, value] = data.split(':');
 
-  if (data.startsWith('model:')) {
-    const model = data.split(':')[1];
-    await updateSession(userId, { step: 'theme', model });
+  switch (type) {
+    case 'model': {
+      await updateSession(userId, { step: 'theme', model: value });
+      return ctx.editMessageText('Pilih theme:', Markup.inlineKeyboard(
+        themeNames.map(t => Markup.button.callback(`🎨 ${t}`, `theme:${t}`)),
+        { columns: 2 }
+      ));
+    }
 
-    return ctx.editMessageText('Pilih theme:', Markup.inlineKeyboard(
-      themeNames.map(t => Markup.button.callback(`🎨 ${t}`, `theme:${t}`)),
-      { columns: 2 }
-    ));
+    case 'theme': {
+      await updateSession(userId, { step: 'category', theme: value });
+      const { categories } = await getCategoryMarkdownList();
+      return ctx.editMessageText('Pilih kategori:', Markup.inlineKeyboard(
+        categories.map(c => Markup.button.callback(`📁 ${c.name}`, `category:${c.category_id}`)),
+        { columns: 2 }
+      ));
+    }
+
+    case 'category': {
+      await updateSession(userId, { step: 'coin', category: value.trim() });
+      return ctx.editMessageText('Masukkan jumlah coin (1-50):');
+    }
+
+    default:
+      return ctx.answerCbQuery();
   }
-
-  if (data.startsWith('theme:')) {
-    const theme = data.split(':')[1];
-    await updateSession(userId, { step: 'category', theme });
-
-    const { categories } = await getCategoryMarkdownList();
-    return ctx.editMessageText('Pilih kategori:', Markup.inlineKeyboard(
-      categories.map(c => Markup.button.callback(`📁 ${c.name}`, `category:${c.category_id}`)),
-      { columns: 2 }
-    ));
-  }
-
-  if (data.startsWith('category:')) {
-    const category = data.split(':')[1].trim();
-    await updateSession(userId, { step: 'coin', category });
-    return ctx.editMessageText('Masukkan jumlah coin (1-50):');
-  }
-
-  await ctx.answerCbQuery();
 });
 
 bot.on('text', async ctx => {
@@ -205,12 +206,12 @@ bot.on('text', async ctx => {
 
   try {
     const res = await fetch(url);
-    const svg = await res.text();
+    const svg = await res.text(); // Ambil SVG
     const resvg = new Resvg(svg);
-    const png = resvg.render().asPng();
+    const png = resvg.render().asPng(); // Konversi ke PNG
 
     await ctx.replyWithPhoto({ source: png }, {
-      caption: `🖼️ Kartu siap: *${model} - ${theme}*`,
+      caption: `🖼️ Kartu siap: *${model} - ${theme}*\n[Klik untuk lihat SVG](${url})`,
       parse_mode: 'Markdown'
     });
   } catch (err) {
