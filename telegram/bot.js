@@ -3,7 +3,7 @@
 
 const { Telegraf, Markup } = require('telegraf');
 const fetch = require('node-fetch');
-const puppeteer = require('puppeteer');
+const sharp = require('sharp');  // Mengimpor Sharp untuk konversi SVG ke PNG
 const bcrypt = require('bcrypt');
 const { BOT_TOKEN, BASE_URL } = require('./config');
 const { getCategoryMarkdownList } = require('./gecko');
@@ -22,16 +22,13 @@ const themes = themeNames.join('\n');
 
 const tempSession = new Map();
 
-// Fungsi konversi SVG ke PNG menggunakan Puppeteer
+// Fungsi konversi SVG ke PNG menggunakan Sharp
 async function svgToPng(svg) {
-  const browser = await puppeteer.launch({
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  });
-  const page = await browser.newPage();
-  await page.setContent(`<html><body>${svg}</body></html>`);
-  const element = await page.$('svg');
-  const pngBuffer = await element.screenshot();
-  await browser.close();
+  // Mengonversi SVG menjadi buffer PNG menggunakan Sharp
+  const pngBuffer = await sharp(Buffer.from(svg))
+    .png()  // Convert SVG to PNG
+    .toBuffer();  // Mengembalikan buffer PNG
+
   return pngBuffer;
 }
 
@@ -250,7 +247,7 @@ bot.on('text', async ctx => {
   try {
     const res = await fetch(url);
     const svg = await res.text();
-    const png = await svgToPng(svg);
+    const png = await svgToPng(svg);  // Menggunakan Sharp untuk konversi SVG ke PNG
 
     await ctx.replyWithPhoto({ source: png }, {
       caption: `\ud83d\uddbc\ufe0f Kartu siap: *${session.model} - ${session.theme}*`,
