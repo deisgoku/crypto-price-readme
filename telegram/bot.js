@@ -1,8 +1,8 @@
 const { Telegraf, Markup } = require('telegraf');
 const fetch = require('node-fetch');
-const { Canvg } = require('canvg'); // presets dihapus karena tidak dipakai
+const { Canvg } = require('canvg');
 const { DOMParser } = require('xmldom');
-const { createCanvas } = require('canvas');
+const { createCanvas, registerFont } = require('canvas');
 const bcrypt = require('bcrypt');
 const fs = require('fs');
 const path = require('path');
@@ -40,11 +40,22 @@ async function loadFonts() {
   }
 }
 
-// Register commands
+function registerAllFonts() {
+  for (const [name, data] of fontsCache.entries()) {
+    try {
+      const tempPath = path.join(__dirname, `temp-${name}.ttf`);
+      fs.writeFileSync(tempPath, data);
+      registerFont(tempPath, { family: name });
+      fs.unlinkSync(tempPath);
+    } catch (err) {
+      console.error(`Gagal register font ${name}:`, err);
+    }
+  }
+}
+
 registerAdminCommands(bot);
 require('./auth')(bot);
 
-// Start command
 bot.start(ctx => {
   ctx.reply(
     `Selamat datang di *Crypto Card Bot!*\n\nGunakan /card untuk membuat kartu crypto.\nGunakan /help untuk melihat perintah lain.`,
@@ -52,7 +63,6 @@ bot.start(ctx => {
   );
 });
 
-// Help command
 bot.command('help', async ctx => {
   const { markdown } = await getCategoryMarkdownList();
   ctx.reply(
@@ -76,7 +86,6 @@ ${markdown}`,
   );
 });
 
-// Card command
 bot.command('card', async ctx => {
   const userId = ctx.from.id.toString();
   tempSession.set(userId, { step: 'model' });
@@ -87,7 +96,6 @@ bot.command('card', async ctx => {
   ));
 });
 
-// Callback handler
 bot.on('callback_query', async ctx => {
   const userId = ctx.from.id.toString();
   const session = tempSession.get(userId) || {};
@@ -137,7 +145,6 @@ bot.on('callback_query', async ctx => {
   return ctx.answerCbQuery();
 });
 
-// Text handler (coin input)
 bot.on('text', async ctx => {
   const userId = ctx.from.id.toString();
   const session = tempSession.get(userId);
@@ -161,6 +168,8 @@ bot.on('text', async ctx => {
 
   try {
     await loadFonts();
+    registerAllFonts();
+
     let svg = await redis.get(cacheKey);
 
     if (!svg) {
