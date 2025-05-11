@@ -1,7 +1,6 @@
-// telegram/bot.js
 const { Telegraf, Markup } = require('telegraf');
 const fetch = require('node-fetch');
-const { Resvg } = require('@resvg/resvg-js');
+const { Canvg } = require('canvg');
 const bcrypt = require('bcrypt');
 const fs = require('fs');
 const path = require('path');
@@ -11,6 +10,7 @@ const { themeNames } = require('../lib/settings/model/theme');
 const renderers = require('../lib/settings/model/list');
 const { redis } = require('../lib/redis');
 const { registerAdminCommands } = require('./admin');
+const { createCanvas } = require('canvas');
 
 const LINK_KEY = 'user_passwords';
 const USER_SET = 'tg:users';
@@ -165,18 +165,16 @@ bot.on('text', async ctx => {
       console.log('SVG loaded from cache.');
     }
 
-    const resvg = new Resvg(svg, {
-      font: {
-        loadSystemFonts: false,
-        fonts: Array.from(fontsCache.entries()).map(([name, data]) => ({ name, data })),
-      },
-      fitTo: {
-        mode: 'width',
-        value: 680,
-      },
-    });
+    // Buat canvas dengan lebar sesuai
+    const canvas = createCanvas(680, 400);
+    const ctx = canvas.getContext('2d');
 
-    const png = resvg.render().asPng();
+    // Render SVG menggunakan canvg
+    const v = await Canvg.from(ctx, svg);
+    await v.render();
+
+    // Dapatkan gambar PNG
+    const png = canvas.toBuffer('image/png');
 
     await ctx.replyWithPhoto({ source: png }, {
       caption: `📊 Kartu siap: *${session.model} - ${session.theme}*`,
