@@ -65,10 +65,12 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
   const coinListRes = await fetch(`${COINGECKO_API}/coins/list`);
   const coinList = await coinListRes.json();
 
-  // Cocokkan symbol ke ID
+  // Cocokkan symbol ke ID dengan metode lebih cerdas
   const matchedIds = symbols.map(sym => {
-    const match = coinList.find(c => c.symbol.toLowerCase() === sym.toLowerCase());
-    return match ? match.id : null;
+    const lowerSym = sym.toLowerCase();
+    const candidates = coinList.filter(c => c.symbol.toLowerCase() === lowerSym);
+    const bestMatch = candidates.find(c => c.id.includes(lowerSym)) || candidates[0];
+    return bestMatch ? bestMatch.id : null;
   }).filter(Boolean).slice(0, limit);
 
   if (!matchedIds.length) throw new Error('Symbol tidak ditemukan di CoinGecko');
