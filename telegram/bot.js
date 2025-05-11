@@ -182,7 +182,7 @@ bot.on('text', async ctx => {
       await redis.set(cacheKey, svg, { ex: 3600 });
     }
 
-    const ratio = 2;
+    const ratio = 1.5;
 
     const tempCanvas = createCanvas(1, 1);
     const tempCtx = tempCanvas.getContext('2d');
