@@ -1,6 +1,7 @@
 const { Telegraf, Markup } = require('telegraf');
 const fetch = require('node-fetch');
-const { Canvg } = require('canvg');
+const { Canvg, presets } = require('canvg');
+const { DOMParser } = require('xmldom');
 const bcrypt = require('bcrypt');
 const fs = require('fs');
 const path = require('path');
@@ -153,7 +154,7 @@ bot.on('text', async ctx => {
   const cacheKey = `svg:${session.username}:${session.model}:${session.theme}:${session.coin}:${session.category}`;
 
   try {
-    await loadFonts(); // load font ke cache
+    await loadFonts();
     let svg = await redis.get(cacheKey);
 
     if (!svg) {
@@ -165,17 +166,18 @@ bot.on('text', async ctx => {
       console.log('SVG loaded from cache.');
     }
 
-    // Buat canvas dengan lebar sesuai
     const canvas = createCanvas(680, 400);
-    const ctx = canvas.getContext('2d');
+    const context = canvas.getContext('2d');
 
-    // Render SVG menggunakan canvg
-    const v = await Canvg.from(ctx, svg);
+    // Gunakan xmldom untuk DOMParser jika dibutuhkan
+    const v = await Canvg.from(context, svg, {
+      ...presets.node({
+        DOMParser,
+      }),
+    });
     await v.render();
 
-    // Dapatkan gambar PNG
     const png = canvas.toBuffer('image/png');
-
     await ctx.replyWithPhoto({ source: png }, {
       caption: `📊 Kartu siap: *${session.model} - ${session.theme}*`,
       parse_mode: 'Markdown'
