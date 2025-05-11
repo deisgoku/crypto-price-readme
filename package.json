@@ -1,4 +1,5 @@
 {
+{
   "name": "crypto-price-readme",
   "version": "1.6.0",
   "description": "Realtime crypto badges for GitHub README (price, volume, trend, chart, and card) with dynamic API.",
@@ -40,26 +41,27 @@
     "bot": "node telegram/bot.js"
   },
   "dependencies": {
-    "axios": "^1.6.7",
-    "node-fetch": "^2.6.9",
-    "next": "^14.1.4",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "ioredis": "^5.3.2",
+    "@resvg/resvg-js": "^2.0.1",
     "@upstash/redis": "^1.22.2",
+    "axios": "^1.6.7",
+    "bcrypt": "^5.1.1",
+    "canvas": "^2.11.2",
+    "canvg": "^4.0.1",
+    "express": "^4.18.2",
+    "framer-motion": "^10.16.3",
+    "ioredis": "^5.3.2",
     "lottie-react": "^2.3.1",
     "lucide-react": "^0.263.0",
-    "react-hot-toast": "^2.4.0",
-    "framer-motion": "^10.16.3",
-    "react-turnstile": "^1.0.7",
-    "react-select": "^5.7.3",
+    "next": "^14.1.4",
     "next-sitemap": "^3.1.55",
-    "bcrypt": "^5.1.1",
+    "node-fetch": "^2.6.9",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-hot-toast": "^2.4.0",
+    "react-select": "^5.7.3",
+    "react-turnstile": "^1.0.7",
     "telegraf": "^4.12.2",
-    "express": "^4.18.2",
-    "@resvg/resvg-js": "^2.0.1",
-    "canvas": "^2.11.2",
-    "canvg": "^4.0.1"
+    "xmldom": "^0.8.10"
   },
   "devDependencies": {
     "eslint": "^9.1.0",
