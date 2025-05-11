@@ -54,11 +54,23 @@ async function getCache(key) {
 
 // === FETCHERS ===
 async function fetchGeckoSymbols(symbols = [], limit = 5) {
-  const symbolsQuery = symbols.length ? `&ids=${symbols.join(',')}` : '';
-  const url = `${COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${limit}&sparkline=false${symbolsQuery}`;
+  // Ambil semua coin list dari CoinGecko
+  const coinListRes = await fetch(`${COINGECKO_API}/coins/list`);
+  const coinList = await coinListRes.json();
+
+  // Cocokkan symbol ke ID
+  const matchedIds = symbols.map(sym => {
+    const match = coinList.find(c => c.symbol.toLowerCase() === sym.toLowerCase());
+    return match ? match.id : null;
+  }).filter(Boolean).slice(0, limit);
+
+  if (!matchedIds.length) throw new Error('Symbol tidak ditemukan di CoinGecko');
+
+  const url = `${COINGECKO_API}/coins/markets?vs_currency=usd&ids=${matchedIds.join(',')}&order=market_cap_desc&per_page=${limit}&sparkline=false`;
   const res = await fetch(url);
   if (!res.ok) throw new Error('CoinGecko symbol fetch failed');
   const data = await res.json();
+
   return data.map(coin => {
     const { price, micin } = formatPrice(coin.current_price);
     return {
