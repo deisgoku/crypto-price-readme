@@ -51,14 +51,12 @@ async function loadFonts() {
 
     fontsCache.set(font.name, fontData);
 
-    // Register font ke Canvas
     const tmpFontPath = `/tmp/${font.name}.ttf`;
     fs.writeFileSync(tmpFontPath, fontData);
     registerFont(tmpFontPath, { family: font.name });
   }
 }
 
-// Register commands
 registerAdminCommands(bot);
 require('./auth')(bot);
 
@@ -181,25 +179,23 @@ bot.on('text', async ctx => {
       console.log('SVG not in cache, fetching from:', url);
       const res = await fetch(url);
       svg = await res.text();
-      console.log('SVG fetched length:', svg.length);
       await redis.set(cacheKey, svg, { ex: 3600 });
-    } else {
-      console.log('SVG loaded from cache. Length:', svg.length);
     }
 
-    const ratio = 1; // Bisa juga 3 untuk lebih tajam
-    const width = 680;
-    const height = session.coin * 20 + 60; // Estimasi tinggi dinamis
+    const ratio = 2;
+
+    const tempCanvas = createCanvas(1, 1);
+    const tempCtx = tempCanvas.getContext('2d');
+    const parser = await Canvg.from(tempCtx, svg, { parseOnly: true, DOMParser });
+    const { width, height } = parser.document;
 
     const canvas = createCanvas(width * ratio, height * ratio);
-    const context = canvas.getContext('2d');
-    context.scale(ratio, ratio);
+    const ctx2d = canvas.getContext('2d');
+    ctx2d.scale(ratio, ratio);
 
-    // Render SVG ke canvas
-    const v = Canvg.fromString(context, svg, { DOMParser, fetch });
-    await v.render();
+    const renderer = await Canvg.from(ctx2d, svg, { DOMParser, fetch });
+    await renderer.render();
 
-    // Output PNG resolusi tinggi
     const png = canvas.toBuffer('image/png');
     await ctx.replyWithPhoto({ source: png }, {
       caption: `📊 Kartu siap: *${session.model} - ${session.theme}*`,
@@ -208,7 +204,7 @@ bot.on('text', async ctx => {
 
   } catch (err) {
     console.error('Gagal membuat kartu:', err);
-    ctx.reply('Terjadi kesalahan saat membuat kartu.');
+    ctx.reply('☹️ Terjadi kesalahan saat membuat kartu.', { show_alert: true });
   }
 
   tempSession.delete(userId);
