@@ -53,7 +53,7 @@ async function getCache(key) {
 }
 
 // === FETCHERS ===
-async function fetchGeckoSymbols(symbols = [], limit = 50) {
+async function fetchGeckoSymbols(symbols = [], limit = 5) {
   const symbolsQuery = symbols.length ? `&ids=${symbols.join(',')}` : '';
   const url = `${COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${limit}&sparkline=false${symbolsQuery}`;
   const res = await fetch(url);
@@ -155,7 +155,7 @@ async function fetchBinance(limit) {
 
 // === FINAL HANDLER ===
 module.exports = async (req, res) => {
-  const { coin, category, count = 50 } = req.query;
+  const { coin, category, count = 5 } = req.query;
 
   if (!coin && !category) {
     return res.status(400).json({ error: 'Butuh query coin atau category' });
@@ -163,26 +163,29 @@ module.exports = async (req, res) => {
 
   try {
     let result = [];
-    const limit = Math.min(parseInt(count), 50);
+
+    // Maksimal user cuma bisa request sampai 20 item aja
+    const rawLimit = parseInt(count);
+    const limit = isNaN(rawLimit) ? 5 : Math.min(rawLimit, 20);
 
     if (coin) {
       const coins = coin
         .split(',')
         .map(c => c.trim().toLowerCase())
         .filter(Boolean)
-        .slice(0, 50);
+        .slice(0, limit); // 
 
       const cacheKey = `crypto:symbols:${coins.join(',')}`;
       const cached = await getCache(cacheKey);
       if (cached) return res.json({ data: cached });
 
       try {
-        result = await fetchGeckoSymbols(coins, coins.length);
+        result = await fetchGeckoSymbols(coins, limit);
       } catch {
         try {
-          result = await fetchCMC(coins.map(c => c.toUpperCase()), false, coins.length);
+          result = await fetchCMC(coins.map(c => c.toUpperCase()), false, limit);
         } catch {
-          result = await fetchBinance(coins.length);
+          result = await fetchBinance(limit);
         }
       }
 
