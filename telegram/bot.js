@@ -1,6 +1,4 @@
 // telegram/bot.js
-// author: deisgoku (refactored to store session only after completion)
-
 const { Telegraf, Markup } = require('telegraf');
 const fetch = require('node-fetch');
 const { Resvg } = require('@resvg/resvg-js');
@@ -22,6 +20,24 @@ const bot = new Telegraf(BOT_TOKEN);
 const modelsName = Object.keys(renderers);
 const themes = themeNames.join('\n');
 const tempSession = new Map();
+
+// Font cache
+const fontDir = path.join(__dirname, '../lib/data/fonts');
+const fontsCache = new Map();
+
+async function loadFonts() {
+  if (fontsCache.size === 0) {
+    console.log('Loading fonts into cache...');
+    const fonts = [
+      { name: 'Verdana', data: fs.readFileSync(path.join(fontDir, 'Verdana.ttf')) },
+      { name: 'monospace', data: fs.readFileSync(path.join(fontDir, 'Monospace.ttf')) },
+      { name: 'Arial', data: fs.readFileSync(path.join(fontDir, 'Arial.ttf')) },
+      { name: 'sans-serif', data: fs.readFileSync(path.join(fontDir, 'sans-serif.ttf')) }
+    ];
+    fonts.forEach(font => fontsCache.set(font.name, font.data));
+    console.log('Fonts loaded.');
+  }
+}
 
 registerAdminCommands(bot);
 require('./auth')(bot);
@@ -134,23 +150,25 @@ bot.on('text', async ctx => {
   await redis.sadd(USER_SET, userId);
 
   const url = `${BASE_URL}?user=${session.username}&model=${session.model}&theme=${session.theme}&coin=${session.coin}&category=${session.category}`;
+  const cacheKey = `svg:${session.username}:${session.model}:${session.theme}:${session.coin}:${session.category}`;
 
   try {
-    const res = await fetch(url);
-    const svg = await res.text();
+    await loadFonts(); // load font ke cache
+    let svg = await redis.get(cacheKey);
 
-    const fontDir = path.join(__dirname, '../lib/data/fonts');
-    const fonts = [
-      { name: 'Verdana', data: fs.readFileSync(path.join(fontDir, 'Verdana.ttf')) },
-      { name: 'monospace', data: fs.readFileSync(path.join(fontDir, 'Monospace.ttf')) },
-      { name: 'Arial', data: fs.readFileSync(path.join(fontDir, 'Arial.ttf')) },
-      { name: 'sans-serif', data: fs.readFileSync(path.join(fontDir, 'sans-serif.ttf')) }
-    ];
+    if (!svg) {
+      console.log('SVG not in cache, fetching from:', url);
+      const res = await fetch(url);
+      svg = await res.text();
+      await redis.set(cacheKey, svg, { ex: 3600 });
+    } else {
+      console.log('SVG loaded from cache.');
+    }
 
     const resvg = new Resvg(svg, {
       font: {
         loadSystemFonts: false,
-        fonts,
+        fonts: Array.from(fontsCache.entries()).map(([name, data]) => ({ name, data })),
       },
       fitTo: {
         mode: 'width',
@@ -161,7 +179,7 @@ bot.on('text', async ctx => {
     const png = resvg.render().asPng();
 
     await ctx.replyWithPhoto({ source: png }, {
-      caption: `\u{1F5BC} Kartu siap: *${session.model} - ${session.theme}*`,
+      caption: `📊 Kartu siap: *${session.model} - ${session.theme}*`,
       parse_mode: 'Markdown'
     });
   } catch (err) {
