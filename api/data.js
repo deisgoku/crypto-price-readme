@@ -50,7 +50,7 @@ async function fetchCategoryMap() {
 // Fetch from CoinGecko
 async function fetchGecko(symbols = [], limit = 5) {
   const symbolsQuery = symbols.length > 0 ? `&ids=${symbols.join(',')}` : '';
-  const url = `${COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${limit}&sparkline=true${symbolsQuery}`;
+  const url = `${COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${limit}&sparkline=false${symbolsQuery}`;
   
   const res = await fetch(url);
   if (!res.ok) throw new Error('Gecko API failed');
@@ -118,8 +118,39 @@ async function fetchBinance(limit) {
     });
 }
 
+// Cache functions
+async function cacheData(key, data, ttl = 60) {
+  try {
+    await redis.set(key, JSON.stringify(data), 'EX', ttl); // Menyimpan dengan TTL (time to live) dalam detik
+  } catch (error) {
+    console.error('Gagal menyimpan ke Redis:', error);
+  }
+}
+
+async function getCache(key) {
+  try {
+    const data = await redis.get(key);
+    if (data) {
+      return JSON.parse(data); // Mengembalikan data yang telah disimpan dalam Redis
+    }
+    return null; // Tidak ada cache ditemukan
+  } catch (error) {
+    console.error('Gagal mengambil data dari Redis:', error);
+    return null;
+  }
+}
+
 // Main function to fetch data for given symbols
 async function fetchSymbolData(symbols) {
+  const cacheKey = `crypto:${symbols.join(',')}`;
+  
+  // Cek apakah data ada di cache
+  const cachedData = await getCache(cacheKey);
+  if (cachedData) {
+    console.log('Mengambil data dari cache Redis');
+    return cachedData; // Mengembalikan data dari cache Redis
+  }
+
   try {
     let coins = await fetchGecko(symbols, symbols.length);  // Use fetchGecko for symbols
 
@@ -132,6 +163,9 @@ async function fetchSymbolData(symbols) {
       console.log('CMC API gagal, fallback ke Binance');
       coins = await fetchBinance(symbols.length);  // Fallback ke Binance
     }
+
+    // Simpan data ke Redis dengan TTL 300 detik (5 menit)
+    await cacheData(cacheKey, coins, 300);
 
     return coins;
   } catch (err) {
@@ -156,11 +190,16 @@ module.exports = async (req, res) => {
 
   try {
     let result = [];
+    
+
     if (coin) {
       const symbols = coin.split(',').map(s => s.trim().toUpperCase()).slice(0, 20);
-      result = await fetchSymbolData(symbols);
-    } else if (category) {
-      result = await fetchGecko([], Math.min(parseInt(count), 20));  // Ambil berdasarkan kategori
+      result = await fetchSymbolData(symbols); // Panggil fungsi untuk simbol spesifik
+    } 
+
+    else if (category) {
+
+      result = await fetchGecko([], Math.min(parseInt(count), 20)); // Ambil berdasarkan kategori
     } else {
       return res.status(400).json({ error: 'Harus ada parameter category atau coin' });
     }
