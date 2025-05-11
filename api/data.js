@@ -14,6 +14,13 @@ function formatVolume(value) {
   return value.toFixed(0);
 }
 
+function formatTrend(value) {
+  const trend = parseFloat((value || 0).toFixed(2));
+  return (trend >= 0 ? '+' : '') + trend + '%';
+}
+
+
+
 function escapeXml(unsafe) {
   return unsafe.replace(/[<>&'"]/g, c => ({
     '<': '&lt;', '>': '&gt;', '&': '&amp;', '\'': '&apos;', '"': '&quot;',
@@ -78,7 +85,7 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
       price,
       micin,
       volume: formatVolume(coin.total_volume),
-      trend: coin.price_change_percentage_24h,
+      trend: formatTrend(coin.price_change_percentage_24h),
       sparkline: [],
     };
   });
@@ -96,7 +103,7 @@ async function fetchGeckoCategory(category, limit) {
       price,
       micin,
       volume: formatVolume(coin.total_volume),
-      trend: coin.price_change_percentage_24h,
+      trend: formatTrend(coin.price_change_percentage_24h),
       sparkline: [],
     };
   });
@@ -122,7 +129,7 @@ async function fetchCMC(categoryOrIds, isCategory, limit) {
         price,
         micin,
         volume: formatVolume(coin.quote.USD.volume_24h),
-        trend: coin.quote.USD.percent_change_24h,
+        trend: formatTrend(coin.quote.USD.percent_change_24h),
         sparkline: [],
       };
     });
@@ -139,7 +146,7 @@ async function fetchCMC(categoryOrIds, isCategory, limit) {
         price,
         micin,
         volume: formatVolume(coin.quote.USD.volume_24h),
-        trend: coin.quote.USD.percent_change_24h,
+        trend: formatTrend(coin.quote.USD.percent_change_24h),
         sparkline: [],
       };
     });
@@ -159,7 +166,7 @@ async function fetchBinance(limit) {
         price,
         micin,
         volume: formatVolume(parseFloat(d.quoteVolume)),
-        trend: parseFloat(d.priceChangePercent),
+        trend: formatTrend(parseFloat(d.priceChangePercent)),
         sparkline: [],
       };
     });
