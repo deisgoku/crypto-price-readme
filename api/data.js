@@ -1,7 +1,6 @@
 const fetch = require('node-fetch');
 const { redis } = require('../lib/redis');
 const { isRegistered } = require('../lib/follow-check');
-const cacheFetch = require('../lib/data/middleware');
 
 const COINGECKO_API = 'https://api.coingecko.com/api/v3';
 const CMC_API = 'https://pro-api.coinmarketcap.com/v1';
@@ -24,7 +23,7 @@ function escapeXml(unsafe) {
   }[c]));
 }
 
-// Smart price formatting
+// Format price
 function formatPrice(value) {
   if (value >= 0.01) {
     const str = value.toFixed(8);
@@ -39,7 +38,7 @@ function formatPrice(value) {
   return { price: escapeXml(smart), micin: true };
 }
 
-// Fetch category map from CoinGecko
+// Fetch Category Map from CoinGecko
 async function fetchCategoryMap() {
   if (categoryMap) return categoryMap;
   const res = await fetch(`${COINGECKO_API}/coins/categories/list`);
@@ -48,11 +47,13 @@ async function fetchCategoryMap() {
   return categoryMap;
 }
 
-// Fetch coins from CoinGecko API
-async function fetchGecko(category, limit) {
-  const url = `${COINGECKO_API}/coins/markets?vs_currency=usd&category=${category}&order=market_cap_desc&per_page=${limit}&sparkline=true`;
+// Fetch from CoinGecko
+async function fetchGecko(symbols = [], limit = 5) {
+  const symbolsQuery = symbols.length > 0 ? `&ids=${symbols.join(',')}` : '';
+  const url = `${COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${limit}&sparkline=true${symbolsQuery}`;
+  
   const res = await fetch(url);
-  if (!res.ok) throw new Error('Gecko failed');
+  if (!res.ok) throw new Error('Gecko API failed');
   const coins = await res.json();
   return coins.map(coin => {
     const { price, micin } = formatPrice(coin.current_price);
@@ -67,7 +68,7 @@ async function fetchGecko(category, limit) {
   });
 }
 
-// Fetch coins from CoinMarketCap API
+// Fetch from CoinMarketCap
 async function fetchCMC(category, limit) {
   const slugRes = await fetch(`${CMC_API}/cryptocurrency/category`, {
     headers: { 'X-CMC_PRO_API_KEY': CMC_KEY }
@@ -96,10 +97,11 @@ async function fetchCMC(category, limit) {
   });
 }
 
-// Fetch coins from Binance API
+// Fetch from Binance
 async function fetchBinance(limit) {
   const res = await fetch(BINANCE_API);
   const data = await res.json();
+
   return data
     .filter(d => d.symbol.endsWith('USDT') && d.symbol.length <= 10)
     .slice(0, limit)
@@ -116,27 +118,29 @@ async function fetchBinance(limit) {
     });
 }
 
-// Main function to fetch data from multiple APIs
+// Main function to fetch data for given symbols
 async function fetchSymbolData(symbols) {
   try {
-    let coins = await fetchGeckoBySymbols(symbols);
+    let coins = await fetchGecko(symbols, symbols.length);  // Use fetchGecko for symbols
+
     if (!coins || coins.length === 0) {
       console.log('Gecko API gagal, fallback ke CMC');
-      coins = await fetchCMC('', symbols.length); // Kosongkan kategori karena kita mengirim simbol langsung
+      coins = await fetchCMC('', symbols.length);  // Fallback ke CMC
     }
 
     if (!coins || coins.length === 0) {
       console.log('CMC API gagal, fallback ke Binance');
-      coins = await fetchBinance(symbols.length);
+      coins = await fetchBinance(symbols.length);  // Fallback ke Binance
     }
 
     return coins;
   } catch (err) {
     console.error('Semua API gagal, error:', err.message);
-    throw new Error('Semua API gagal');
+    throw new Error('Semua API gagal');  // Semua API gagal
   }
 }
 
+// Main API handler
 module.exports = async (req, res) => {
   const { user, category, coin, count = 5, format = 'json' } = req.query;
 
@@ -156,7 +160,7 @@ module.exports = async (req, res) => {
       const symbols = coin.split(',').map(s => s.trim().toUpperCase()).slice(0, 20);
       result = await fetchSymbolData(symbols);
     } else if (category) {
-      result = await fetchGeckoByCategory(category, Math.min(parseInt(count), 20));
+      result = await fetchGecko([], Math.min(parseInt(count), 20));  // Ambil berdasarkan kategori
     } else {
       return res.status(400).json({ error: 'Harus ada parameter category atau coin' });
     }
