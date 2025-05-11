@@ -156,9 +156,9 @@ async function fetchCategoryData(category, limit) {
   }
 }
 
-// MAIN HANDLER
+// FINAL HANDLER
 module.exports = async (req, res) => {
-  const { user, category, coin, count = 5, format = 'json' } = req.query;
+  const { user, coin, category, count = 5, format = 'json' } = req.query;
 
   if (format !== 'json') return res.status(400).json({ error: 'Only format=json supported' });
   if (!user) return res.status(403).json({ error: 'Follow dulu GitHub gue buat akses API ini', follow: 'https://github.com/deisgoku' });
@@ -166,18 +166,26 @@ module.exports = async (req, res) => {
   const isValid = await isRegistered(user);
   if (!isValid) return res.status(403).json({ error: `Akun ${user} belum follow`, follow: 'https://github.com/deisgoku' });
 
+  if (coin && category) {
+    return res.status(400).json({ error: 'Query coin dan category tidak boleh bersamaan' });
+  }
+
+  if (!coin && !category) {
+    return res.status(400).json({ error: 'Minimal butuh query coin atau category' });
+  }
+
   try {
     let result = [];
 
     if (coin) {
-      const symbols = coin.split(',').map(c => c.trim().toLowerCase()).slice(0, 20);
-      const data = await fetchSymbolData(symbols);
-      result.push(...data);
-    }
-
-    if (category) {
-      const data = await fetchCategoryData(category.toLowerCase(), parseInt(count));
-      result.push(...data);
+      const coins = coin
+        .split(',')
+        .map(c => c.trim().toLowerCase())
+        .filter(Boolean)
+        .slice(0, 20);
+      if (coins.length) result = await fetchSymbolData(coins);
+    } else if (category) {
+      result = await fetchCategoryData(category.toLowerCase(), parseInt(count));
     }
 
     if (!result.length) return res.status(404).json({ error: 'Tidak ada data ditemukan' });
