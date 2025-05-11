@@ -1,6 +1,6 @@
 const { Telegraf, Markup } = require('telegraf');
 const fetch = require('node-fetch');
-const { Canvg, presets } = require('canvg');
+const { Canvg } = require('canvg'); // presets dihapus karena tidak dipakai
 const { DOMParser } = require('xmldom');
 const { createCanvas } = require('canvas');
 const bcrypt = require('bcrypt');
@@ -23,7 +23,6 @@ const modelsName = Object.keys(renderers);
 const themes = themeNames.join('\n');
 const tempSession = new Map();
 
-// Font cache
 const fontDir = path.join(__dirname, '../lib/data/fonts');
 const fontsCache = new Map();
 
@@ -173,17 +172,13 @@ bot.on('text', async ctx => {
       console.log('SVG loaded from cache.');
     }
 
-    // Buat canvas dan render SVG ke PNG
     const canvas = createCanvas(680, 400);
     const context = canvas.getContext('2d');
 
-    const v = await Canvg.from(context, svg, {
-      ...presets.node({
-        DOMParser,
-        createCanvas,
-      }),
+    const v = Canvg.fromString(context, svg, {
+      DOMParser,
+      fetch
     });
-
     await v.render();
 
     const png = canvas.toBuffer('image/png');
