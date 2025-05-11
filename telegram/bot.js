@@ -51,12 +51,14 @@ async function loadFonts() {
 
     fontsCache.set(font.name, fontData);
 
+    // Register font ke Canvas
     const tmpFontPath = `/tmp/${font.name}.ttf`;
     fs.writeFileSync(tmpFontPath, fontData);
     registerFont(tmpFontPath, { family: font.name });
   }
 }
 
+// Register commands
 registerAdminCommands(bot);
 require('./auth')(bot);
 
@@ -94,7 +96,7 @@ bot.command('card', async ctx => {
   tempSession.set(userId, { step: 'model' });
 
   await ctx.reply('Pilih model:', Markup.inlineKeyboard(
-    modelsName.map(m => Markup.button.callback(`\u{1F5BC} ${m}`, `model:${m}`)),
+    modelsName.map(m => Markup.button.callback(`🖼️ ${m}`, `model:${m}`)),
     { columns: 2 }
   ));
 });
@@ -110,7 +112,7 @@ bot.on('callback_query', async ctx => {
     tempSession.set(userId, session);
 
     await ctx.editMessageText('Pilih theme:', Markup.inlineKeyboard(
-      themeNames.map(t => Markup.button.callback(`\u{1F3A8} ${t}`, `theme:${t}`)),
+      themeNames.map(t => Markup.button.callback(`🎨 ${t}`, `theme:${t}`)),
       { columns: 2 }
     ));
     return ctx.answerCbQuery();
@@ -123,7 +125,7 @@ bot.on('callback_query', async ctx => {
 
     const { categories } = await getCategoryMarkdownList();
     await ctx.editMessageText('Pilih kategori:', Markup.inlineKeyboard(
-      categories.map(c => Markup.button.callback(`\u{1F4C1} ${c.name}`, `category:${c.category_id}`)),
+      categories.map(c => Markup.button.callback(`📂 ${c.name}`, `category:${c.category_id}`)),
       { columns: 2 }
     ));
     return ctx.answerCbQuery();
@@ -179,32 +181,34 @@ bot.on('text', async ctx => {
       console.log('SVG not in cache, fetching from:', url);
       const res = await fetch(url);
       svg = await res.text();
-      await redis.set(cacheKey, svg, { ex: 3600 });
+      console.log('SVG fetched length:', svg.length);
+      await redis.set(cacheKey, svg, { ex: 300 });
+    } else {
+      console.log('SVG loaded from cache. Length:', svg.length);
     }
 
-    const ratio = 1.5;
-
-    const tempCanvas = createCanvas(1, 1);
-    const tempCtx = tempCanvas.getContext('2d');
-    const parser = await Canvg.from(tempCtx, svg, { parseOnly: true, DOMParser });
-    const { width, height } = parser.document;
+    const ratio = 1.5; 
+    const width = 680;
+    const height = session.coin * 20 + 60; // Estimasi tinggi dinamis
 
     const canvas = createCanvas(width * ratio, height * ratio);
-    const ctx2d = canvas.getContext('2d');
-    ctx2d.scale(ratio, ratio);
+    const context = canvas.getContext('2d');
+    context.scale(ratio, ratio);
 
-    const renderer = await Canvg.from(ctx2d, svg, { DOMParser, fetch });
-    await renderer.render();
+    // Render SVG ke canvas
+    const v = Canvg.fromString(context, svg, { DOMParser, fetch });
+    await v.render();
 
+    // Output PNG resolusi tinggi
     const png = canvas.toBuffer('image/png');
     await ctx.replyWithPhoto({ source: png }, {
-      caption: `📊 Kartu siap: *${session.model} - ${session.theme}*`,
+      caption: `📊 Market udah siap: *${session.model} - ${session.theme}*`,
       parse_mode: 'Markdown'
     });
 
   } catch (err) {
     console.error('Gagal membuat kartu:', err);
-    ctx.reply('☹️ Terjadi kesalahan saat membuat kartu.', { show_alert: true });
+    ctx.reply('☹️ Terjadi kesalahan pas bikin gambar .');
   }
 
   tempSession.delete(userId);
