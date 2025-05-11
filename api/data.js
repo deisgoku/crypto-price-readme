@@ -53,7 +53,7 @@ async function getCache(key) {
 }
 
 // === FETCHERS ===
-async function fetchGeckoSymbols(symbols = [], limit = 5) {
+async function fetchGeckoSymbols(symbols = [], limit = 50) {
   const symbolsQuery = symbols.length ? `&ids=${symbols.join(',')}` : '';
   const url = `${COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${limit}&sparkline=false${symbolsQuery}`;
   const res = await fetch(url);
@@ -155,7 +155,7 @@ async function fetchBinance(limit) {
 
 // === FINAL HANDLER ===
 module.exports = async (req, res) => {
-  const { coin, category, count = 5 } = req.query;
+  const { coin, category, count = 50 } = req.query;
 
   if (!coin && !category) {
     return res.status(400).json({ error: 'Butuh query coin atau category' });
@@ -170,7 +170,7 @@ module.exports = async (req, res) => {
         .split(',')
         .map(c => c.trim().toLowerCase())
         .filter(Boolean)
-        .slice(0, 20);
+        .slice(0, 50);
 
       const cacheKey = `crypto:symbols:${coins.join(',')}`;
       const cached = await getCache(cacheKey);
