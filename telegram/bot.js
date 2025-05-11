@@ -36,14 +36,17 @@ async function loadFonts() {
 
   for (const font of fonts) {
     const fontKey = `font:${font.name}`;
-    let fontData = await redis.getBuffer(fontKey);
+    let fontData;
+    const base64 = await redis.get(fontKey);
 
-    if (!fontData) {
+    if (!base64) {
       console.log(`Font ${font.name} tidak ada di Redis, memuat dan menyimpannya.`);
       fontData = fs.readFileSync(font.path);
-      await redis.setBuffer(fontKey, fontData, { ex: 86400 });
+      const encoded = fontData.toString('base64');
+      await redis.set(fontKey, encoded, { ex: 86400 });
     } else {
       console.log(`Font ${font.name} dimuat dari Redis.`);
+      fontData = Buffer.from(base64, 'base64');
     }
 
     fontsCache.set(font.name, fontData);
