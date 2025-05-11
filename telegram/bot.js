@@ -2,7 +2,7 @@ const { Telegraf, Markup } = require('telegraf');
 const fetch = require('node-fetch');
 const { Canvg } = require('canvg');
 const { DOMParser } = require('xmldom');
-const { createCanvas, registerFont } = require('canvas');
+const { createCanvas } = require('canvas');
 const bcrypt = require('bcrypt');
 const fs = require('fs');
 const path = require('path');
@@ -26,36 +26,41 @@ const tempSession = new Map();
 const fontDir = path.join(__dirname, '../lib/data/fonts');
 const fontsCache = new Map();
 
+// Fungsi untuk memuat font ke Redis dan cache lokal
 async function loadFonts() {
-  if (fontsCache.size === 0) {
-    console.log('Loading fonts into cache...');
-    const fonts = [
-      { name: 'Verdana', data: fs.readFileSync(path.join(fontDir, 'Verdana.ttf')) },
-      { name: 'monospace', data: fs.readFileSync(path.join(fontDir, 'Monospace.ttf')) },
-      { name: 'Arial', data: fs.readFileSync(path.join(fontDir, 'Arial.ttf')) },
-      { name: 'sans-serif', data: fs.readFileSync(path.join(fontDir, 'sans-serif.ttf')) }
-    ];
-    fonts.forEach(font => fontsCache.set(font.name, font.data));
-    console.log('Fonts loaded.');
-  }
-}
+  const fonts = [
+    { name: 'Verdana', path: path.join(fontDir, 'Verdana.ttf') },
+    { name: 'monospace', path: path.join(fontDir, 'Monospace.ttf') },
+    { name: 'Arial', path: path.join(fontDir, 'Arial.ttf') },
+    { name: 'sans-serif', path: path.join(fontDir, 'sans-serif.ttf') }
+  ];
 
-function registerAllFonts() {
-  for (const [name, data] of fontsCache.entries()) {
-    try {
-      const tempPath = path.join(__dirname, `temp-${name}.ttf`);
-      fs.writeFileSync(tempPath, data);
-      registerFont(tempPath, { family: name });
-      fs.unlinkSync(tempPath);
-    } catch (err) {
-      console.error(`Gagal register font ${name}:`, err);
+  for (const font of fonts) {
+    const fontKey = `font:${font.name}`;
+
+    // Cek apakah font sudah ada di Redis
+    let fontData = await redis.getBuffer(fontKey); 
+
+    if (!fontData) {
+      console.log(`Font ${font.name} tidak ada di Redis, memuat dan menyimpannya.`);
+      // Membaca font dari file sistem
+      fontData = fs.readFileSync(font.path);
+      // Menyimpan font ke Redis dengan waktu kedaluwarsa 24 jam
+      await redis.setBuffer(fontKey, fontData, { ex: 86400 });  
+    } else {
+      console.log(`Font ${font.name} dimuat dari Redis.`);
     }
+
+    // Simpan font sementara dalam cache lokal jika perlu untuk akses cepat
+    fontsCache.set(font.name, fontData);
   }
 }
 
+// Register commands
 registerAdminCommands(bot);
 require('./auth')(bot);
 
+// Start command
 bot.start(ctx => {
   ctx.reply(
     `Selamat datang di *Crypto Card Bot!*\n\nGunakan /card untuk membuat kartu crypto.\nGunakan /help untuk melihat perintah lain.`,
@@ -63,29 +68,30 @@ bot.start(ctx => {
   );
 });
 
+// Help command
 bot.command('help', async ctx => {
   const { markdown } = await getCategoryMarkdownList();
   ctx.reply(
-    `*Perintah:*
+    `*Perintah:* 
 /start - Mulai bot
 /help - Bantuan
 /card - Buat kartu crypto
-/link <username> <password> - Hubungkan akun
+/link - Hubungkan akun
 /unlink - Putuskan akun
 /me - Info akun
 
-*Admin:*
-/addadmin <userId>
-/removeadmin <userId>
-/admins
-/broadcast <pesan>
+*Admin:* 
+/addadmin  
+/removeadmin  
+/admins 
+/broadcast
 
-*Kategori:*
-${markdown}`,
+*Kategori:* ${markdown}`,
     { parse_mode: 'Markdown' }
   );
 });
 
+// Card command
 bot.command('card', async ctx => {
   const userId = ctx.from.id.toString();
   tempSession.set(userId, { step: 'model' });
@@ -96,6 +102,7 @@ bot.command('card', async ctx => {
   ));
 });
 
+// Callback handler
 bot.on('callback_query', async ctx => {
   const userId = ctx.from.id.toString();
   const session = tempSession.get(userId) || {};
@@ -105,7 +112,6 @@ bot.on('callback_query', async ctx => {
     session.model = data.split(':')[1];
     session.step = 'theme';
     tempSession.set(userId, session);
-
     await ctx.editMessageText('Pilih theme:', Markup.inlineKeyboard(
       themeNames.map(t => Markup.button.callback(`\u{1F3A8} ${t}`, `theme:${t}`)),
       { columns: 2 }
@@ -117,7 +123,6 @@ bot.on('callback_query', async ctx => {
     session.theme = data.split(':')[1];
     session.step = 'category';
     tempSession.set(userId, session);
-
     const { categories } = await getCategoryMarkdownList();
     await ctx.editMessageText('Pilih kategori:', Markup.inlineKeyboard(
       categories.map(c => Markup.button.callback(`\u{1F4C1} ${c.name}`, `category:${c.category_id}`)),
@@ -130,6 +135,7 @@ bot.on('callback_query', async ctx => {
     const categoryId = data.split(':')[1].trim();
     const { categories } = await getCategoryMarkdownList();
     const category = categories.find(c => c.category_id === categoryId);
+
     if (!category) {
       return ctx.answerCbQuery('⚠️ Kategori tidak valid.', { show_alert: true });
     }
@@ -137,7 +143,6 @@ bot.on('callback_query', async ctx => {
     session.category = category.category_id;
     session.step = 'coin';
     tempSession.set(userId, session);
-
     await ctx.editMessageText('Masukkan jumlah coin (1-50):');
     return ctx.answerCbQuery();
   }
@@ -145,6 +150,7 @@ bot.on('callback_query', async ctx => {
   return ctx.answerCbQuery();
 });
 
+// Text handler (coin input)
 bot.on('text', async ctx => {
   const userId = ctx.from.id.toString();
   const session = tempSession.get(userId);
@@ -168,14 +174,13 @@ bot.on('text', async ctx => {
 
   try {
     await loadFonts();
-    registerAllFonts();
-
     let svg = await redis.get(cacheKey);
 
     if (!svg) {
       console.log('SVG not in cache, fetching from:', url);
       const res = await fetch(url);
       svg = await res.text();
+      // Menyimpan SVG ke Redis dengan TTL 1 jam (3600 detik)
       await redis.set(cacheKey, svg, { ex: 3600 });
     } else {
       console.log('SVG loaded from cache.');
@@ -183,18 +188,11 @@ bot.on('text', async ctx => {
 
     const canvas = createCanvas(680, 400);
     const context = canvas.getContext('2d');
-
-    const v = Canvg.fromString(context, svg, {
-      DOMParser,
-      fetch
-    });
+    const v = Canvg.fromString(context, svg, { DOMParser, fetch });
     await v.render();
-
     const png = canvas.toBuffer('image/png');
-    await ctx.replyWithPhoto({ source: png }, {
-      caption: `📊 Kartu siap: *${session.model} - ${session.theme}*`,
-      parse_mode: 'Markdown'
-    });
+    await ctx.replyWithPhoto({ source: png }, { caption: `📊 Kartu siap: *${session.model} - ${session.theme}*`, parse_mode: 'Markdown' });
+
   } catch (err) {
     console.error('Gagal membuat kartu:', err);
     ctx.reply('Terjadi kesalahan saat membuat kartu.');
