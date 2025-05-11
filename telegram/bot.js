@@ -187,7 +187,7 @@ bot.on('text', async ctx => {
       console.log('SVG loaded from cache. Length:', svg.length);
     }
 
-    const ratio = 2; // Bisa juga 3 untuk lebih tajam
+    const ratio = 1; // Bisa juga 3 untuk lebih tajam
     const width = 680;
     const height = session.coin * 20 + 60; // Estimasi tinggi dinamis
 
