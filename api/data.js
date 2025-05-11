@@ -166,14 +166,14 @@ module.exports = async (req, res) => {
 
     // Maksimal user cuma bisa request sampai 20 item aja
     const rawLimit = parseInt(count);
-    const limit = isNaN(rawLimit) ? 5 : Math.min(rawLimit, 20);
+    const limit = isNaN(rawLimit) ? 5 : Math.min(rawLimit, 20);  // Pastikan limit nggak lebih dari 20
 
     if (coin) {
       const coins = coin
         .split(',')
         .map(c => c.trim().toLowerCase())
         .filter(Boolean)
-        .slice(0, limit); // 
+        .slice(0, limit);  // Batasi sesuai limit yang diatur
 
       const cacheKey = `crypto:symbols:${coins.join(',')}`;
       const cached = await getCache(cacheKey);
