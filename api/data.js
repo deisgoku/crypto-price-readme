@@ -10,7 +10,6 @@ const CMC_KEY = process.env.CMC_API_KEY;
 
 let categoryMap = null;
 
-
 // Utilities
 function formatVolume(value) {
   if (value >= 1e9) return (value / 1e9).toFixed(1) + "B";
@@ -25,9 +24,7 @@ function escapeXml(unsafe) {
   }[c]));
 }
 
-
-// ====={ Desimal smart prices )====
-
+// Smart price formatting
 function formatPrice(value) {
   if (value >= 0.01) {
     const str = value.toFixed(8);
@@ -42,6 +39,7 @@ function formatPrice(value) {
   return { price: escapeXml(smart), micin: true };
 }
 
+// Fetch category map from CoinGecko
 async function fetchCategoryMap() {
   if (categoryMap) return categoryMap;
   const res = await fetch(`${COINGECKO_API}/coins/categories/list`);
@@ -50,11 +48,11 @@ async function fetchCategoryMap() {
   return categoryMap;
 }
 
+// Fetch coins from CoinGecko API
 async function fetchGecko(category, limit) {
   const url = `${COINGECKO_API}/coins/markets?vs_currency=usd&category=${category}&order=market_cap_desc&per_page=${limit}&sparkline=true`;
   const res = await fetch(url);
   if (!res.ok) throw new Error('Gecko failed');
-
   const coins = await res.json();
   return coins.map(coin => {
     const { price, micin } = formatPrice(coin.current_price);
@@ -69,6 +67,7 @@ async function fetchGecko(category, limit) {
   });
 }
 
+// Fetch coins from CoinMarketCap API
 async function fetchCMC(category, limit) {
   const slugRes = await fetch(`${CMC_API}/cryptocurrency/category`, {
     headers: { 'X-CMC_PRO_API_KEY': CMC_KEY }
@@ -97,10 +96,10 @@ async function fetchCMC(category, limit) {
   });
 }
 
+// Fetch coins from Binance API
 async function fetchBinance(limit) {
   const res = await fetch(BINANCE_API);
   const data = await res.json();
-
   return data
     .filter(d => d.symbol.endsWith('USDT') && d.symbol.length <= 10)
     .slice(0, limit)
@@ -117,19 +116,15 @@ async function fetchBinance(limit) {
     });
 }
 
+// Main function to fetch data from multiple APIs
 async function fetchSymbolData(symbols) {
   try {
-    // Pertama coba ambil data dari CoinGecko
     let coins = await fetchGeckoBySymbols(symbols);
-    
-    // Cek jika data kosong atau gagal
     if (!coins || coins.length === 0) {
       console.log('Gecko API gagal, fallback ke CMC');
-      // Jika gagal, coba ambil data dari CoinMarketCap
       coins = await fetchCMC('', symbols.length); // Kosongkan kategori karena kita mengirim simbol langsung
     }
-    
-    // Jika CMC juga gagal, coba fallback ke Binance
+
     if (!coins || coins.length === 0) {
       console.log('CMC API gagal, fallback ke Binance');
       coins = await fetchBinance(symbols.length);
@@ -138,10 +133,9 @@ async function fetchSymbolData(symbols) {
     return coins;
   } catch (err) {
     console.error('Semua API gagal, error:', err.message);
-    throw new Error('Semua API gagal');  // rungkad semua... 
+    throw new Error('Semua API gagal');
   }
 }
-
 
 module.exports = async (req, res) => {
   const { user, category, coin, count = 5, format = 'json' } = req.query;
