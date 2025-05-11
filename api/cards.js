@@ -12,6 +12,7 @@ const CMC_KEY = process.env.CMC_API_KEY;
 
 let categoryMap = null;
 
+
 function generateModelList() {
   return Object.keys(renderers).map(key => ({
     label: key[0].toUpperCase() + key.slice(1),
@@ -29,6 +30,7 @@ async function handleModelList(req, res) {
       }
     } catch (e) {
       console.warn('[modelList] Failed to parse model:list from Redis:', e.message);
+      // fallback lanjut di bawah
     }
 
     const models = generateModelList();
@@ -37,14 +39,16 @@ async function handleModelList(req, res) {
   }
 
   if (req.method === 'POST') {
-    const models = generateModelList();
-    await redis.set("model:list", JSON.stringify(models), { ex: 86400 });
-    return res.status(200).json({ ok: true, models });
-  }
+  const models = generateModelList();
+  console.log('[POST] generated models:', models); // Tambahkan ini
+  await redis.set("model:list", JSON.stringify(models), { ex: 86400 });
+  return res.status(200).json({ ok: true, models });
+ }
 
   return res.status(405).json({ error: 'Method not allowed' });
 }
 
+// Utilities
 function formatVolume(value) {
   if (value >= 1e9) return (value / 1e9).toFixed(1) + "B";
   if (value >= 1e6) return (value / 1e6).toFixed(1) + "M";
@@ -147,24 +151,30 @@ async function fetchBinance(limit) {
     });
 }
 
+// Handler utama
 module.exports = async (req, res) => {
+  // Route tambahan: model:list
   if (req.query.handler === 'modelList') {
     return handleModelList(req, res);
   }
 
-  const {
-    user,
-    model = 'modern',
-    theme = 'dark',
-    coin = '6',
-    category = 'layer1',
-    format
-  } = req.query;
-
+  const { user, model = 'modern', theme = 'dark', coin = '6', category = 'layer1' } = req.query;
   const limit = Math.min(Math.max(parseInt(coin), 1), 20);
   const cacheKey = `${category}_${limit}_${theme}_${model}`;
 
+  res.setHeader('Content-Type', 'image/svg+xml');
+  res.setHeader('Cache-Control', 'no-store');
+
   try {
+    if (!user || typeof user !== 'string') {
+      return res.status(200).send(renderLocked('Guest'));
+    }
+
+    const verified = await isRegistered(user.toLowerCase());
+    if (!verified) {
+      return res.status(200).send(renderLocked(user));
+    }
+
     const data = await cacheFetch(cacheKey, 60, async () => {
       let result;
       let categoryName = 'General';
@@ -202,23 +212,6 @@ module.exports = async (req, res) => {
 
       return result;
     });
-
-    if (format === 'json') {
-      return res.status(200).json({ ok: true, data });
-    }
-
-    // SVG only allowed for registered users
-    res.setHeader('Content-Type', 'image/svg+xml');
-    res.setHeader('Cache-Control', 'no-store');
-
-    if (!user || typeof user !== 'string') {
-      return res.status(200).send(renderLocked('Guest'));
-    }
-
-    const verified = await isRegistered(user.toLowerCase());
-    if (!verified) {
-      return res.status(200).send(renderLocked(user));
-    }
 
     const renderer = renderers[model] || renderers.modern;
     const svg = renderer(data, theme, limit);
