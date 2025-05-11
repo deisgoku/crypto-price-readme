@@ -2,16 +2,17 @@ const { Telegraf, Markup } = require('telegraf');
 const fetch = require('node-fetch');
 const { Canvg, presets } = require('canvg');
 const { DOMParser } = require('xmldom');
+const { createCanvas } = require('canvas');
 const bcrypt = require('bcrypt');
 const fs = require('fs');
 const path = require('path');
+
 const { BOT_TOKEN, BASE_URL } = require('./config');
 const { getCategoryMarkdownList } = require('./gecko');
 const { themeNames } = require('../lib/settings/model/theme');
 const renderers = require('../lib/settings/model/list');
 const { redis } = require('../lib/redis');
 const { registerAdminCommands } = require('./admin');
-const { createCanvas } = require('canvas');  // Import createCanvas
 
 const LINK_KEY = 'user_passwords';
 const USER_SET = 'tg:users';
@@ -40,9 +41,11 @@ async function loadFonts() {
   }
 }
 
+// Register commands
 registerAdminCommands(bot);
 require('./auth')(bot);
 
+// Start command
 bot.start(ctx => {
   ctx.reply(
     `Selamat datang di *Crypto Card Bot!*\n\nGunakan /card untuk membuat kartu crypto.\nGunakan /help untuk melihat perintah lain.`,
@@ -50,6 +53,7 @@ bot.start(ctx => {
   );
 });
 
+// Help command
 bot.command('help', async ctx => {
   const { markdown } = await getCategoryMarkdownList();
   ctx.reply(
@@ -73,6 +77,7 @@ ${markdown}`,
   );
 });
 
+// Card command
 bot.command('card', async ctx => {
   const userId = ctx.from.id.toString();
   tempSession.set(userId, { step: 'model' });
@@ -83,6 +88,7 @@ bot.command('card', async ctx => {
   ));
 });
 
+// Callback handler
 bot.on('callback_query', async ctx => {
   const userId = ctx.from.id.toString();
   const session = tempSession.get(userId) || {};
@@ -129,9 +135,10 @@ bot.on('callback_query', async ctx => {
     return ctx.answerCbQuery();
   }
 
-  await ctx.answerCbQuery();
+  return ctx.answerCbQuery();
 });
 
+// Text handler (coin input)
 bot.on('text', async ctx => {
   const userId = ctx.from.id.toString();
   const session = tempSession.get(userId);
@@ -166,16 +173,17 @@ bot.on('text', async ctx => {
       console.log('SVG loaded from cache.');
     }
 
-    // Initialize canvas here
+    // Buat canvas dan render SVG ke PNG
     const canvas = createCanvas(680, 400);
     const context = canvas.getContext('2d');
 
-    // Use xmldom's DOMParser if needed
     const v = await Canvg.from(context, svg, {
       ...presets.node({
         DOMParser,
+        createCanvas,
       }),
     });
+
     await v.render();
 
     const png = canvas.toBuffer('image/png');
