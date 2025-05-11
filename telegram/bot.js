@@ -11,7 +11,7 @@ const { themeNames } = require('../lib/settings/model/theme');
 const renderers = require('../lib/settings/model/list');
 const { redis } = require('../lib/redis');
 const { registerAdminCommands } = require('./admin');
-const { createCanvas } = require('canvas');
+const { createCanvas } = require('canvas');  // Import createCanvas
 
 const LINK_KEY = 'user_passwords';
 const USER_SET = 'tg:users';
@@ -166,10 +166,11 @@ bot.on('text', async ctx => {
       console.log('SVG loaded from cache.');
     }
 
+    // Initialize canvas here
     const canvas = createCanvas(680, 400);
     const context = canvas.getContext('2d');
 
-    // Gunakan xmldom untuk DOMParser jika dibutuhkan
+    // Use xmldom's DOMParser if needed
     const v = await Canvg.from(context, svg, {
       ...presets.node({
         DOMParser,
