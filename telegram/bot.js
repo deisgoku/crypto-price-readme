@@ -110,6 +110,7 @@ bot.on('callback_query', async ctx => {
     session.model = data.split(':')[1];
     session.step = 'theme';
     tempSession.set(userId, session);
+
     await ctx.editMessageText('Pilih theme:', Markup.inlineKeyboard(
       themeNames.map(t => Markup.button.callback(`\u{1F3A8} ${t}`, `theme:${t}`)),
       { columns: 2 }
@@ -121,6 +122,7 @@ bot.on('callback_query', async ctx => {
     session.theme = data.split(':')[1];
     session.step = 'category';
     tempSession.set(userId, session);
+
     const { categories } = await getCategoryMarkdownList();
     await ctx.editMessageText('Pilih kategori:', Markup.inlineKeyboard(
       categories.map(c => Markup.button.callback(`\u{1F4C1} ${c.name}`, `category:${c.category_id}`)),
@@ -141,6 +143,7 @@ bot.on('callback_query', async ctx => {
     session.category = category.category_id;
     session.step = 'coin';
     tempSession.set(userId, session);
+
     await ctx.editMessageText('Masukkan jumlah coin (1-50):');
     return ctx.answerCbQuery();
   }
@@ -184,11 +187,19 @@ bot.on('text', async ctx => {
       console.log('SVG loaded from cache. Length:', svg.length);
     }
 
-    const canvas = createCanvas(680, 400);
+    const ratio = 2; // Bisa juga 3 untuk lebih tajam
+    const width = 680;
+    const height = session.coin * 20 + 60; // Estimasi tinggi dinamis
+
+    const canvas = createCanvas(width * ratio, height * ratio);
     const context = canvas.getContext('2d');
+    context.scale(ratio, ratio);
+
+    // Render SVG ke canvas
     const v = Canvg.fromString(context, svg, { DOMParser, fetch });
     await v.render();
 
+    // Output PNG resolusi tinggi
     const png = canvas.toBuffer('image/png');
     await ctx.replyWithPhoto({ source: png }, {
       caption: `📊 Kartu siap: *${session.model} - ${session.theme}*`,
