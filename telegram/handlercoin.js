@@ -7,16 +7,23 @@ function escapeMarkdown(text) {
 }
 
 // Resolve symbol to CoinGecko IDs (used for /s <query>)
-async function resolveSymbolToIds(query) {
+async function resolveSymbolToIds(symbol) {
   const res = await fetch('https://api.coingecko.com/api/v3/coins/list');
   const coins = await res.json();
-  const lower = query.toLowerCase();
+  const lower = symbol.toLowerCase();
 
-  return coins.filter(c =>
-    c.symbol.toLowerCase() === lower ||
-    c.name.toLowerCase().includes(lower) ||
-    c.id.toLowerCase().includes(lower)
+  const exactMatches = coins.filter(c => 
+    c.symbol.toLowerCase() === lower || 
+    c.id.toLowerCase() === lower || 
+    c.name.toLowerCase() === lower
   );
+
+  const partialMatches = coins.filter(c =>
+    (c.symbol + c.id + c.name).toLowerCase().includes(lower) &&
+    !exactMatches.includes(c)
+  );
+
+  return [...exactMatches, ...partialMatches].slice(0, 20); // batasi hasil
 }
 
 // Untuk command !c <coinId>
