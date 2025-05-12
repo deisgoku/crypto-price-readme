@@ -1,7 +1,6 @@
 // lib/handlers.js
 const fetch = require('node-fetch');
 
-// Fungsi bantu untuk membungkus teks 
 function wrapText(text, maxWidth) {
   const words = text.split(' ');
   const lines = [];
@@ -15,17 +14,14 @@ function wrapText(text, maxWidth) {
       line = word;
     }
   }
-
   if (line) lines.push(line);
   return lines;
 }
 
-// Escape helper to prevent coin names from breaking Markdown
 function escapeMarkdown(text) {
   return text.replace(/[*_`[\]]/g, '\\$&');
 }
 
-// Resolve symbol to CoinGecko IDs (used for /s <query>)
 async function resolveSymbolToIds(symbol) {
   const res = await fetch('https://api.coingecko.com/api/v3/coins/list');
   const coins = await res.json();
@@ -42,17 +38,17 @@ async function resolveSymbolToIds(symbol) {
     !exactMatches.includes(c)
   );
 
-  return [...exactMatches, ...partialMatches].slice(0, 20); // batasi hasil
+  return [...exactMatches, ...partialMatches].slice(0, 20);
 }
 
-async function searchCoinAndFormat(query) {
+async function searchCoinAndFormat(ctx, query) {
   try {
     const matches = await resolveSymbolToIds(query);
     if (!matches.length) return null;
 
     const spacer = '\u2007';
     const centerText = (text, width) => {
-      const pad = Math.floor((width - text.length) / 2);
+      const pad = Math.max(0, Math.floor((width - text.length) / 2));
       return spacer.repeat(pad) + text;
     };
 
@@ -97,7 +93,6 @@ async function searchCoinAndFormat(query) {
   }
 }
 
-// Untuk command !c <coinId>
 async function handleSymbolCommand(ctx, coinId) {
   try {
     const url = `https://crypto-price-on.vercel.app/api/data?coin=${coinId}`;
@@ -109,10 +104,9 @@ async function handleSymbolCommand(ctx, coinId) {
     }
 
     const result = json.data[0];
-
     const spacer = '\u2007';
     const centerText = (text, width) => {
-      const pad = Math.floor((width - text.length) / 2);
+      const pad = Math.max(0, Math.floor((width - text.length) / 2));
       return spacer.repeat(pad) + text;
     };
 
@@ -148,8 +142,6 @@ async function handleSymbolCommand(ctx, coinId) {
   }
 }
 
-//--------- Area kategori --------+
-
 async function resolveCategories(category) {
   const res = await fetch('https://api.coingecko.com/api/v3/coins/categories/list');
   const categories = await res.json();
@@ -157,9 +149,9 @@ async function resolveCategories(category) {
   return categories.filter(c => c.category_id.toLowerCase() === lower || c.name.toLowerCase().includes(lower));
 }
 
-async function searchCategoryCommand(ctx, keyword) {
+async function searchCategoryCommand(ctx, category) {
   try {
-    const categories = await resolveCategories(keyword);
+    const categories = await resolveCategories(category);
 
     if (!categories.length) {
       return ctx.reply('☹️Kategori yang elu mau tidak ditemukan.');
@@ -171,7 +163,7 @@ async function searchCategoryCommand(ctx, keyword) {
 
     const spacer = '\u2007';
     const centerText = (text, width) => {
-      const pad = Math.floor((width - text.length) / 2);
+      const pad = Math.max(0, Math.floor((width - text.length) / 2));
       return spacer.repeat(pad) + text;
     };
 
@@ -181,7 +173,7 @@ async function searchCategoryCommand(ctx, keyword) {
     const totalLen = lineLen;
     const year = new Date().getFullYear();
 
-    let reply = `🔎 Ditemukan *${categories.length}* kategori dengan kata *${keyword.toUpperCase()}*:\n`;
+    let reply = `🔎 Ditemukan *${categories.length}* kategori dengan kata *${category.toUpperCase()}*:\n`;
     reply += '```\n' + '-'.repeat(lineLen) + '\n';
     reply += 'NAMA'.padEnd(maxNameLen) + '  ID\n' + '-'.repeat(lineLen) + '\n';
 
@@ -207,7 +199,7 @@ async function searchCategoryCommand(ctx, keyword) {
     });
   } catch (err) {
     console.error(err);
-    return ctx.reply('☹️ Terjadi kesalahan saat mengambil data \n\nMungkin gua lelah kalo belum ngopi');
+    return ctx.reply('☹️ Terjadi kesalahan saat mengambil data \n\nMungkin gua lelah kalo gak belum ngopi');
   }
 }
 
@@ -223,7 +215,7 @@ async function handleCategoryCommand(ctx, categoryId, count = 5) {
 
     const spacer = '\u2007';
     const centerText = (text, width) => {
-      const pad = Math.floor((width - text.length) / 2);
+      const pad = Math.max(0, Math.floor((width - text.length) / 2));
       return spacer.repeat(pad) + text;
     };
 
@@ -232,6 +224,7 @@ async function handleCategoryCommand(ctx, categoryId, count = 5) {
     const volLen = 10;
     const trendLen = 6;
     const year = new Date().getFullYear();
+
     const totalLen = nameMax + priceLen + volLen + trendLen + (4 * 3);
 
     let msg = centerText(`📊 Top (${json.data.length}) Populer Market`, totalLen) + '\n';
@@ -289,6 +282,7 @@ module.exports = bot => {
     const text = ctx.message.text.trim();
     const [_, ...args] = text.split(' ');
     const category = args.join(' ');
+
     if (!category) {
       return ctx.reply('❓Contoh: `/c gaming`', { parse_mode: 'Markdown' });
     }
@@ -298,9 +292,7 @@ module.exports = bot => {
   bot.command('s', async (ctx) => {
     const query = ctx.message.text.split(' ').slice(1).join(' ');
     if (!query) return ctx.reply('Contoh:\n/s doge');
-    const reply = await searchCoinAndFormat(query);
-    if (!reply) return ctx.reply('Tidak ditemukan hasil 🤦.');
-    return ctx.reply(reply, { parse_mode: 'Markdown' });
+    await searchCoinAndFormat(ctx, query);
   });
 
   bot.hears(/^!c\s+(.+)/i, async (ctx) => {
