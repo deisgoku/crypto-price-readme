@@ -6,50 +6,28 @@ function escapeMarkdown(text) {
   return text.replace(/[*_`[\]]/g, '\\$&');
 }
 
-// Resolve symbol to CoinGecko IDs
-async function resolveSymbolToIds(symbol) {
+// Resolve symbol to CoinGecko IDs (used for /s <query>)
+async function resolveSymbolToIds(query) {
   const res = await fetch('https://api.coingecko.com/api/v3/coins/list');
   const coins = await res.json();
-  const lower = symbol.toLowerCase();
-  
-  return coins.filter(c => c.symbol.toLowerCase() === lower);
+  const lower = query.toLowerCase();
+
+  return coins.filter(c =>
+    c.symbol.toLowerCase() === lower ||
+    c.name.toLowerCase().includes(lower) ||
+    c.id.toLowerCase().includes(lower)
+  );
 }
 
-// Handle the symbol command
-async function handleSymbolCommand(ctx, symbol) {
+// Untuk command !c <coinId>
+async function handleSymbolCommand(ctx, coinId) {
   try {
-    const matches = await resolveSymbolToIds(symbol);
-
-    if (!matches.length) {
-      return ctx.reply('Symbol tidak ditemukan.');
-    }
-
-    if (matches.length > 1) {
-      // Try to find an exact match by name or ID
-      const exact = matches.find(c => 
-        c.id.toLowerCase() === symbol.toLowerCase() || 
-        c.name.toLowerCase() === symbol.toLowerCase()
-      );
-
-      if (exact) {
-        matches.length = 1;
-        matches[0] = exact;
-      } else {
-        let reply = '🤔 Ditemukan beberapa token dengan simbol sama:\n\n';
-        matches.forEach((coin, i) => {
-          reply += `${i + 1}. ${coin.name} (${coin.id})\n`;
-        });
-        return ctx.reply(reply);
-      }
-    }
-
-    const coinId = matches[0].id;
     const url = `https://crypto-price-on.vercel.app/api/data?coin=${coinId}`;
     const res = await fetch(url);
     const json = await res.json();
 
     if (!json.data || !json.data.length) {
-      return ctx.reply('☹️Data tidak ditemukan.');
+      return ctx.reply('☹️ Data tidak ditemukan.');
     }
 
     const result = json.data[0];
@@ -58,7 +36,7 @@ async function handleSymbolCommand(ctx, symbol) {
 
   } catch (e) {
     console.error(e);
-    return ctx.reply('☹️Terjadi kesalahan saat mengambil data.');
+    return ctx.reply('☹️ Terjadi kesalahan saat mengambil data.');
   }
 }
 
@@ -67,7 +45,7 @@ async function resolveCategories(category) {
   const res = await fetch('https://api.coingecko.com/api/v3/coins/categories/list');
   const categories = await res.json();
   const lower = category.toLowerCase();
-  
+
   return categories.filter(c => c.category_id.toLowerCase() === lower);
 }
 
@@ -124,9 +102,25 @@ module.exports = bot => {
     return handleCategoryCommand(ctx, category, count);
   });
 
-  // Handle !c <symbol> for coin
+  // Search coin (resolve) via /s
+  bot.command('s', async (ctx) => {
+    const query = ctx.message.text.split(' ').slice(1).join(' ');
+    if (!query) return ctx.reply('Contoh:\n/s doge');
+
+    const matches = await resolveSymbolToIds(query);
+    if (!matches.length) return ctx.reply('Tidak ditemukan hasil.');
+
+    let reply = `🔎Hasil pencarian untuk *${query}*:\n\n`;
+    matches.slice(0, 10).forEach((coin, i) => {
+      reply += `${i + 1}. ${coin.name} (${coin.symbol}) - ID: \`${coin.id}\`\n`;
+    });
+
+    return ctx.reply(reply, { parse_mode: 'Markdown' });
+  });
+
+  // Tampilkan harga langsung via !c <coinId>
   bot.hears(/^!c\s+(.+)/i, async (ctx) => {
-    const symbol = ctx.match[1].trim();
-    return handleSymbolCommand(ctx, symbol);
+    const coinId = ctx.match[1].trim();
+    return handleSymbolCommand(ctx, coinId);
   });
 };
