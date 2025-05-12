@@ -20,13 +20,23 @@ async function handleSymbolCommand(ctx, symbol) {
     if (!matches.length) return ctx.reply('Symbol tidak ditemukan.');
 
     if (matches.length > 1) {
-      let reply = '🤔 Ditemukan beberapa token dengan simbol sama:\n\n';
-      matches.forEach((coin, i) => {
-        reply += `${i + 1}. ${coin.name} (${coin.id})\n`;
-      });
-      return ctx.reply(reply);
-    }
+  // Coba cari yang name atau id persis cocok
+    const exact = matches.find(c =>
+    c.id.toLowerCase() === symbol.toLowerCase() ||
+    c.name.toLowerCase() === symbol.toLowerCase()
+  );
 
+  if (exact) {
+    matches.length = 1;
+    matches[0] = exact;
+  } else {
+    let reply = '🤔 Ditemukan beberapa token dengan simbol sama:\n\n';
+    matches.forEach((coin, i) => {
+      reply += `${i + 1}. ${coin.name} (${coin.id})\n`;
+    });
+    return ctx.reply(reply);
+  }
+}
     const coinId = matches[0].id;
     const url = `https://crypto-price-on.vercel.app/api/data?coin=${coinId}`;
     const res = await fetch(url);
