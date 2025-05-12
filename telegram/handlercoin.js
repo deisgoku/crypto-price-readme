@@ -10,6 +10,7 @@ async function resolveSymbolToIds(symbol) {
   const res = await fetch('https://api.coingecko.com/api/v3/coins/list');
   const coins = await res.json();
   const lower = symbol.toLowerCase();
+
   return coins.filter(c => c.symbol.toLowerCase() === lower);
 }
 
@@ -44,24 +45,19 @@ async function handleSymbolCommand(ctx, symbol) {
   }
 }
 
-
-
-
 async function resolveCategories(category) {
   const res = await fetch('https://api.coingecko.com/api/v3/coins/categories/list');
   const categories = await res.json();
   const lower = category.toLowerCase();
-  
+
   return categories.filter(c => c.category_id.toLowerCase() === lower);
 }
 
 async function handleCategoryCommand(ctx, category, count = 5) {
   try {
-
     const categories = await resolveCategories(category);
     if (!categories.length) return ctx.reply('☹️Kategori tidak ditemukan.');
 
-    
     if (categories.length > 1) {
       let reply = `🤔 Ditemukan beberapa kategori dengan nama *${category}*:\n\n`;
       categories.forEach((cat, i) => {
@@ -71,15 +67,14 @@ async function handleCategoryCommand(ctx, category, count = 5) {
     }
 
     const categoryId = categories[0].category_id;
-    
-    // Mengambil data kategori menggunakan ID kategori
     const url = `https://crypto-price-on.vercel.app/api/data?category=${categoryId}&count=${count}`;
     const res = await fetch(url);
     const json = await res.json();
 
-    if (!json.data || !json.data.length) return ctx.reply('☹️Data tidak ditemukan dalam kategori tersebut.');
+    if (!json.data || !json.data.length) {
+      return ctx.reply('☹️Data tidak ditemukan dalam kategori tersebut.');
+    }
 
-    // Kirim hasil data kategori yang ditemukan
     let message = `Kategori *${category}* (${json.data.length} coin):\n\n`;
     json.data.forEach((coin, i) => {
       message += `${i + 1}. ${coin.symbol} - ${coin.price} USD - ${coin.trend}\n`;
@@ -93,7 +88,19 @@ async function handleCategoryCommand(ctx, category, count = 5) {
   }
 }
 
-module.exports = {
-  handleSymbolCommand,
-  handleCategoryCommand,
+module.exports = bot => {
+  bot.command('c', async (ctx) => {
+    const args = ctx.message.text.split(' ').slice(1);
+    if (!args.length) return ctx.reply('Contoh:\n!c pepe\n!c memes 10');
+
+    const [first, second] = args;
+
+    // Cek apakah input adalah kategori + jumlah
+    if (args.length === 2 && !isNaN(parseInt(second))) {
+      return handleCategoryCommand(ctx, first, second);
+    }
+
+    // Kalau cuma satu argumen atau bukan angka, anggap sebagai nama coin
+    return handleSymbolCommand(ctx, first);
+  });
 };
