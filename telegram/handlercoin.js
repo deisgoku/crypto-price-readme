@@ -24,7 +24,7 @@ function escapeMarkdown(text) {
   return text.replace(/[*_`[\]]/g, '\\$&');
 }
 
-// === SYMBOL RESOLVER ===
+// --- SYMBOL RESOLVER (/s)
 async function resolveSymbolToIds(symbol) {
   const res = await fetch('https://api.coingecko.com/api/v3/coins/list');
   const coins = await res.json();
@@ -44,9 +44,12 @@ async function resolveSymbolToIds(symbol) {
   return [...exactMatches, ...partialMatches].slice(0, 20);
 }
 
-async function handleSymbolSearch(ctx, keyword) {
+async function handleSymbolSearch(ctx) {
   try {
-    const matches = await resolveSymbolToIds(keyword);
+    const query = ctx.message.text.split(' ').slice(1).join(' ');
+    if (!query) return ctx.reply('Untuk mencari ID coin , Gunakan /s <nama coin>\nContoh:\n/s doge');
+
+    const matches = await resolveSymbolToIds(query);
     if (!matches.length) return ctx.reply('Tidak ditemukan hasil.');
 
     const spacer = '\u2007';
@@ -61,7 +64,7 @@ async function handleSymbolSearch(ctx, keyword) {
     const totalLen = lineWidth;
     const year = new Date().getFullYear();
 
-    let reply = `🔎 Hasil pencarian coin berdasarkan nama *${keyword.toUpperCase()}*\n`;
+    let reply = `🔎 Hasil pencarian coin berdasarkan nama *${query.toUpperCase()}*\n`;
     reply += '```\n' + '-'.repeat(lineWidth) + '\n';
     reply += `${'#'.padEnd(4)}${'NAMA'.padEnd(maxNameLen)}${'ID'}\n`;
     reply += '-'.repeat(lineWidth) + '\n';
@@ -80,8 +83,7 @@ async function handleSymbolSearch(ctx, keyword) {
     });
 
     reply += '-'.repeat(lineWidth) + '\n';
-    reply += 'Gunakan ID untuk menampilkan harga\n';
-    reply += 'Contoh: !c <id coin> | !c pepe-ai\n';
+    reply += 'Gunakan ID untuk menampilkan harga\nContoh: !c <id coin> | !c pepe-ai\n';
     reply += '-'.repeat(lineWidth) + '\n';
     reply += '```\n';
     reply += centerText(`[${year} © Crypto Market Card](https://t.me/crypto_market_card_bot/gcmc)`, totalLen);
@@ -97,13 +99,12 @@ async function handleSymbolSearch(ctx, keyword) {
   }
 }
 
-// === SYMBOL PRICE (!c) ===
+// --- SYMBOL COMMAND (!c)
 async function handleSymbolCommand(ctx, coinId) {
   try {
     const url = `https://crypto-price-on.vercel.app/api/data?coin=${coinId}`;
     const res = await fetch(url);
     const json = await res.json();
-
     const result = json.data?.[0];
     if (!result) return ctx.reply('☹️ Data tidak ditemukan.');
 
@@ -145,7 +146,7 @@ async function handleSymbolCommand(ctx, coinId) {
   }
 }
 
-// === CATEGORY SEARCH (/c) ===
+// --- CATEGORY RESOLVER (/c)
 async function handleCategoryListing(ctx, keyword) {
   try {
     const res = await fetch('https://api.coingecko.com/api/v3/coins/categories/list');
@@ -204,7 +205,7 @@ async function handleCategoryListing(ctx, keyword) {
   }
 }
 
-// === CATEGORY MARKET (!cat) ===
+// --- CATEGORY DATA (!cat)
 async function handleCategoryCommand(ctx, category, count = 5) {
   try {
     const url = `https://crypto-price-on.vercel.app/api/data?category=${category}&count=${count}`;
@@ -268,35 +269,29 @@ async function handleCategoryCommand(ctx, category, count = 5) {
   }
 }
 
-// === EXPORT ALL COMMAND HANDLERS ===
+// === EXPORT HANDLERS ===
 module.exports = (bot) => {
-  // /s <coin name>
-  bot.command('s', async (ctx) => {
+  bot.command('s', (ctx) => {
     const args = ctx.message.text.split(' ').slice(1);
     if (!args.length) {
-      return ctx.reply('Untuk mencari ID coin / token:\n\nGunakan: /s <nama coin>');
+      return ctx.reply('Untuk mencari ID coin / token :\n\nGunakan: /s <nama koin>');
     }
-    return handleSymbolSearch(ctx, args.join(' '));
+    return handleSymbolSearch(ctx);
   });
 
-  // !c <coinId>
   bot.hears(/^!c\s+(.+)/i, (ctx) => {
     const coinId = ctx.match[1].trim();
     return handleSymbolCommand(ctx, coinId);
   });
 
-  // /c <kategori keyword>
-  bot.command('c', async (ctx) => {
+  bot.command('c', (ctx) => {
     const args = ctx.message.text.split(' ').slice(1);
-    if (!args.length) {
-      return ctx.reply('Untuk mencari ID kategori:\n\nGunakan: /c <nama kategori>');
-    }
+    if (!args.length) return ctx.reply('Untuk mencari ID category \n\nGunakan: /c <kategori>');
     return handleCategoryListing(ctx, args.join(' '));
   });
 
-  // !cat <kategori> <jumlah>
   bot.hears(/^!cat\s+(\S+)\s+(\d+)/i, (ctx) => {
     const [, category, count] = ctx.match;
-    return handleCategoryCommand(ctx, category, parseInt(count));
+    return handleCategoryCommand(ctx, category, count);
   });
 };
