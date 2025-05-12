@@ -49,46 +49,52 @@ async function searchCoinAndFormat(query) {
   const matches = await resolveSymbolToIds(query);
   if (!matches.length) return null;
 
-  const maxNameLen = 30;
-  const maxIdLen = 25;
+  const spacer = '\u2007';
+    const centerText = (text, width) => {
+      const pad = Math.floor((width - text.length) / 2);
+      return spacer.repeat(pad) + text;
+    };
 
-  const nameMax = Math.min(
-    maxNameLen,
-    Math.max(...matches.map(c => c.name.length), 'NAMA'.length)
-  );
-  const idMax = Math.min(
-    maxIdLen,
-    Math.max(...matches.map(c => c.id.length), 'ID'.length)
-  );
+    const maxNameLen = Math.min(25, Math.max(...matches.map(c => c.name.length), 4));
+    const maxIdLen = Math.min(25, Math.max(...matches.map(c => c.id.length), 2));
+    const lineWidth = 5 + maxNameLen + maxIdLen;
+    const totalLen = lineWidth;
+    const year = new Date().getFullYear();
 
-  const lineWidth = 5 + nameMax + idMax;
+    let reply = `🔎 Hasil pencarian coin berdasarkan nama *${query.toUpperCase()}*\n`;
+    reply += '```\n' + '-'.repeat(lineWidth) + '\n';
+    reply += `${'#'.padEnd(4)}${'NAMA'.padEnd(maxNameLen)}${'ID'}\n`;
+    reply += '-'.repeat(lineWidth) + '\n';
 
-  let reply = `🔎 Hasil pencarian coin berdasarkan nama *${query.toUpperCase()}*\n`;
-  reply += '```' + '\n';
-  reply += '-'.repeat(lineWidth) + '\n';
-  reply += `${'#'.padEnd(4)}${'NAMA'.padEnd(nameMax)}${'ID'}\n`;
-  reply += '-'.repeat(lineWidth) + '\n';
+    matches.slice(0, 10).forEach((coin, i) => {
+      const nameLines = wrapText(coin.name, maxNameLen);
+      const idLines = wrapText(coin.id, maxIdLen);
+      const maxLines = Math.max(nameLines.length, idLines.length);
 
-  matches.slice(0, 10).forEach((coin, i) => {
-    const nameLines = wrapText(coin.name, nameMax);
-    const idLines = wrapText(coin.id, idMax);
-    const maxLines = Math.max(nameLines.length, idLines.length);
+      for (let j = 0; j < maxLines; j++) {
+        const number = j === 0 ? `${i + 1}.`.padEnd(4) : ' '.repeat(4);
+        const name = (nameLines[j] || '').padEnd(maxNameLen);
+        const id = idLines[j] || '';
+        reply += `${number}${name}${id}\n`;
+      }
+    });
 
-    for (let j = 0; j < maxLines; j++) {
-      const number = j === 0 ? `${i + 1}.`.padEnd(4) : ' '.repeat(4);
-      const name = (nameLines[j] || '').padEnd(nameMax);
-      const id = idLines[j] || '';
-      reply += `${number}${name}${id}\n`;
-    }
-  });
+    reply += '-'.repeat(lineWidth) + '\n';
+    reply += 'Gunakan ID untuk menampilkan harga\n';
+    reply += 'Contoh: !c <id coin> | !c pepe-ai\n';
+    reply += '-'.repeat(lineWidth) + '\n';
+    reply += '```\n';
+    reply += centerText(`[${year} © Crypto Market Card](https://t.me/crypto_market_card_bot/gcmc)`, totalLen);
 
-  reply += '-'.repeat(lineWidth) + '\n';
-  reply += 'Gunakan ID untuk menampilkan harga\n';
-  reply += 'Contoh: !c <id coin> | !c pepe-token\n';
-  reply += '-'.repeat(lineWidth) + '\n';
-  reply += '```';
+    return ctx.reply(reply, {
+      parse_mode: 'Markdown',
+      disable_web_page_preview: true
+    });
 
-  return reply;
+  } catch (err) {
+    console.error(err);
+    return ctx.reply('Terjadi kesalahan saat mencari coin.');
+  }
 }
 
 
@@ -101,31 +107,46 @@ async function handleSymbolCommand(ctx, coinId) {
     const json = await res.json();
 
     if (!json.data || !json.data.length) {
-      return ctx.reply('☹️ Data tidak ditemukan.');
+      return ctx.reply(`☹️ Data ${coinId} tidak ditemukan.\n\nCoba cek lagi ID-nya pakai /c ${coinId}, kali typo.`);
     }
 
     const result = json.data[0];
+    
+    const spacer = '\u2007';
+    const centerText = (text, width) => {
+      const pad = Math.floor((width - text.length) / 2);
+      return spacer.repeat(pad) + text;
+    };
 
-    // Hitung panjang maksimum label dan isi
-    const labelPad = 12;
-    const price = result.price;
-    const volume = result.volume;
-    const trend = result.trend;
+    const data = {
+      HARGA: result.price,
+      VOLUME: result.volume,
+      TREND: result.trend,
+    };
 
-    const valuePad = Math.max(price.length, volume.length, trend.length);
-    const lineLen = labelPad + 3 + valuePad;
+    const labelMax = Math.max(...Object.keys(data).map(k => k.length));
+    const valueMax = Math.max(...Object.values(data).map(v => v.length));
+    const totalLen = labelMax + 3 + valueMax;
+    const year = new Date().getFullYear();
 
     let msg = `📊 Market ${result.symbol.toUpperCase()}\n`;
-    msg += '-'.repeat(lineLen) + '\n';
-    msg += 'HARGA'.padEnd(labelPad) + ' :  ' + price.padStart(valuePad) + '\n';
-    msg += 'VOLUME'.padEnd(labelPad) + ' :  ' + volume.padStart(valuePad) + '\n';
-    msg += 'TREND'.padEnd(labelPad) + ' :  ' + trend.padStart(valuePad) + '\n';
-    msg += '-'.repeat(lineLen);
+    msg += '```\n' + '-'.repeat(totalLen) + '\n';
 
-    return ctx.reply(msg, { parse_mode: 'Markdown' });
+    for (const [label, value] of Object.entries(data)) {
+      msg += `${label.padEnd(labelMax)} : ${value.padStart(valueMax)}\n`;
+    }
+
+    msg += '-'.repeat(totalLen) + '\n```\n';
+    msg += centerText(`[${year} © Crypto Market Card](https://t.me/crypto_market_card_bot/gcmc)`, totalLen);
+
+    return ctx.reply(msg, {
+      parse_mode: 'Markdown',
+      disable_web_page_preview: true
+    });
+    
   } catch (e) {
     console.error(e);
-    return ctx.reply('☹️ Terjadi kesalahan saat mengambil data.');
+    return ctx.reply(`☹️ Terjadi kesalahan saat mengambil data ${coinId}`);
   }
 }
 
@@ -143,7 +164,7 @@ async function searchCategoryCommand(ctx, category) {
   const categories = await resolveCategories(category);
 
   if (!categories.length) {
-    return ctx.reply('☹️Kategori tidak ditemukan.');
+    return ctx.reply('☹️Kategori yang elu mau tidak ditemukan.');
   }
 
   if (categories.length === 1) {
@@ -152,35 +173,46 @@ async function searchCategoryCommand(ctx, category) {
   }
 
   // Banyak hasil, tampilkan daftar
-  const maxNameLength = Math.max(...categories.map(cat => cat.name.length), 'NAMA'.length, 20);
-  const maxIdLength = Math.max(...categories.map(cat => cat.category_id.length), 'ID'.length, 20);
-  const lineLength = 6 + maxNameLength + 2 + maxIdLength;
+  const spacer = '\u2007';
+    const centerText = (text, width) => {
+      const pad = Math.floor((width - text.length) / 2);
+      return spacer.repeat(pad) + text;
+    };
 
-  let reply = `🤔 Ditemukan beberapa kategori dengan nama *${category.toUpperCase()}*:\n`;
-  reply += '```\n';
-  reply += '-'.repeat(lineLength) + '\n';
-  reply += 'NAMA'.padEnd(maxNameLength) + '  ' + 'ID\n';
-  reply += '-'.repeat(lineLength) + '\n';
+    const maxNameLen = Math.max(...categories.map(c => c.name.length), 20);
+    const maxIdLen = Math.max(...categories.map(c => c.category_id.length), 20);
+    const lineLen = 6 + maxNameLen + 2 + maxIdLen;
+    const totalLen = lineLen;
+    const year = new Date().getFullYear();
 
-  categories.forEach((cat, i) => {
-    const nameLines = wrapText(cat.name, maxNameLength);
-    const idLines = wrapText(cat.category_id, maxIdLength);
-    const maxLines = Math.max(nameLines.length, idLines.length);
+    let reply = `🔎 Ditemukan *${categories.length}* kategori dengan kata *${keyword.toUpperCase()}*:\n`;
+    reply += '```\n' + '-'.repeat(lineLen) + '\n';
+    reply += 'NAMA'.padEnd(maxNameLen) + '  ID\n' + '-'.repeat(lineLen) + '\n';
 
-    for (let j = 0; j < maxLines; j++) {
-      const num = j === 0 ? `${(i + 1)}.`.padStart(3) + ' ' : '    ';
-      const name = (nameLines[j] || '').padEnd(maxNameLength);
-      const id = idLines[j] || '';
-      reply += `${num}${name}  ${id}\n`;
-    }
-  });
+    categories.forEach((cat, i) => {
+      const nameLines = wrapText(cat.name, maxNameLen);
+      const idLines = wrapText(cat.category_id, maxIdLen);
+      const maxLines = Math.max(nameLines.length, idLines.length);
 
-  reply += '-'.repeat(lineLength) + '\n';
-  reply += 'Silakan pilih nomor atau ketik ID yang sesuai.\n';
-  reply += '```';
+      for (let j = 0; j < maxLines; j++) {
+        const num = j === 0 ? `${(i + 1)}.`.padStart(3) + ' ' : '    ';
+        const name = (nameLines[j] || '').padEnd(maxNameLen);
+        const id = idLines[j] || '';
+        reply += `${num}${name}  ${id}\n`;
+      }
+    });
 
-  return ctx.reply(reply, { parse_mode: 'Markdown' });
-}
+    reply += '-'.repeat(lineLen) + '\n```\n';
+    reply += centerText(`[${year} © Crypto Market Card](https://t.me/crypto_market_card_bot/gcmc)`, totalLen);
+
+    return ctx.reply(reply, {
+      parse_mode: 'Markdown',
+      disable_web_page_preview: true
+    });
+    catch (err) {
+    console.error(err);
+    return ctx.reply('☹️ Terjadi kesalahan saat mengambil data \n\nMungkin gua lelah kalo gak belum ngopi');
+  }
 
 // Handle the category command
 async function handleCategoryCommand(ctx, categoryId, count = 5) {
@@ -190,44 +222,62 @@ async function handleCategoryCommand(ctx, categoryId, count = 5) {
     const json = await res.json();
 
     if (!json.data || !json.data.length) {
-      return ctx.reply('☹️Data tidak ditemukan dalam kategori tersebut.');
+      return ctx.reply('☹️Data tidak ditemukan dalam kategori yang elu mau , \n\ncoba cek lagi ID-nya dah bener belum.');
     }
 
-    const nameMax = 20;
-    const priceLen = Math.max(...json.data.map(c => c.price.length), 'HARGA'.length);
+    const spacer = '\u2007';
+    const centerText = (text, width) => {
+      const pad = Math.floor((width - text.length) / 2);
+      return spacer.repeat(pad) + text;
+    };
+
+    const nameMax = 15;
+    const priceLen = Math.max(...json.data.map(c => c.price.length), 5);
     const volLen = 10;
     const trendLen = 6;
+    const year = new Date().getFullYear();
 
-    let message = `📊 Kategori  :      *${categoryId.toUpperCase()}*     ${json.data.length}\n`;
-    const totalLen = nameMax + priceLen + volLen + trendLen + 6;
-    message += '```\n';
-    message += '-'.repeat(totalLen) + '\n';
-    message += `${'NAMA'.padEnd(nameMax)}  ${'HARGA'.padEnd(priceLen)}  ${'VOL'.padEnd(volLen)}  ${'TREND'}\n`;
-    message += '-'.repeat(totalLen) + '\n';
+    const totalLen = nameMax + priceLen + volLen + trendLen + (4 * 3);
+
+    let msg = centerText(`📊 Top (${json.data.length}) Populer Market`, totalLen) + '\n';
+    msg += centerText(`Kategori: ${category.toUpperCase()}`, totalLen) + '\n';
+    msg += '```\n' + '-'.repeat(totalLen) + '\n';
+
+    msg += (
+      `${'NAMA'.padEnd(nameMax)}${spacer.repeat(4)}` +
+      `${'HARGA'.padEnd(priceLen)}${spacer.repeat(4)}` +
+      `${'VOL'.padStart(volLen)}${spacer.repeat(4)}` +
+      `TREND\n`
+    );
+
+    msg += '-'.repeat(totalLen) + '\n';
 
     json.data.forEach((coin) => {
       const nameLines = wrapText(coin.symbol, nameMax);
       const price = coin.price.padEnd(priceLen);
-      const volume = coin.volume.padEnd(volLen);
+      const volume = coin.volume.padStart(volLen);
       const trend = coin.trend.padEnd(trendLen);
 
       nameLines.forEach((line, i) => {
         const name = line.padEnd(nameMax);
-        const prefix = i === 0 ? '' : ' '.repeat(3);
+        const prefix = i === 0 ? '' : spacer.repeat(3);
         const row = i === 0
-          ? `${name}  ${price}  ${volume}  ${trend}`
+          ? `${name}${spacer.repeat(4)}${price}${spacer.repeat(4)}${volume}${spacer.repeat(4)}${trend}`
           : `${prefix}${name}`;
-        message += row + '\n';
+        msg += row + '\n';
       });
     });
 
-    message += '-'.repeat(totalLen) + '\n';
-    message += '```';
+    msg += '-'.repeat(totalLen) + '\n```\n';
+    msg += centerText(`[${year} © Crypto Market Card](https://t.me/crypto_market_card_bot/gcmc)`, totalLen);
 
-    return ctx.reply(message, { parse_mode: 'Markdown' });
+    return ctx.reply(msg, {
+      parse_mode: 'Markdown',
+      disable_web_page_preview: true
+    });
   } catch (e) {
     console.error(e);
-    return ctx.reply('☹️ Terjadi kesalahan saat mengambil data.');
+    return ctx.reply('☹️ Terjadi kesalahan saat mengambil data market kategori');
   }
 }
 
@@ -235,7 +285,7 @@ async function handleCategoryCommand(ctx, categoryId, count = 5) {
 
 
 module.exports = bot => {
-  // Handle /cat category command with count
+  // Handle /c category command with count
   bot.command('cat', async (ctx) => {
   const [_, cat, count] = ctx.message.text.split(' ');
 
@@ -245,7 +295,7 @@ module.exports = bot => {
   await handleCategoryCommand(ctx, cat, Number(count) || 5);
 });
 
-
+// search id category
 bot.command('c', async (ctx) => {
   const text = ctx.message.text.trim();
   const [_, ...args] = text.split(' ');
@@ -264,7 +314,7 @@ bot.command('c', async (ctx) => {
   if (!query) return ctx.reply('Contoh:\n/s doge');
 
   const reply = await searchCoinAndFormat(query);
-  if (!reply) return ctx.reply('Tidak ditemukan hasil.');
+  if (!reply) return ctx.reply('Tidak ditemukan hasil 🤦.');
 
   return ctx.reply(reply, { parse_mode: 'Markdown' });
 });
