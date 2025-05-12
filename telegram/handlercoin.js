@@ -235,8 +235,8 @@ async function handleCategoryCommand(ctx, categoryId, count = 5) {
 
 
 module.exports = bot => {
-  // Handle /c category command with count
-  bot.command('/cat', async (ctx) => {
+  // Handle /cat category command with count
+  bot.command('cat', async (ctx) => {
   const [_, cat, count] = ctx.message.text.split(' ');
 
   if (!cat) {
