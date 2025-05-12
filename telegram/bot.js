@@ -61,6 +61,7 @@ async function loadFonts() {
 // Register commands
 registerAdminCommands(bot);
 require('./auth')(bot);
+require('./handlercoin')(bot);
 
 bot.start(ctx => {
   ctx.reply(
