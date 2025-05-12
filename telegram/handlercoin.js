@@ -246,7 +246,7 @@ module.exports = bot => {
 });
 
 
-bot.command('/c', async (ctx) => {
+bot.command('c', async (ctx) => {
   const text = ctx.message.text.trim();
   const [_, ...args] = text.split(' ');
   const category = args.join(' ');
