@@ -24,7 +24,7 @@ function escapeMarkdown(text) {
   return text.replace(/[*_`[\]]/g, '\\$&');
 }
 
-// --- SYMBOL RESOLVER (/s)
+// === SYMBOL RESOLVER ===
 async function resolveSymbolToIds(symbol) {
   const res = await fetch('https://api.coingecko.com/api/v3/coins/list');
   const coins = await res.json();
@@ -44,12 +44,9 @@ async function resolveSymbolToIds(symbol) {
   return [...exactMatches, ...partialMatches].slice(0, 20);
 }
 
-async function handleSymbolSearch(ctx) {
+async function handleSymbolSearch(ctx, keyword) {
   try {
-    const query = ctx.message.text.split(' ').slice(1).join(' ');
-    if (!query) return ctx.reply('Untuk mencari ID coin , Gunakan /s <nama coin> \nnContoh:\n/s doge');
-
-    const matches = await resolveSymbolToIds(query);
+    const matches = await resolveSymbolToIds(keyword);
     if (!matches.length) return ctx.reply('Tidak ditemukan hasil.');
 
     const spacer = '\u2007';
@@ -64,7 +61,7 @@ async function handleSymbolSearch(ctx) {
     const totalLen = lineWidth;
     const year = new Date().getFullYear();
 
-    let reply = `🔎 Hasil pencarian coin berdasarkan nama *${query.toUpperCase()}*\n`;
+    let reply = `🔎 Hasil pencarian coin berdasarkan nama *${keyword.toUpperCase()}*\n`;
     reply += '```\n' + '-'.repeat(lineWidth) + '\n';
     reply += `${'#'.padEnd(4)}${'NAMA'.padEnd(maxNameLen)}${'ID'}\n`;
     reply += '-'.repeat(lineWidth) + '\n';
@@ -100,7 +97,7 @@ async function handleSymbolSearch(ctx) {
   }
 }
 
-// --- SYMBOL COMMAND (!c)
+// === SYMBOL PRICE (!c) ===
 async function handleSymbolCommand(ctx, coinId) {
   try {
     const url = `https://crypto-price-on.vercel.app/api/data?coin=${coinId}`;
@@ -148,7 +145,7 @@ async function handleSymbolCommand(ctx, coinId) {
   }
 }
 
-// --- CATEGORY RESOLVER (/c)
+// === CATEGORY SEARCH (/c) ===
 async function handleCategoryListing(ctx, keyword) {
   try {
     const res = await fetch('https://api.coingecko.com/api/v3/coins/categories/list');
@@ -164,12 +161,6 @@ async function handleCategoryListing(ctx, keyword) {
       return ctx.reply('☹️Kategori tidak ditemukan.');
     }
 
-    // Kalau cuma satu hasil, langsung tampilkan
-    if (results.length === 1) {
-      return handleCategoryCommand(ctx, results[0].category_id);
-    }
-
-    // Tampilkan list kategori kalau hasilnya lebih dari satu
     const spacer = '\u2007';
     const centerText = (text, width) => {
       const pad = Math.floor((width - text.length) / 2);
@@ -182,7 +173,7 @@ async function handleCategoryListing(ctx, keyword) {
     const totalLen = lineLen;
     const year = new Date().getFullYear();
 
-    let reply = `🔎 Ditemukan beberapa kategori dengan kata *${keyword.toUpperCase()}*:\n`;
+    let reply = `🔎 Ditemukan *${results.length}* kategori dengan kata *${keyword.toUpperCase()}*:\n`;
     reply += '```\n' + '-'.repeat(lineLen) + '\n';
     reply += 'NAMA'.padEnd(maxNameLen) + '  ID\n' + '-'.repeat(lineLen) + '\n';
 
@@ -213,7 +204,7 @@ async function handleCategoryListing(ctx, keyword) {
   }
 }
 
-// --- CATEGORY DATA (!cat)
+// === CATEGORY MARKET (!cat) ===
 async function handleCategoryCommand(ctx, category, count = 5) {
   try {
     const url = `https://crypto-price-on.vercel.app/api/data?category=${category}&count=${count}`;
@@ -232,7 +223,6 @@ async function handleCategoryCommand(ctx, category, count = 5) {
     const volLen = 10;
     const trendLen = 6;
     const year = new Date().getFullYear();
-
     const totalLen = nameMax + priceLen + volLen + trendLen + (4 * 3);
 
     let msg = centerText(`📊 Top (${json.data.length}) Populer Market`, totalLen) + '\n';
@@ -278,31 +268,35 @@ async function handleCategoryCommand(ctx, category, count = 5) {
   }
 }
 
-// === EXPORT HANDLERS ===
+// === EXPORT ALL COMMAND HANDLERS ===
 module.exports = (bot) => {
-	
-  bot.command('c', async (ctx) => {
-  const args = ctx.message.text.split(' ').slice(1);
-  if (!args.length) {
-    return ctx.reply('Untuk mencari ID kategori:\n\nGunakan: /c <nama kategori>');
-  }
+  // /s <coin name>
+  bot.command('s', async (ctx) => {
+    const args = ctx.message.text.split(' ').slice(1);
+    if (!args.length) {
+      return ctx.reply('Untuk mencari ID coin / token:\n\nGunakan: /s <nama coin>');
+    }
+    return handleSymbolSearch(ctx, args.join(' '));
+  });
 
-  return handleCategoryListing(ctx, args.join(' '));
-});
-
+  // !c <coinId>
   bot.hears(/^!c\s+(.+)/i, (ctx) => {
     const coinId = ctx.match[1].trim();
     return handleSymbolCommand(ctx, coinId);
   });
 
+  // /c <kategori keyword>
   bot.command('c', async (ctx) => {
     const args = ctx.message.text.split(' ').slice(1);
-    if (!args.length) return ctx.reply('Untuk mencari ID cateory \n\nGunakan: /c <kategori>');
+    if (!args.length) {
+      return ctx.reply('Untuk mencari ID kategori:\n\nGunakan: /c <nama kategori>');
+    }
     return handleCategoryListing(ctx, args.join(' '));
   });
 
+  // !cat <kategori> <jumlah>
   bot.hears(/^!cat\s+(\S+)\s+(\d+)/i, (ctx) => {
     const [, category, count] = ctx.match;
-    return handleCategoryCommand(ctx, category, count);
+    return handleCategoryCommand(ctx, category, parseInt(count));
   });
 };
