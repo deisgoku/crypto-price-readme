@@ -15,6 +15,7 @@ function wrapText(text, maxWidth) {
       line = word;
     }
   }
+
   if (line) lines.push(line);
   return lines;
 }
@@ -44,12 +45,12 @@ async function resolveSymbolToIds(symbol) {
   return [...exactMatches, ...partialMatches].slice(0, 20); // batasi hasil
 }
 
-
 async function searchCoinAndFormat(query) {
-  const matches = await resolveSymbolToIds(query);
-  if (!matches.length) return null;
+  try {
+    const matches = await resolveSymbolToIds(query);
+    if (!matches.length) return null;
 
-  const spacer = '\u2007';
+    const spacer = '\u2007';
     const centerText = (text, width) => {
       const pad = Math.floor((width - text.length) / 2);
       return spacer.repeat(pad) + text;
@@ -90,14 +91,11 @@ async function searchCoinAndFormat(query) {
       parse_mode: 'Markdown',
       disable_web_page_preview: true
     });
-
   } catch (err) {
     console.error(err);
     return ctx.reply('Terjadi kesalahan saat mencari coin.');
   }
 }
-
-
 
 // Untuk command !c <coinId>
 async function handleSymbolCommand(ctx, coinId) {
@@ -111,7 +109,7 @@ async function handleSymbolCommand(ctx, coinId) {
     }
 
     const result = json.data[0];
-    
+
     const spacer = '\u2007';
     const centerText = (text, width) => {
       const pad = Math.floor((width - text.length) / 2);
@@ -143,7 +141,7 @@ async function handleSymbolCommand(ctx, coinId) {
       parse_mode: 'Markdown',
       disable_web_page_preview: true
     });
-    
+
   } catch (e) {
     console.error(e);
     return ctx.reply(`☹️ Terjadi kesalahan saat mengambil data ${coinId}`);
@@ -152,7 +150,6 @@ async function handleSymbolCommand(ctx, coinId) {
 
 //--------- Area kategori --------+
 
-// Resolve categories by name
 async function resolveCategories(category) {
   const res = await fetch('https://api.coingecko.com/api/v3/coins/categories/list');
   const categories = await res.json();
@@ -160,20 +157,19 @@ async function resolveCategories(category) {
   return categories.filter(c => c.category_id.toLowerCase() === lower || c.name.toLowerCase().includes(lower));
 }
 
-async function searchCategoryCommand(ctx, category) {
-  const categories = await resolveCategories(category);
+async function searchCategoryCommand(ctx, keyword) {
+  try {
+    const categories = await resolveCategories(keyword);
 
-  if (!categories.length) {
-    return ctx.reply('☹️Kategori yang elu mau tidak ditemukan.');
-  }
+    if (!categories.length) {
+      return ctx.reply('☹️Kategori yang elu mau tidak ditemukan.');
+    }
 
-  if (categories.length === 1) {
-    // hanya 1 hasil, lanjut ke handleCategoryCommand
-    return null;
-  }
+    if (categories.length === 1) {
+      return null;
+    }
 
-  // Banyak hasil, tampilkan daftar
-  const spacer = '\u2007';
+    const spacer = '\u2007';
     const centerText = (text, width) => {
       const pad = Math.floor((width - text.length) / 2);
       return spacer.repeat(pad) + text;
@@ -209,12 +205,12 @@ async function searchCategoryCommand(ctx, category) {
       parse_mode: 'Markdown',
       disable_web_page_preview: true
     });
-    catch (err) {
+  } catch (err) {
     console.error(err);
-    return ctx.reply('☹️ Terjadi kesalahan saat mengambil data \n\nMungkin gua lelah kalo gak belum ngopi');
+    return ctx.reply('☹️ Terjadi kesalahan saat mengambil data \n\nMungkin gua lelah kalo belum ngopi');
   }
+}
 
-// Handle the category command
 async function handleCategoryCommand(ctx, categoryId, count = 5) {
   try {
     const url = `https://crypto-price-on.vercel.app/api/data?category=${categoryId}&count=${count}`;
@@ -236,11 +232,10 @@ async function handleCategoryCommand(ctx, categoryId, count = 5) {
     const volLen = 10;
     const trendLen = 6;
     const year = new Date().getFullYear();
-
     const totalLen = nameMax + priceLen + volLen + trendLen + (4 * 3);
 
     let msg = centerText(`📊 Top (${json.data.length}) Populer Market`, totalLen) + '\n';
-    msg += centerText(`Kategori: ${category.toUpperCase()}`, totalLen) + '\n';
+    msg += centerText(`Kategori: ${categoryId.toUpperCase()}`, totalLen) + '\n';
     msg += '```\n' + '-'.repeat(totalLen) + '\n';
 
     msg += (
@@ -281,45 +276,33 @@ async function handleCategoryCommand(ctx, categoryId, count = 5) {
   }
 }
 
-
-
-
 module.exports = bot => {
-  // Handle /c category command with count
   bot.command('cat', async (ctx) => {
-  const [_, cat, count] = ctx.message.text.split(' ');
+    const [_, cat, count] = ctx.message.text.split(' ');
+    if (!cat) {
+      return ctx.reply('❓Contoh: `/cat gaming 5`', { parse_mode: 'Markdown' });
+    }
+    await handleCategoryCommand(ctx, cat, Number(count) || 5);
+  });
 
-  if (!cat) {
-    return ctx.reply('❓Contoh: `/cat gaming 5`', { parse_mode: 'Markdown' });
-  }
-  await handleCategoryCommand(ctx, cat, Number(count) || 5);
-});
+  bot.command('c', async (ctx) => {
+    const text = ctx.message.text.trim();
+    const [_, ...args] = text.split(' ');
+    const category = args.join(' ');
+    if (!category) {
+      return ctx.reply('❓Contoh: `/c gaming`', { parse_mode: 'Markdown' });
+    }
+    await searchCategoryCommand(ctx, category);
+  });
 
-// search id category
-bot.command('c', async (ctx) => {
-  const text = ctx.message.text.trim();
-  const [_, ...args] = text.split(' ');
-  const category = args.join(' ');
-
-  if (!category) {
-    return ctx.reply('❓Contoh: `/c gaming`', { parse_mode: 'Markdown' });
-  }
-  await searchCategoryCommand(ctx, category);
-});
-
-
-  // Search coin (resolve) via /s
   bot.command('s', async (ctx) => {
-  const query = ctx.message.text.split(' ').slice(1).join(' ');
-  if (!query) return ctx.reply('Contoh:\n/s doge');
+    const query = ctx.message.text.split(' ').slice(1).join(' ');
+    if (!query) return ctx.reply('Contoh:\n/s doge');
+    const reply = await searchCoinAndFormat(query);
+    if (!reply) return ctx.reply('Tidak ditemukan hasil 🤦.');
+    return ctx.reply(reply, { parse_mode: 'Markdown' });
+  });
 
-  const reply = await searchCoinAndFormat(query);
-  if (!reply) return ctx.reply('Tidak ditemukan hasil 🤦.');
-
-  return ctx.reply(reply, { parse_mode: 'Markdown' });
-});
-
-  // Tampilkan harga langsung via !c <coinId>
   bot.hears(/^!c\s+(.+)/i, async (ctx) => {
     const coinId = ctx.match[1].trim();
     return handleSymbolCommand(ctx, coinId);
