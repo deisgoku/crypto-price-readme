@@ -136,51 +136,55 @@ async function resolveCategories(category) {
   const res = await fetch('https://api.coingecko.com/api/v3/coins/categories/list');
   const categories = await res.json();
   const lower = category.toLowerCase();
+  return categories.filter(c => c.category_id.toLowerCase() === lower || c.name.toLowerCase().includes(lower));
+}
 
-  return categories.filter(c => c.category_id.toLowerCase() === lower);
+async function searchCategoryCommand(ctx, category) {
+  const categories = await resolveCategories(category);
+
+  if (!categories.length) {
+    return ctx.reply('☹️Kategori tidak ditemukan.');
+  }
+
+  if (categories.length === 1) {
+    // hanya 1 hasil, lanjut ke handleCategoryCommand
+    return null;
+  }
+
+  // Banyak hasil, tampilkan daftar
+  const maxNameLength = Math.max(...categories.map(cat => cat.name.length), 'NAMA'.length, 20);
+  const maxIdLength = Math.max(...categories.map(cat => cat.category_id.length), 'ID'.length, 20);
+  const lineLength = 6 + maxNameLength + 2 + maxIdLength;
+
+  let reply = `🤔 Ditemukan beberapa kategori dengan nama *${category.toUpperCase()}*:\n`;
+  reply += '```\n';
+  reply += '-'.repeat(lineLength) + '\n';
+  reply += 'NAMA'.padEnd(maxNameLength) + '  ' + 'ID\n';
+  reply += '-'.repeat(lineLength) + '\n';
+
+  categories.forEach((cat, i) => {
+    const nameLines = wrapText(cat.name, maxNameLength);
+    const idLines = wrapText(cat.category_id, maxIdLength);
+    const maxLines = Math.max(nameLines.length, idLines.length);
+
+    for (let j = 0; j < maxLines; j++) {
+      const num = j === 0 ? `${(i + 1)}.`.padStart(3) + ' ' : '    ';
+      const name = (nameLines[j] || '').padEnd(maxNameLength);
+      const id = idLines[j] || '';
+      reply += `${num}${name}  ${id}\n`;
+    }
+  });
+
+  reply += '-'.repeat(lineLength) + '\n';
+  reply += 'Silakan pilih nomor atau ketik ID yang sesuai.\n';
+  reply += '```';
+
+  return ctx.reply(reply, { parse_mode: 'Markdown' });
 }
 
 // Handle the category command
-async function handleCategoryCommand(ctx, category, count = 5) {
+async function handleCategoryCommand(ctx, categoryId, count = 5) {
   try {
-    const categories = await resolveCategories(category);
-
-    if (!categories.length) {
-      return ctx.reply('☹️Kategori tidak ditemukan.');
-    }
-
-    if (categories.length > 1) {
-      // Hitung panjang maksimum kolom
-      const maxNameLength = Math.max(...categories.map(cat => cat.name.length), 'NAMA'.length, 20);
-      const maxIdLength = Math.max(...categories.map(cat => cat.category_id.length), 'ID'.length, 20);
-      const lineLength = 6 + maxNameLength + 2 + maxIdLength;
-
-      let reply = `🤔 Ditemukan beberapa kategori dengan nama *${category.toUpperCase()}*:\n`;
-      reply += '```\n';
-      reply += '-'.repeat(lineLength) + '\n';
-      reply += 'NAMA'.padEnd(maxNameLength) + '  ' + 'ID\n';
-      reply += '-'.repeat(lineLength) + '\n';
-
-      categories.forEach((cat, i) => {
-        const nameLines = wrapText(cat.name, maxNameLength);
-        const idLines = wrapText(cat.category_id, maxIdLength);
-        const maxLines = Math.max(nameLines.length, idLines.length);
-
-        for (let j = 0; j < maxLines; j++) {
-          const num = j === 0 ? `${(i + 1)}.`.padStart(3) + ' ' : '    ';
-          const name = (nameLines[j] || '').padEnd(maxNameLength);
-          const id = idLines[j] || '';
-          reply += `${num}${name}  ${id}\n`;
-        }
-      });
-
-      reply += '-'.repeat(lineLength) + '\n';
-      reply += 'Silakan pilih nomor atau ketik ID yang sesuai.\n';
-      reply += '```';
-      return ctx.reply(reply, { parse_mode: 'Markdown' });
-    }
-
-    const categoryId = categories[0].category_id;
     const url = `https://crypto-price-on.vercel.app/api/data?category=${categoryId}&count=${count}`;
     const res = await fetch(url);
     const json = await res.json();
@@ -189,15 +193,14 @@ async function handleCategoryCommand(ctx, category, count = 5) {
       return ctx.reply('☹️Data tidak ditemukan dalam kategori tersebut.');
     }
 
-    // Hitung panjang maksimum
-    const nameMax = 20; // batasi agar bisa wrap
+    const nameMax = 20;
     const priceLen = Math.max(...json.data.map(c => c.price.length), 'HARGA'.length);
     const volLen = 10;
     const trendLen = 6;
 
-    let message = `📊 Kategori  :      *${category.toUpperCase()}*     ${json.data.length}\n`;
+    let message = `📊 Kategori  :      *${categoryId.toUpperCase()}*     ${json.data.length}\n`;
     const totalLen = nameMax + priceLen + volLen + trendLen + 6;
-    message += '```' + '\n';
+    message += '```\n';
     message += '-'.repeat(totalLen) + '\n';
     message += `${'NAMA'.padEnd(nameMax)}  ${'HARGA'.padEnd(priceLen)}  ${'VOL'.padEnd(volLen)}  ${'TREND'}\n`;
     message += '-'.repeat(totalLen) + '\n';
@@ -228,18 +231,32 @@ async function handleCategoryCommand(ctx, category, count = 5) {
   }
 }
 
+
+
+
 module.exports = bot => {
   // Handle /c category command with count
-  bot.command('c', async (ctx) => {
-    const args = ctx.message.text.split(' ').slice(1);
+  bot.command('/cat', async (ctx) => {
+  const [_, cat, count] = ctx.message.text.split(' ');
 
-    if (args.length !== 2 || isNaN(parseInt(args[1]))) {
-      return ctx.reply('Contoh:\n/c meme 10\n/c ai 5');
-    }
+  if (!cat) {
+    return ctx.reply('❓Contoh: `/cat gaming 5`', { parse_mode: 'Markdown' });
+  }
+  await handleCategoryCommand(ctx, cat, Number(count) || 5);
+});
 
-    const [category, count] = args;
-    return handleCategoryCommand(ctx, category, count);
-  });
+
+bot.command('/c', async (ctx) => {
+  const text = ctx.message.text.trim();
+  const [_, ...args] = text.split(' ');
+  const category = args.join(' ');
+
+  if (!category) {
+    return ctx.reply('❓Contoh: `/c gaming`', { parse_mode: 'Markdown' });
+  }
+  await searchCategoryCommand(ctx, category);
+});
+
 
   // Search coin (resolve) via /s
   bot.command('s', async (ctx) => {
