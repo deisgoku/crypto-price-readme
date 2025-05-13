@@ -3,19 +3,16 @@ const { Markup } = require('telegraf');
 
 async function sendHelp(ctx) {
   return ctx.reply(
-    `${ctx.i18n.t('help.command')}
-/start - ${ctx.i18n.t('help.start')}
-/help - ${ctx.i18n.t('help.help')}
-` +
-    `/card - ${ctx.i18n.t('help.card')}
-/link - ${ctx.i18n.t('help.link')}
-` +
-    `/unlink - ${ctx.i18n.t('help.unlink')}
-/me - ${ctx.i18n.t('help.me')}
+    `*Perintah:* 
+/start - Mulai bot
+/help - Bantuan & FAQ
+/card - Buat kartu crypto
+/link - Hubungkan akun
+/unlink - Putuskan akun
+/me - Info akun
 
-${ctx.i18n.t('help.admin')}
-` +
-    `/addadmin  
+*Admin:* 
+/addadmin  
 /removeadmin  
 /admins 
 /broadcast`,
@@ -24,11 +21,11 @@ ${ctx.i18n.t('help.admin')}
       disable_web_page_preview: true,
       reply_markup: Markup.inlineKeyboard([
         [
-          Markup.button.callback(ctx.i18n.t('help.faq'), 'faq'),
-          Markup.button.callback(ctx.i18n.t('help.sponsor'), 'sponsor')
+          Markup.button.callback('❓ FAQ', 'faq'),
+          Markup.button.callback('💜 Sponsor', 'sponsor')
         ],
         [
-          Markup.button.webApp(ctx.i18n.t('help.crypto_card'), 'https://crypto-price-on.vercel.app/unlock?ref=telegram')
+          Markup.button.webApp('🧾 Crypto Market Card', 'https://crypto-price-on.vercel.app/unlock?ref=telegram')
         ]
       ]),
     }
@@ -37,44 +34,44 @@ ${ctx.i18n.t('help.admin')}
 
 function getFAQContent() {
   return `
-${ctx.i18n.t('faq.title')}
+*FAQ Bot Crypto:*
 
-1. _${ctx.i18n.t('faq.coin_card')}_
-   → ${ctx.i18n.t('faq.coin_card_answer')}
+1. _Apa itu Coin Card?_
+   → Gambar berisi info harga coin crypto.
 
-2. _${ctx.i18n.t('faq.empty_price')}_
-   → ${ctx.i18n.t('faq.empty_price_answer')}
+2. _Kenapa harga coin saya kosong?_
+   → Gunakan simbol coin resmi (mis: BTC, ETH). Gunakan /s untuk cari.
 
-3. _${ctx.i18n.t('faq.become_admin')}_
-   → ${ctx.i18n.t('faq.become_admin_answer')}
+3. _Bagaimana cara menjadi admin atau premium?_
+   → Hubungi pemilik, lalu klaim token pakai /claim <token>.
 
-4. _${ctx.i18n.t('faq.link_me')}_
-   → ${ctx.i18n.t('faq.link_me_answer')}
+4. _Apa gunanya /link dan /me?_
+   → Untuk menghubungkan identitas pengguna dan melihat statistik akun.
 
-5. _${ctx.i18n.t('faq.not_found')}_
-   → ${ctx.i18n.t('faq.not_found_answer')}
+5. _Saya tidak menemukan coin tertentu?_
+   → Gunakan /s <nama> untuk pencarian manual.
 `;
 }
 
 function getSponsorContent() {
   return `
-${ctx.i18n.t('sponsor.title')}
+*Dukung dan Gunakan Mini App Kami:*
 
 [Crypto Market Card](https://t.me/crypto_market_card_bot/gcmc)  
-→ ${ctx.i18n.t('sponsor.crypto_card_desc')}
-→ ${ctx.i18n.t('sponsor.use_in')}
-→ ${ctx.i18n.t('sponsor.powered_by')}
-→ ${ctx.i18n.t('sponsor.developed_by')}
+→ Dapatkan kartu harga crypto real-time  
+→ Bisa dipakai di Telegram, GitHub README, atau dibagikan  
+→ Powered by CoinGecko & Binance  
+→ Dikembangkan oleh [@Deisgoku](https://x.com/Deisgoku)
 
-${ctx.i18n.t('sponsor.support_developer')}
+*Dukung Developer:*
 - [PayPal](https://www.paypal.me/DIskandar)
 - [Ko-fi](https://ko-fi.com/deisgoku)
 - [Trakteer](https://trakteer.id/deisgoku)
 
-${ctx.i18n.t('sponsor.premium_unlock')}  
+*Web App Stars Unlock:*  
 [Unlock Premium](https://crypto-price-on.vercel.app/unlock?ref=telegram)
 
-${ctx.i18n.t('sponsor.affiliate_bonus')}
+_Afiliasi & bonus Stars akan tersedia segera._
 `;
 }
 
