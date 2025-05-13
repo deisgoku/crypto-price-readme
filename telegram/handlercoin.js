@@ -1,25 +1,32 @@
-// lib/handlers.js
+// telegram/handlers.js
 const fetch = require('node-fetch');
 
-function wrapText(text, maxWidth) {
+function escapeMarkdown(text) {
+  return text.replace(/[*_`[\]]/g, '\\$&');
+}
+
+function wrapText(text, width) {
   const words = text.split(' ');
   const lines = [];
   let line = '';
 
   for (const word of words) {
-    if ((line + word).length <= maxWidth) {
+    if ((line + word).length <= width) {
       line += (line ? ' ' : '') + word;
     } else {
       lines.push(line);
       line = word;
     }
   }
+
   if (line) lines.push(line);
   return lines;
 }
 
-function escapeMarkdown(text) {
-  return text.replace(/[*_`[\]]/g, '\\$&');
+function centerText(text, width) {
+  const spacer = '\u2007';
+  const pad = Math.max(0, Math.floor((width - text.length) / 2));
+  return spacer.repeat(pad) + text;
 }
 
 async function resolveSymbolToIds(symbol) {
@@ -47,21 +54,21 @@ async function searchCoinAndFormat(ctx, query) {
     if (!matches.length) return null;
 
     const spacer = '\u2007';
-    const centerText = (text, width) => {
-      const pad = Math.max(0, Math.floor((width - text.length) / 2));
-      return spacer.repeat(pad) + text;
-    };
-
-    const maxNameLen = Math.min(25, Math.max(...matches.map(c => c.name.length), 4));
-    const maxIdLen = Math.min(25, Math.max(...matches.map(c => c.id.length), 2));
-    const lineWidth = 5 + maxNameLen + maxIdLen;
-    const totalLen = lineWidth;
+    const maxTotalWidth = 60;
+    const maxNameLen = Math.min(Math.max(...matches.map(c => c.name.length), 10), 24);
+    const maxIdLen = Math.min(Math.max(...matches.map(c => c.id.length), 6), 28);
+    const gap = 2;
+    const lineLen = 4 + maxNameLen + gap + maxIdLen;
+    const totalLen = Math.min(lineLen, maxTotalWidth);
     const year = new Date().getFullYear();
+    const creditText = `${year} © Crypto Market Card`;
+    const creditLink = `[${creditText}](https://t.me/crypto_market_card_bot/gcmc)`;
 
-    let reply = `🔎 Hasil pencarian coin berdasarkan nama *${query.toUpperCase()}*\n`;
-    reply += '```\n' + '-'.repeat(lineWidth) + '\n';
-    reply += `${'#'.padEnd(4)}${'NAMA'.padEnd(maxNameLen)}${'ID'}\n`;
-    reply += '-'.repeat(lineWidth) + '\n';
+    let reply = centerText(`🔎 Hasil Pencarian Coin`, totalLen) + '\n';
+    reply += centerText(`Nama: ${query.toUpperCase()}`, totalLen) + '\n';
+    reply += '```\n' + '-'.repeat(totalLen) + '\n';
+    reply += ` #  ${centerText('NAMA', maxNameLen)}${spacer.repeat(gap)}${centerText('ID', maxIdLen)}\n`;
+    reply += '-'.repeat(totalLen) + '\n';
 
     matches.slice(0, 10).forEach((coin, i) => {
       const nameLines = wrapText(coin.name, maxNameLen);
@@ -69,19 +76,18 @@ async function searchCoinAndFormat(ctx, query) {
       const maxLines = Math.max(nameLines.length, idLines.length);
 
       for (let j = 0; j < maxLines; j++) {
-        const number = j === 0 ? `${i + 1}.`.padEnd(4) : ' '.repeat(4);
+        const number = j === 0 ? `${i + 1}.`.padStart(3) + ' ' : '    ';
         const name = (nameLines[j] || '').padEnd(maxNameLen);
         const id = idLines[j] || '';
-        reply += `${number}${name}${id}\n`;
+        reply += `${number}${name}${spacer.repeat(gap)}${id}\n`;
       }
     });
 
-    reply += '-'.repeat(lineWidth) + '\n';
-    reply += 'Gunakan ID untuk menampilkan harga\n';
-    reply += 'Contoh: !c <id coin> | !c pepe-ai\n';
-    reply += '-'.repeat(lineWidth) + '\n';
-    reply += '```\n';
-    reply += centerText(`[${year} © Crypto Market Card](https://t.me/crypto_market_card_bot/gcmc)`, totalLen);
+    reply += '-'.repeat(totalLen) + '\n';
+    reply += 'Gunakan ID untuk melihat harga\n';
+    reply += 'Contoh: !c <id> | !c pepe-ai\n';
+    reply += '-'.repeat(totalLen) + '\n';
+    reply += '```\n' + centerText(creditText, totalLen).replace(creditText, creditLink);
 
     return ctx.reply(reply, {
       parse_mode: 'Markdown',
@@ -104,12 +110,6 @@ async function handleSymbolCommand(ctx, coinId) {
     }
 
     const result = json.data[0];
-    const spacer = '\u2007';
-    const centerText = (text, width) => {
-      const pad = Math.max(0, Math.floor((width - text.length) / 2));
-      return spacer.repeat(pad) + text;
-    };
-
     const data = {
       HARGA: result.price,
       VOLUME: result.volume,
@@ -120,22 +120,21 @@ async function handleSymbolCommand(ctx, coinId) {
     const valueMax = Math.max(...Object.values(data).map(v => v.length));
     const totalLen = labelMax + 3 + valueMax;
     const year = new Date().getFullYear();
+    const creditText = `${year} © Crypto Market Card`;
+    const creditLink = `[${creditText}](https://t.me/crypto_market_card_bot/gcmc)`;
 
     let msg = `📊 Market ${result.symbol.toUpperCase()}\n`;
     msg += '```\n' + '-'.repeat(totalLen) + '\n';
-
     for (const [label, value] of Object.entries(data)) {
       msg += `${label.padEnd(labelMax)} : ${value.padStart(valueMax)}\n`;
     }
-
     msg += '-'.repeat(totalLen) + '\n```\n';
-    msg += centerText(`[${year} © Crypto Market Card](https://t.me/crypto_market_card_bot/gcmc)`, totalLen);
+    msg += centerText(creditText, totalLen).replace(creditText, creditLink);
 
     return ctx.reply(msg, {
       parse_mode: 'Markdown',
       disable_web_page_preview: true
     });
-
   } catch (e) {
     console.error(e);
     return ctx.reply(`☹️ Terjadi kesalahan saat mengambil data ${coinId}`);
@@ -146,13 +145,14 @@ async function resolveCategories(category) {
   const res = await fetch('https://api.coingecko.com/api/v3/coins/categories/list');
   const categories = await res.json();
   const lower = category.toLowerCase();
-  return categories.filter(c => c.category_id.toLowerCase() === lower || c.name.toLowerCase().includes(lower));
+  return categories.filter(c =>
+    c.category_id.toLowerCase() === lower || c.name.toLowerCase().includes(lower)
+  );
 }
 
 async function searchCategoryCommand(ctx, category) {
   try {
     const categories = await resolveCategories(category);
-
     if (!categories.length) {
       return ctx.reply('☹️Kategori yang elu mau tidak ditemukan.');
     }
@@ -162,20 +162,21 @@ async function searchCategoryCommand(ctx, category) {
     }
 
     const spacer = '\u2007';
-    const centerText = (text, width) => {
-      const pad = Math.max(0, Math.floor((width - text.length) / 2));
-      return spacer.repeat(pad) + text;
-    };
-
-    const maxNameLen = Math.max(...categories.map(c => c.name.length), 20);
-    const maxIdLen = Math.max(...categories.map(c => c.category_id.length), 20);
-    const lineLen = 6 + maxNameLen + 2 + maxIdLen;
-    const totalLen = lineLen;
+    const maxTotalWidth = 60;
+    const maxNameLen = Math.min(Math.max(...categories.map(c => c.name.length), 20), 24);
+    const maxIdLen = Math.min(Math.max(...categories.map(c => c.category_id.length), 20), 28);
+    const gap = 2;
+    const lineLen = 4 + maxNameLen + gap + maxIdLen;
+    const totalLen = Math.min(lineLen, maxTotalWidth);
     const year = new Date().getFullYear();
+    const creditText = `${year} © Crypto Market Card`;
+    const creditLink = `[${creditText}](https://t.me/crypto_market_card_bot/gcmc)`;
 
-    let reply = `🔎 Ditemukan *${categories.length}* kategori dengan kata *${category.toUpperCase()}*:\n`;
-    reply += '```\n' + '-'.repeat(lineLen) + '\n';
-    reply += 'NAMA'.padEnd(maxNameLen) + '  ID\n' + '-'.repeat(lineLen) + '\n';
+    let reply = centerText(`🔎 Ditemukan ${categories.length} kategori`, totalLen) + '\n';
+    reply += centerText(`dengan kata: ${category.toUpperCase()}`, totalLen) + '\n';
+    reply += '```\n' + '-'.repeat(totalLen) + '\n';
+    reply += ` #  ${centerText('NAMA', maxNameLen)}${spacer.repeat(gap)}${centerText('ID', maxIdLen)}\n`;
+    reply += '-'.repeat(totalLen) + '\n';
 
     categories.forEach((cat, i) => {
       const nameLines = wrapText(cat.name, maxNameLen);
@@ -183,15 +184,15 @@ async function searchCategoryCommand(ctx, category) {
       const maxLines = Math.max(nameLines.length, idLines.length);
 
       for (let j = 0; j < maxLines; j++) {
-        const num = j === 0 ? `${(i + 1)}.`.padStart(3) + ' ' : '    ';
+        const num = j === 0 ? `${i + 1}.`.padStart(3) : '   ';
         const name = (nameLines[j] || '').padEnd(maxNameLen);
         const id = idLines[j] || '';
-        reply += `${num}${name}  ${id}\n`;
+        reply += `${num} ${name}${spacer.repeat(gap)}${id}\n`;
       }
     });
 
-    reply += '-'.repeat(lineLen) + '\n```\n';
-    reply += centerText(`[${year} © Crypto Market Card](https://t.me/crypto_market_card_bot/gcmc)`, totalLen);
+    reply += '-'.repeat(totalLen) + '\n```\n';
+    reply += centerText(creditText, totalLen).replace(creditText, creditLink);
 
     return ctx.reply(reply, {
       parse_mode: 'Markdown',
@@ -199,7 +200,7 @@ async function searchCategoryCommand(ctx, category) {
     });
   } catch (err) {
     console.error(err);
-    return ctx.reply('☹️ Terjadi kesalahan saat mengambil data \n\nMungkin gua lelah kalo gak belum ngopi');
+    return ctx.reply('☹️ Terjadi kesalahan saat mengambil data \n\nMungkin gua lelah kalo belum ngopi');
   }
 }
 
@@ -210,54 +211,41 @@ async function handleCategoryCommand(ctx, categoryId, count = 5) {
     const json = await res.json();
 
     if (!json.data || !json.data.length) {
-      return ctx.reply('☹️Data tidak ditemukan dalam kategori yang elu mau , \n\ncoba cek lagi ID-nya dah bener belum.');
+      return ctx.reply('☹️Data tidak ditemukan dalam kategori yang elu mau,\n\ncoba cek lagi ID-nya dah bener belum.');
     }
 
     const spacer = '\u2007';
-    const centerText = (text, width) => {
-      const pad = Math.max(0, Math.floor((width - text.length) / 2));
-      return spacer.repeat(pad) + text;
-    };
-
-    const nameMax = 15;
-    const priceLen = Math.max(...json.data.map(c => c.price.length), 5);
-    const volLen = 10;
-    const trendLen = 6;
+    const gap = 2;
+    const nameMax = 8;
+    const priceLen = Math.max(...json.data.map(c => c.price.length), 8);
+    const volLen = 7;
+    const trendLen = 5;
+    const totalLen = nameMax + priceLen + volLen + trendLen + (gap * 3);
     const year = new Date().getFullYear();
+    const creditText = `${year} © Crypto Market Card`;
+    const creditLink = `[${creditText}](https://t.me/crypto_market_card_bot/gcmc)`;
 
-    const totalLen = nameMax + priceLen + volLen + trendLen + (4 * 3);
+    const maxCatLen = 24;
+    const categoryShort = categoryId.length > maxCatLen
+      ? categoryId.slice(0, maxCatLen - 3) + '...'
+      : categoryId;
 
     let msg = centerText(`📊 Top (${json.data.length}) Populer Market`, totalLen) + '\n';
-    msg += centerText(`Kategori: ${categoryId.toUpperCase()}`, totalLen) + '\n';
+    msg += centerText(`Kategori: ${categoryShort.toUpperCase()}`, totalLen) + '\n';
     msg += '```\n' + '-'.repeat(totalLen) + '\n';
-
-    msg += (
-      `${'NAMA'.padEnd(nameMax)}${spacer.repeat(4)}` +
-      `${'HARGA'.padEnd(priceLen)}${spacer.repeat(4)}` +
-      `${'VOL'.padStart(volLen)}${spacer.repeat(4)}` +
-      `TREND\n`
-    );
-
+    msg += `${'NAMA'.padEnd(nameMax)}${spacer.repeat(gap)}${'HARGA'.padEnd(priceLen)}${spacer.repeat(gap)}${'VOL'.padStart(volLen)}${spacer.repeat(gap)}TREND\n`;
     msg += '-'.repeat(totalLen) + '\n';
 
     json.data.forEach((coin) => {
-      const nameLines = wrapText(coin.symbol, nameMax);
+      const name = coin.symbol.slice(0, nameMax).padEnd(nameMax);
       const price = coin.price.padEnd(priceLen);
       const volume = coin.volume.padStart(volLen);
       const trend = coin.trend.padEnd(trendLen);
-
-      nameLines.forEach((line, i) => {
-        const name = line.padEnd(nameMax);
-        const prefix = i === 0 ? '' : spacer.repeat(3);
-        const row = i === 0
-          ? `${name}${spacer.repeat(4)}${price}${spacer.repeat(4)}${volume}${spacer.repeat(4)}${trend}`
-          : `${prefix}${name}`;
-        msg += row + '\n';
-      });
+      msg += `${name}${spacer.repeat(gap)}${price}${spacer.repeat(gap)}${volume}${spacer.repeat(gap)}${trend}\n`;
     });
 
     msg += '-'.repeat(totalLen) + '\n```\n';
-    msg += centerText(`[${year} © Crypto Market Card](https://t.me/crypto_market_card_bot/gcmc)`, totalLen);
+    msg += centerText(creditText, totalLen).replace(creditText, creditLink);
 
     return ctx.reply(msg, {
       parse_mode: 'Markdown',
