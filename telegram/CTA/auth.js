@@ -1,7 +1,7 @@
 // telegram/CTA/auth.js
 
 const bcrypt = require('bcrypt');
-const { redis } = require('../lib/redis');
+const { redis } = require('../../lib/redis');
 
 const LINK_KEY = 'user_passwords';
 const GARAM = parseInt(process.env.GARAM || '10', 10);
