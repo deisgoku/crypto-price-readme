@@ -7,7 +7,7 @@ const { isAdmin } = require('./auth');
 module.exports = function setupMenu(bot) {
   registerAdminActions(bot);
   registerSupportActions(bot);
-  require('./auth')(bot);
+  
 
   // /start
   bot.command('start', (ctx) => {
