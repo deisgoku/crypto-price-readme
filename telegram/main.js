@@ -14,19 +14,13 @@ const { getCategoryMarkdownList } = require('./gecko');
 const { themeNames } = require('../lib/settings/model/theme');
 const renderers = require('../lib/settings/model/list');
 const { redis } = require('../lib/redis');
-
-const bot = new Telegraf(BOT_TOKEN);
-
-// Modularisasi handler CTA
-const setupMenu = require('./CTA/menu');
-setupMenu(bot);
-require('./CTA/handlercoin')(bot);
-// require('./CTA/admin')(bot); // aktifkan jika perlu
-// require('./CTA/auth')(bot); // aktifkan jika perlu
+const { registerAdminCommands } = require('./admin');
 
 const LINK_KEY = 'user_passwords';
 const USER_SET = 'tg:users';
 const GARAM = parseInt(process.env.GARAM || '10', 10);
+
+const bot = new Telegraf(BOT_TOKEN);
 
 const modelsName = Object.keys(renderers);
 const themes = themeNames.join('\n');
@@ -35,7 +29,6 @@ const tempSession = new Map();
 const fontDir = path.join(__dirname, '../lib/data/fonts');
 const fontsCache = new Map();
 
-// Muat font ke Redis + canvas
 async function loadFonts() {
   const fonts = [
     { name: 'Verdana', path: path.join(fontDir, 'Verdana.ttf') },
@@ -66,18 +59,51 @@ async function loadFonts() {
   }
 }
 
-// Command awal
+// Register all handlers
+registerAdminCommands(bot);
+require('./CTA/auth')(bot);
+require('./CTA/handlercoin')(bot);
+require('./CTA/menu')(bot);
+
+bot.start(ctx => {
+  ctx.reply(
+    `Selamat datang di *Crypto Card Bot!*\n\nGunakan /card untuk membuat kartu crypto.\nGunakan /help untuk melihat perintah lain.`,
+    { parse_mode: 'Markdown' }
+  );
+});
+
+bot.command('help', async ctx => {
+  const { markdown } = await getCategoryMarkdownList();
+  ctx.reply(
+    `*Perintah:* 
+/start - Mulai bot
+/help - Bantuan
+/card - Buat kartu crypto
+/link - Hubungkan akun
+/unlink - Putuskan akun
+/me - Info akun
+
+*Admin:* 
+/addadmin  
+/removeadmin  
+/admins 
+/broadcast
+
+*Kategori:* ${markdown}`,
+    { parse_mode: 'Markdown' }
+  );
+});
+
 bot.command('card', async ctx => {
   const userId = ctx.from.id.toString();
   tempSession.set(userId, { step: 'model' });
 
-  await ctx.reply('Pilih model yang ingin digunakan:', Markup.inlineKeyboard(
+  await ctx.reply('Pilih model:', Markup.inlineKeyboard(
     modelsName.map(m => Markup.button.callback(`🖼️ ${m}`, `model:${m}`)),
     { columns: 2 }
   ));
 });
 
-// Handler tombol
 bot.on('callback_query', async ctx => {
   const userId = ctx.from.id.toString();
   const session = tempSession.get(userId) || {};
@@ -88,7 +114,7 @@ bot.on('callback_query', async ctx => {
     session.step = 'theme';
     tempSession.set(userId, session);
 
-    await ctx.editMessageText('Pilih tema untuk kartu Anda:', Markup.inlineKeyboard(
+    await ctx.editMessageText('Pilih theme:', Markup.inlineKeyboard(
       themeNames.map(t => Markup.button.callback(`🎨 ${t}`, `theme:${t}`)),
       { columns: 2 }
     ));
@@ -101,7 +127,7 @@ bot.on('callback_query', async ctx => {
     tempSession.set(userId, session);
 
     const { categories } = await getCategoryMarkdownList();
-    await ctx.editMessageText('Pilih kategori crypto:', Markup.inlineKeyboard(
+    await ctx.editMessageText('Pilih kategori:', Markup.inlineKeyboard(
       categories.map(c => Markup.button.callback(`📂 ${c.name}`, `category:${c.category_id}`)),
       { columns: 2 }
     ));
@@ -114,21 +140,20 @@ bot.on('callback_query', async ctx => {
     const category = categories.find(c => c.category_id === categoryId);
 
     if (!category) {
-      return ctx.answerCbQuery('Kategori tidak valid.', { show_alert: true });
+      return ctx.answerCbQuery('⚠️ Kategori tidak valid.', { show_alert: true });
     }
 
     session.category = category.category_id;
     session.step = 'coin';
     tempSession.set(userId, session);
 
-    await ctx.editMessageText('Masukkan jumlah koin yang ingin ditampilkan (1–50):');
+    await ctx.editMessageText('Masukkan jumlah coin (1-50):');
     return ctx.answerCbQuery();
   }
 
   return ctx.answerCbQuery();
 });
 
-// Input jumlah coin
 bot.on('text', async ctx => {
   const userId = ctx.from.id.toString();
   const session = tempSession.get(userId);
@@ -137,7 +162,7 @@ bot.on('text', async ctx => {
   const input = ctx.message.text.trim();
   const count = parseInt(input);
   if (count < 1 || count > 50) {
-    return ctx.reply('Jumlah koin harus antara 1 hingga 50.');
+    return ctx.reply('Jumlah coin harus antara 1 - 50.');
   }
 
   session.coin = count;
@@ -159,10 +184,7 @@ bot.on('text', async ctx => {
       console.log('SVG not in cache, fetching from:', url);
       const res = await fetch(url);
       svg = await res.text();
-      console.log('SVG fetched length:', svg.length);
       await redis.set(cacheKey, svg, { ex: 300 });
-    } else {
-      console.log('SVG loaded from cache. Length:', svg.length);
     }
 
     const ratio = 1.5;
@@ -178,17 +200,16 @@ bot.on('text', async ctx => {
 
     const png = canvas.toBuffer('image/png');
     await ctx.replyWithPhoto({ source: png }, {
-      caption: `Kartu Anda sudah siap!\nModel: *${session.model}*\nTema: *${session.theme}*`,
+      caption: `📊 Market udah siap: *${session.model} - ${session.theme}*`,
       parse_mode: 'Markdown'
     });
 
   } catch (err) {
     console.error('Gagal membuat kartu:', err);
-    ctx.reply('Terjadi kesalahan saat membuat kartu.');
+    ctx.reply('☹️ Terjadi kesalahan pas bikin gambar .');
   }
 
   tempSession.delete(userId);
 });
 
-// Ekspor bot
 module.exports = { bot };
