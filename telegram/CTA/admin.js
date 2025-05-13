@@ -1,8 +1,7 @@
 // telegram/CTA/admin.js
 
-const { Markup } = require('telegraf');
-const { redis } = require('../lib/redis');
 const bcrypt = require('bcrypt');
+const { redis } = require('../lib/redis');
 
 const ADMIN_SET = 'tg:admins';
 const USER_SET = 'tg:users';
@@ -12,21 +11,78 @@ const CEO_KEY = 'ceo:access';
 const GARAM = parseInt(process.env.GARAM || '10', 10);
 const pendingAdminInput = new Map(); // key: userId, value: { type, step }
 
-// ===== ADMIN =====
+// Fungsi untuk verifikasi apakah user mengikuti
+async function isFollowing(username) {
+  const normalized = username.trim().toLowerCase();
+  const exists = await redis.sismember('verified_followers', normalized);
+  return exists === 1;
+}
+
+// Fungsi untuk menambahkan follower baru
+async function addFollower(username) {
+  const normalized = username.trim().toLowerCase();
+  const alreadyExists = await isFollowing(normalized);
+  if (alreadyExists) return { status: 'already_verified' };
+
+  const added = await redis.sadd('verified_followers', normalized);
+  return added === 1 ? { status: 'newly_verified' } : { status: 'error' };
+}
+
+// Fungsi untuk cek apakah user sudah terdaftar
+async function isRegistered(username) {
+  const normalized = username.trim().toLowerCase();
+  const exists = await redis.hexists('user_passwords', normalized);
+  return exists === 1;
+}
+
+// Fungsi register user dengan bcrypt hashing
+async function registerUser(username, password) {
+  const normalized = username.trim().toLowerCase();
+  const userExists = await isRegistered(normalized);
+  if (userExists) {
+    return { status: 'error', error: 'Username already registered.' };
+  }
+
+  const hashedPassword = await bcrypt.hash(password, GARAM);
+  await redis.hset('user_passwords', normalized, hashedPassword);
+  return { status: 'success' };
+}
+
+// Fungsi login user dan mencocokkan password
+async function loginUser(username, password) {
+  const normalized = username.trim().toLowerCase();
+  const storedHashedPassword = await redis.hget('user_passwords', normalized);
+  if (!storedHashedPassword) {
+    return { status: 'error', error: 'User not found. Please register first.' };
+  }
+
+  const passwordMatch = await bcrypt.compare(password, storedHashedPassword);
+  return passwordMatch
+    ? { status: 'success' }
+    : { status: 'error', error: 'Invalid password.' };
+}
+
+// Fungsi untuk menambahkan admin
 async function addAdmin(userId) {
   await redis.sadd(ADMIN_SET, userId);
 }
+
+// Fungsi untuk menghapus admin
 async function removeAdmin(userId) {
   await redis.srem(ADMIN_SET, userId);
 }
+
+// Fungsi untuk mengecek apakah user admin
 async function isAdmin(userId) {
   return await redis.sismember(ADMIN_SET, userId) === 1;
 }
+
+// Fungsi untuk daftar admin
 async function listAdmins() {
   return await redis.smembers(ADMIN_SET);
 }
 
-// ===== TOKEN SYSTEM (bcrypt) =====
+// Fungsi untuk generate token admin
 async function generateToken(type = 'admin') {
   const raw = Math.random().toString(36).substring(2, 10);
   const hashed = await bcrypt.hash(raw, GARAM);
@@ -34,6 +90,7 @@ async function generateToken(type = 'admin') {
   return raw;
 }
 
+// Fungsi klaim token
 async function claimToken(userId, token) {
   const raw = await redis.hget(TOKEN_KEY, token);
   if (!raw) return null;
@@ -45,22 +102,26 @@ async function claimToken(userId, token) {
   return type;
 }
 
-// ===== CEO Check =====
+// Fungsi untuk mengecek apakah user CEO
 async function isCEO(userId) {
   const ceoHash = await redis.hget(CEO_KEY, userId);
   return ceoHash !== null;
 }
+
+// Fungsi untuk set CEO
 async function setCEO(userId, password) {
   const hashed = await bcrypt.hash(password, GARAM);
   await redis.hset(CEO_KEY, userId, hashed);
 }
+
+// Fungsi untuk verifikasi CEO
 async function verifyCEO(userId, password) {
   const hashed = await redis.hget(CEO_KEY, userId);
   if (!hashed) return false;
   return await bcrypt.compare(password, hashed);
 }
 
-// ===== UI MENU =====
+// UI Menu Admin
 function getAdminMenu() {
   return [
     [Markup.button.callback('➕ Add Admin', 'add_admin')],
@@ -72,7 +133,7 @@ function getAdminMenu() {
   ];
 }
 
-// ====== COMMAND ======
+// Register Admin Commands (misalnya claim token)
 function registerAdminCommands(bot) {
   bot.command('claim', async (ctx) => {
     const token = ctx.message.text.split(' ')[1];
@@ -91,7 +152,7 @@ function registerAdminCommands(bot) {
   });
 }
 
-// ====== INTERAKSI INLINE ======
+// Register Admin Actions
 function registerAdminActions(bot) {
   bot.action('gen_token_admin', async (ctx) => {
     const userId = ctx.from.id.toString();
@@ -130,48 +191,6 @@ function registerAdminActions(bot) {
       ? `Daftar Admin:\n${admins.map(id => `- ${id}`).join('\n')}`
       : 'Tidak ada admin.');
   });
-
-  // Input Handler dari semua mode (add/remove/broadcast)
-  bot.on('text', async (ctx) => {
-    const fromId = ctx.from.id.toString();
-    const pending = pendingAdminInput.get(fromId);
-    if (!pending) return;
-
-    const text = ctx.message.text.trim();
-
-    if (pending.type === 'add') {
-      if (!/^\d+$/.test(text)) return ctx.reply('User ID tidak valid.');
-      await addAdmin(text);
-      ctx.reply(`User ${text} sudah ditambahkan sebagai admin.`);
-    }
-
-    if (pending.type === 'remove') {
-      await removeAdmin(text);
-      ctx.reply(`User ${text} sudah dihapus dari admin.`);
-    }
-
-    if (pending.type === 'broadcast') {
-      const userIds = await redis.smembers(USER_SET);
-      let count = 0;
-      for (const uid of userIds) {
-        try {
-          await ctx.telegram.sendMessage(uid, `\u{1F4E1} *Broadcast:*\n${text}`, {
-            parse_mode: 'Markdown'
-          });
-          count++;
-        } catch (e) {
-          console.error(`Gagal kirim ke ${uid}`, e);
-        }
-      }
-      ctx.reply(`Broadcast terkirim ke ${count} user.`);
-    }
-
-    pendingAdminInput.delete(fromId);
-  });
-
-
-
- 
 }
 
 module.exports = {
@@ -186,5 +205,7 @@ module.exports = {
   claimToken,
   isCEO,
   setCEO,
-  verifyCEO
+  verifyCEO,
+  registerUser,
+  loginUser
 };
