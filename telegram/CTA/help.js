@@ -1,9 +1,7 @@
-// telegram/CTA/help.js
 const { Markup } = require('telegraf');
 
 async function sendHelp(ctx) {
-  return ctx.reply(
-    `*Perintah:* 
+  const helpText = `*Perintah:* 
 /start - Mulai bot
 /help - Bantuan & FAQ
 /card - Buat kartu crypto
@@ -15,21 +13,31 @@ async function sendHelp(ctx) {
 /addadmin  
 /removeadmin  
 /admins 
-/broadcast`,
-    {
+/broadcast`;
+
+  const keyboard = Markup.inlineKeyboard([
+    [
+      Markup.button.callback('❓ FAQ', 'faq'),
+      Markup.button.callback('💜 Sponsor', 'sponsor')
+    ],
+    [
+      Markup.button.webApp('🧾 Crypto Market Card', 'https://crypto-price-on.vercel.app/unlock?ref=telegram')
+    ]
+  ]);
+
+  if (ctx.updateType === 'callback_query') {
+    await ctx.editMessageText(helpText, {
       parse_mode: 'Markdown',
       disable_web_page_preview: true,
-      reply_markup: Markup.inlineKeyboard([
-        [
-          Markup.button.callback('❓ FAQ', 'faq'),
-          Markup.button.callback('💜 Sponsor', 'sponsor')
-        ],
-        [
-          Markup.button.webApp('🧾 Crypto Market Card', 'https://crypto-price-on.vercel.app/unlock?ref=telegram')
-        ]
-      ]),
-    }
-  );
+      reply_markup: keyboard.reply_markup
+    });
+  } else {
+    await ctx.reply(helpText, {
+      parse_mode: 'Markdown',
+      disable_web_page_preview: true,
+      reply_markup: keyboard.reply_markup
+    });
+  }
 }
 
 function getFAQContent() {
@@ -77,18 +85,28 @@ _Afiliasi & bonus Stars akan tersedia segera._
 
 function registerHelpActions(bot) {
   bot.action('faq', async (ctx) => {
-    await ctx.editMessageText(getFAQContent(), { parse_mode: 'Markdown' });
+    await ctx.editMessageText(getFAQContent(), {
+      parse_mode: 'Markdown',
+      disable_web_page_preview: true,
+    });
   });
 
   bot.action('sponsor', async (ctx) => {
     await ctx.editMessageText(getSponsorContent(), {
       parse_mode: 'Markdown',
-      disable_web_page_preview: false
+      disable_web_page_preview: false,
     });
+  });
+
+  bot.action('help', async (ctx) => {
+    await ctx.answerCbQuery();
+    await sendHelp(ctx);
   });
 }
 
 module.exports = {
   sendHelp,
+  getFAQContent,
+  getSponsorContent,
   registerHelpActions,
 };
