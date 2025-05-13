@@ -8,7 +8,6 @@ const { createCanvas, registerFont } = require('canvas');
 const bcrypt = require('bcrypt');
 const fs = require('fs');
 const path = require('path');
-const session = require('telegraf/session');
 
 const { BOT_TOKEN, BASE_URL } = require('./config');
 const { getCategoryMarkdownList } = require('./gecko');
@@ -17,16 +16,14 @@ const renderers = require('../lib/settings/model/list');
 const { redis } = require('../lib/redis');
 
 const bot = new Telegraf(BOT_TOKEN);
-bot.use(session());
 
-// Baru require modul yang pakai bot
+// Modularisasi handler CTA
 const setupMenu = require('./CTA/menu');
 setupMenu(bot);
 require('./CTA/handlercoin')(bot);
 // require('./CTA/admin')(bot); // aktifkan jika perlu
 // require('./CTA/auth')(bot); // aktifkan jika perlu
 
-// Data dasar
 const LINK_KEY = 'user_passwords';
 const USER_SET = 'tg:users';
 const GARAM = parseInt(process.env.GARAM || '10', 10);
