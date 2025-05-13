@@ -1,23 +1,27 @@
 // telegram/CTA/menu.js
 
-
 const { Telegraf, Markup } = require('telegraf');
 const { sendHelp } = require('./help');
-const { getAdminMenu, registerAdminActions } = require('./admin');
+const {
+  getAdminMenu,
+  registerAdminActions,
+  isAdmin,
+  addAdmin,
+  removeAdmin,
+  listAdmins,
+} = require('./admin');
 const { sendSupport, registerSupportActions } = require('./support');
-
 
 module.exports = function setupMenu(bot) {
   registerAdminActions(bot);
   registerSupportActions(bot);
-  
 
   // /start
   bot.command('start', (ctx) => {
     ctx.reply('Selamat datang! Pilih menu di bawah:', {
       reply_markup: Markup.inlineKeyboard([
-        [Markup.button.callback('Buka Menu', 'menu')]
-      ])
+        [Markup.button.callback('📋 Buka Menu', 'menu')],
+      ]),
     });
   });
 
@@ -25,8 +29,8 @@ module.exports = function setupMenu(bot) {
   bot.action('start', (ctx) => {
     ctx.editMessageText('Selamat datang! Pilih menu di bawah:', {
       reply_markup: Markup.inlineKeyboard([
-        [Markup.button.callback('Buka Menu', 'menu')]
-      ])
+        [Markup.button.callback('📋 Buka Menu', 'menu')],
+      ]),
     });
   });
 
@@ -34,16 +38,16 @@ module.exports = function setupMenu(bot) {
   bot.action('menu', (ctx) => {
     ctx.editMessageText('Menu Utama:', {
       reply_markup: Markup.inlineKeyboard([
-        [Markup.button.callback('Admin Tools', 'admin_menu')],
-        [Markup.button.callback('Pengaturan Pribadi', 'personal_menu')],
-        [Markup.button.callback('FAQ', 'faq')],
-        [Markup.button.callback('Bantuan', 'help')],
-        [Markup.button.callback('Sponsor Kami', 'sponsor')],
-        [Markup.button.callback('Filter Premium', 'filter')],
-        [Markup.button.callback('Ganti Bahasa', 'language')],
-        [Markup.button.url('MiniApp Web', 'https://crypto-price-on.vercel.app/unlock?ref=telegram')],
-        [Markup.button.callback('Kembali', 'start')]
-      ])
+        [Markup.button.callback('🛠️ Admin Tools', 'admin_menu')],
+        [Markup.button.callback('⚙️ Pengaturan Pribadi', 'personal_menu')],
+        [Markup.button.callback('❓ FAQ', 'faq')],
+        [Markup.button.callback('🆘 Bantuan', 'help')],
+        [Markup.button.callback('💖 Sponsor Kami', 'sponsor')],
+        [Markup.button.callback('🔒 Filter Premium', 'filter')],
+        [Markup.button.callback('🌐 Ganti Bahasa', 'language')],
+        [Markup.button.url('🧩 MiniApp Web', 'https://crypto-price-on.vercel.app/unlock?ref=telegram')],
+        [Markup.button.callback('🔙 Kembali', 'start')],
+      ]),
     });
   });
 
@@ -56,12 +60,12 @@ module.exports = function setupMenu(bot) {
 
     ctx.editMessageText('Menu Admin:', {
       reply_markup: Markup.inlineKeyboard([
-        [Markup.button.callback('Tambah Admin', 'add_admin')],
-        [Markup.button.callback('Hapus Admin', 'remove_admin')],
-        [Markup.button.callback('Kirim Broadcast', 'broadcast')],
-        [Markup.button.callback('Daftar Admin', 'list_admins')],
-        [Markup.button.callback('Kembali', 'menu')]
-      ])
+        [Markup.button.callback('➕ Tambah Admin', 'add_admin')],
+        [Markup.button.callback('➖ Hapus Admin', 'remove_admin')],
+        [Markup.button.callback('📢 Kirim Broadcast', 'broadcast')],
+        [Markup.button.callback('📋 Daftar Admin', 'list_admins')],
+        [Markup.button.callback('🔙 Kembali', 'menu')],
+      ]),
     });
   });
 
@@ -69,10 +73,10 @@ module.exports = function setupMenu(bot) {
   bot.action('personal_menu', (ctx) => {
     ctx.editMessageText('Pengaturan Pribadi:', {
       reply_markup: Markup.inlineKeyboard([
-        [Markup.button.callback('Hubungkan Akun', 'link')],
-        [Markup.button.callback('Putuskan Akun', 'unlink')],
-        [Markup.button.callback('Kembali', 'menu')]
-      ])
+        [Markup.button.callback('🔗 Hubungkan Akun', 'link')],
+        [Markup.button.callback('❌ Putuskan Akun', 'unlink')],
+        [Markup.button.callback('🔙 Kembali', 'menu')],
+      ]),
     });
   });
 
@@ -83,8 +87,8 @@ module.exports = function setupMenu(bot) {
         [Markup.button.callback('🇮🇩 Bahasa Indonesia', 'lang_id')],
         [Markup.button.callback('🇬🇧 English', 'lang_en')],
         [Markup.button.callback('🇪🇸 Español', 'lang_es')],
-        [Markup.button.callback('Kembali', 'menu')]
-      ])
+        [Markup.button.callback('🔙 Kembali', 'menu')],
+      ]),
     });
   });
 
@@ -93,8 +97,8 @@ module.exports = function setupMenu(bot) {
     ctx.answerCbQuery('Bahasa telah diubah.', { show_alert: true });
     ctx.editMessageText('Pengaturan bahasa diperbarui.', {
       reply_markup: Markup.inlineKeyboard([
-        [Markup.button.callback('Kembali ke Menu', 'menu')]
-      ])
+        [Markup.button.callback('📋 Kembali ke Menu', 'menu')],
+      ]),
     });
   });
 
@@ -113,10 +117,14 @@ module.exports = function setupMenu(bot) {
   });
 
   // Filter premium
-  bot.action('filter', (ctx) => ctx.answerCbQuery('Fitur ini hanya untuk pengguna premium.'));
+  bot.action('filter', (ctx) =>
+    ctx.answerCbQuery('Fitur ini hanya untuk pengguna premium.')
+  );
 
   // Miniapp
-  bot.action('miniapp', (ctx) => ctx.answerCbQuery('Buka miniapp melalui link di menu utama.'));
+  bot.action('miniapp', (ctx) =>
+    ctx.answerCbQuery('Buka miniapp melalui link di menu utama.')
+  );
 
   // Help
   bot.command('help', sendHelp);
