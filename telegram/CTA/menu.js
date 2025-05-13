@@ -1,5 +1,5 @@
 const { Telegraf, Markup } = require('telegraf');
-const { sendHelp } = require('./help');
+const { sendHelp, getFAQContent, getSponsorContent } = require('./help');
 const {
   getAdminMenu,
   registerAdminActions,
@@ -38,23 +38,23 @@ module.exports = function setupMenu(bot) {
       Markup.inlineKeyboard([
         [
           Markup.button.callback('🛠️ Admin Tools', 'admin_menu'),
-          Markup.button.callback('⚙️ Pengaturan Pribadi', 'personal_menu')
+          Markup.button.callback('⚙️ Pengaturan Pribadi', 'personal_menu'),
         ],
         [
           Markup.button.callback('❓ FAQ', 'faq'),
-          Markup.button.callback('🆘 Bantuan', 'help')
+          Markup.button.callback('🆘 Bantuan', 'help'),
         ],
         [
           Markup.button.callback('💖 Sponsor Kami', 'sponsor'),
-          Markup.button.callback('🔒 Filter Premium', 'filter')
+          Markup.button.callback('🔒 Filter Premium', 'filter'),
         ],
         [
           Markup.button.callback('🌐 Ganti Bahasa', 'language'),
-          Markup.button.url('🧩 MiniApp Web', 'https://crypto-price-on.vercel.app/unlock?ref=telegram')
+          Markup.button.url('🧩 MiniApp Web', 'https://crypto-price-on.vercel.app/unlock?ref=telegram'),
         ],
         [
-          Markup.button.callback('🔙 Kembali', 'start')
-        ]
+          Markup.button.callback('🔙 Kembali', 'start'),
+        ],
       ])
     );
   });
@@ -110,28 +110,36 @@ module.exports = function setupMenu(bot) {
     );
   });
 
-  bot.action('faq', (ctx) =>
-    ctx.answerCbQuery('FAQ belum tersedia.')
-  );
+  bot.action('faq', async (ctx) => {
+    const text = getFAQContent();
+    await ctx.editMessageText(text, {
+      parse_mode: 'Markdown',
+      disable_web_page_preview: true,
+    });
+  });
 
-  bot.action('sponsor', (ctx) => {
-    ctx.answerCbQuery('Berikut adalah cara mensponsori kami.');
-    sendSupport(ctx);
+  bot.action('sponsor', async (ctx) => {
+    const text = getSponsorContent();
+    await ctx.editMessageText(text, {
+      parse_mode: 'Markdown',
+      disable_web_page_preview: false,
+    });
   });
 
   bot.action('support_back', async (ctx) => {
     await sendSupport(ctx);
   });
 
-  bot.action('filter', (ctx) =>
-    ctx.answerCbQuery('Fitur ini hanya untuk pengguna premium.')
-  );
+  bot.action('filter', (ctx) => {
+    ctx.answerCbQuery('Fitur ini hanya untuk pengguna premium.');
+  });
 
-  bot.action('miniapp', (ctx) =>
-    ctx.answerCbQuery('Buka miniapp melalui link di menu utama.')
-  );
+  bot.action('miniapp', (ctx) => {
+    ctx.answerCbQuery('Buka miniapp melalui link di menu utama.');
+  });
 
   bot.command('help', sendHelp);
+
   bot.action('help', async (ctx) => {
     await ctx.answerCbQuery();
     await sendHelp(ctx);
