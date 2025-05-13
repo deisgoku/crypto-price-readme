@@ -1,6 +1,6 @@
 // api/bot.js
 
-const { bot } = require('../telegram/bot');
+const { bot } = require('../telegram/main');
 
 const handler = async (req, res) => {
   if (req.method !== 'POST') {
