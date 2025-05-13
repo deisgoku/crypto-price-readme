@@ -70,12 +70,7 @@ registerAdminCommands(bot);
 require('./CTA/auth')(bot);
 require('./CTA/handlercoin')(bot);
 
-bot.start(ctx => {
-  ctx.reply(
-    'Selamat datang! Bot ini membantu Anda membuat kartu crypto dengan model dan tema yang bisa dipilih.',
-    { parse_mode: 'Markdown' }
-  );
-});
+
 
 bot.command('card', async ctx => {
   const userId = ctx.from.id.toString();
