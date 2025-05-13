@@ -1,5 +1,6 @@
 // telegram/CTA/admin.js
 
+const { Telegraf, Markup } = require('telegraf');
 const bcrypt = require('bcrypt');
 const { redis } = require('../lib/redis');
 
