@@ -37,7 +37,7 @@
     "start": "next start",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "bot": "node telegram/bot.js"
+    "bot": "node telegram/main.js"
   },
   "dependencies": {
     "@resvg/resvg-js": "^2.0.1",
