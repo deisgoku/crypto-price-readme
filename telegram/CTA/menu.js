@@ -1,5 +1,3 @@
-// telegram/CTA/menu.js
-
 const { Telegraf, Markup } = require('telegraf');
 const { sendHelp } = require('./help');
 const {
@@ -38,15 +36,25 @@ module.exports = function setupMenu(bot) {
     ctx.editMessageText(
       'Menu Utama:',
       Markup.inlineKeyboard([
-        [Markup.button.callback('🛠️ Admin Tools', 'admin_menu')],
-        [Markup.button.callback('⚙️ Pengaturan Pribadi', 'personal_menu')],
-        [Markup.button.callback('❓ FAQ', 'faq')],
-        [Markup.button.callback('🆘 Bantuan', 'help')],
-        [Markup.button.callback('💖 Sponsor Kami', 'sponsor')],
-        [Markup.button.callback('🔒 Filter Premium', 'filter')],
-        [Markup.button.callback('🌐 Ganti Bahasa', 'language')],
-        [Markup.button.url('🧩 MiniApp Web', 'https://crypto-price-on.vercel.app/unlock?ref=telegram')],
-        [Markup.button.callback('🔙 Kembali', 'start')],
+        [
+          Markup.button.callback('🛠️ Admin Tools', 'admin_menu'),
+          Markup.button.callback('⚙️ Pengaturan Pribadi', 'personal_menu')
+        ],
+        [
+          Markup.button.callback('❓ FAQ', 'faq'),
+          Markup.button.callback('🆘 Bantuan', 'help')
+        ],
+        [
+          Markup.button.callback('💖 Sponsor Kami', 'sponsor'),
+          Markup.button.callback('🔒 Filter Premium', 'filter')
+        ],
+        [
+          Markup.button.callback('🌐 Ganti Bahasa', 'language'),
+          Markup.button.url('🧩 MiniApp Web', 'https://crypto-price-on.vercel.app/unlock?ref=telegram')
+        ],
+        [
+          Markup.button.callback('🔙 Kembali', 'start')
+        ]
       ])
     );
   });
