@@ -1,84 +1,64 @@
 // telegram/CTA/auth.js
-
-const bcrypt = require('bcrypt');
-const { redis } = require('../lib/redis');
-
-const LINK_KEY = 'user_passwords';
-const GARAM = parseInt(process.env.GARAM || '10', 10);
+const {
+  loginUser,
+  isRegistered
+} = require('../lib/follow-check');
 
 module.exports = bot => {
-	  bot.action('link', (ctx) => {
-  ctx.editMessageText(
-    `Untuk menghubungkan akunmu, kirim perintah berikut:\n\n` +
-    `/link <username> <password>\n\n` +
-    `Contoh:\n/link johndoe 123456`,
-    {
+
+  bot.command('link', async ctx => {
+    const [_, username, password] = ctx.message.text.trim().split(' ');
+    if (!username || !password) {
+      return ctx.reply('Format: /link <username> <password>');
+    }
+
+    const result = await loginUser(username, password);
+    if (result.status !== 'success') {
+      return ctx.reply(result.error || 'Gagal login.');
+    }
+
+    await redis.hset('tg:linked', ctx.from.id.toString(), username.trim().toLowerCase());
+    ctx.reply(`Berhasil menghubungkan akun ke: *${username}*`, { parse_mode: 'Markdown' });
+  });
+
+  bot.command('unlink', async ctx => {
+    await redis.hdel('tg:linked', ctx.from.id.toString());
+    ctx.reply('Akun Telegram kamu sudah di-unlink.');
+  });
+
+  bot.command('me', async ctx => {
+    const linked = await redis.hget('tg:linked', ctx.from.id.toString());
+    ctx.reply(
+      linked
+        ? `Akun kamu terhubung ke: *${linked}*`
+        : 'Belum terhubung. Gunakan /link <username> <password>',
+      { parse_mode: 'Markdown' }
+    );
+  });
+
+  bot.action('link', ctx => {
+    ctx.editMessageText(
+      `Untuk menghubungkan akunmu, kirim perintah:\n\n` +
+      `/link <username> <password>`,
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '⬅️ Kembali', callback_data: 'personal_menu' }]
+          ]
+        }
+      }
+    );
+  });
+
+  bot.action('unlink', async ctx => {
+    await redis.hdel('tg:linked', ctx.from.id.toString());
+    await ctx.editMessageText('Akun Telegram kamu berhasil di-*unlink*.', {
+      parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
           [{ text: '⬅️ Kembali', callback_data: 'personal_menu' }]
         ]
       }
-    }
-  );
-});
-
-  bot.command('link', async ctx => {
-    const userId = ctx.from.id.toString();
-    const [_, username, password] = ctx.message.text.trim().split(' ');
-
-    if (!username || !password) {
-      return ctx.reply('Format: /link <username> <password>');
-    }
-
-    const normalizedUser = username.trim().toLowerCase();
-    const storedHashedPassword = await redis.hget(LINK_KEY, normalizedUser);
-
-    if (!storedHashedPassword) {
-      return ctx.reply('Username tidak ditemukan.');
-    }
-
-    const match = await bcrypt.compare(password, storedHashedPassword);
-    if (!match) {
-      return ctx.reply('Password salah.');
-    }
-
-    const hashedPassword = await bcrypt.hash(password, GARAM);
-    await redis.hset(LINK_KEY, { [normalizedUser]: hashedPassword });
-    ctx.reply(`Berhasil terhubung dengan akun '${username}'`);
-  });
-
-bot.action('unlink', async (ctx) => {
-  const userId = ctx.from.id.toString();
-  await redis.hdel('tg:linked', userId); // pastikan nama LINK_KEY sesuai
-  await ctx.editMessageText('Akun Telegram kamu berhasil di-*unlink*.', {
-    parse_mode: 'Markdown',
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '⬅️ Kembali', callback_data: 'personal_menu' }]
-      ]
-    }
-  });
-});
-
-
-  bot.command('unlink', async ctx => {
-    await redis.hdel(LINK_KEY, ctx.from.id.toString());
-    ctx.reply('Akun Telegram kamu sudah di-unlink.');
-  });
-
-  bot.command('me', async ctx => {
-    const telegramUsername = ctx.from?.username?.trim().toLowerCase();
-    if (!telegramUsername) {
-      return ctx.reply('Username Telegram kamu tidak tersedia.');
-    }
-
-    const allUsernames = await redis.hkeys(LINK_KEY);
-    const isLinked = allUsernames.includes(telegramUsername);
-    ctx.reply(
-      isLinked
-        ? `Akun kamu terhubung ke: *${telegramUsername}*`
-        : 'Belum terhubung. Gunakan /link <username> <password>',
-      { parse_mode: 'Markdown' }
-    );
+    });
   });
 };
