@@ -167,7 +167,7 @@ async function searchCategoryCommand(ctx, category) {
       return null;
     }
 
-    const spacer = '\u+00A0';
+    const spacer = '\u00A0'; // Non-breaking space
     const totalLen = 60;
     const year = new Date().getFullYear();
     const creditText = `${year} © Crypto Market Card`;
