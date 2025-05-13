@@ -1,5 +1,4 @@
 // telegram/CTA/admin.js
-// Author : Deisgoku
 
 const { Markup } = require('telegraf');
 const { redis } = require('../lib/redis');
@@ -7,7 +6,7 @@ const bcrypt = require('bcrypt');
 
 const ADMIN_SET = 'tg:admins';
 const USER_SET = 'tg:users';
-const TOKEN_KEY = 'tg:tokens';
+const TOKEN_KEY = 'tg:tokens'; 
 const CEO_KEY = 'ceo:access';
 
 const GARAM = parseInt(process.env.GARAM || '10', 10);
@@ -27,7 +26,7 @@ async function listAdmins() {
   return await redis.smembers(ADMIN_SET);
 }
 
-// ===== TOKEN SYSTEM  =====
+// ===== TOKEN SYSTEM (bcrypt) =====
 async function generateToken(type = 'admin') {
   const raw = Math.random().toString(36).substring(2, 10);
   const hashed = await bcrypt.hash(raw, GARAM);
@@ -62,14 +61,14 @@ async function verifyCEO(userId, password) {
 }
 
 // ===== UI MENU =====
-function getAdminMenu(ctx) {
+function getAdminMenu() {
   return [
-    [Markup.button.callback(ctx.i18n.t('admin.add_admin'), 'add_admin')],
-    [Markup.button.callback(ctx.i18n.t('admin.remove_admin'), 'remove_admin')],
-    [Markup.button.callback(ctx.i18n.t('admin.broadcast'), 'broadcast')],
-    [Markup.button.callback(ctx.i18n.t('admin.gen_token_admin'), 'gen_token_admin')],
-    [Markup.button.callback(ctx.i18n.t('admin.list_admins'), 'list_admins')],
-    [Markup.button.callback(ctx.i18n.t('admin.back'), 'menu')]
+    [Markup.button.callback('➕ Add Admin', 'add_admin')],
+    [Markup.button.callback('➖ Remove Admin', 'remove_admin')],
+    [Markup.button.callback('📢 Broadcast', 'broadcast')],
+    [Markup.button.callback('🔑 Buat Token Admin', 'gen_token_admin')],
+    [Markup.button.callback('👤 Daftar Admin', 'list_admins')],
+    [Markup.button.callback('⬅️ Kembali', 'menu')]
   ];
 }
 
@@ -77,18 +76,18 @@ function getAdminMenu(ctx) {
 function registerAdminCommands(bot) {
   bot.command('claim', async (ctx) => {
     const token = ctx.message.text.split(' ')[1];
-    if (!token) return ctx.reply(ctx.i18n.t('admin.claim_usage'));
+    if (!token) return ctx.reply('Gunakan: /claim <token_key>');
 
     const result = await claimToken(ctx.from.id.toString(), token);
-    if (!result) return ctx.reply(ctx.i18n.t('admin.token_invalid'));
-    ctx.reply(ctx.i18n.t('admin.token_claimed', { type: result }));
+    if (!result) return ctx.reply('Token tidak valid atau sudah dipakai.');
+    ctx.reply(`Token berhasil diklaim. Akses "${result}" aktif.`);
   });
 
   bot.command('setceo', async (ctx) => {
     const [_, password] = ctx.message.text.split(' ');
-    if (!password) return ctx.reply(ctx.i18n.t('admin.setceo_usage'));
+    if (!password) return ctx.reply('Gunakan: /setceo <password>');
     await setCEO(ctx.from.id.toString(), password);
-    ctx.reply(ctx.i18n.t('admin.ceo_set_success'));
+    ctx.reply('Akses CEO berhasil disimpan.');
   });
 }
 
@@ -97,11 +96,11 @@ function registerAdminActions(bot) {
   bot.action('gen_token_admin', async (ctx) => {
     const userId = ctx.from.id.toString();
     if (!(await isCEO(userId))) {
-      return ctx.answerCbQuery(ctx.i18n.t('admin.only_ceo'), { show_alert: true });
+      return ctx.answerCbQuery('Hanya CEO yang bisa membuat token admin.', { show_alert: true });
     }
 
     const token = await generateToken('admin');
-    await ctx.reply(ctx.i18n.t('admin.token_generated', { token }), {
+    await ctx.reply(`🔑 *Token Admin dibuat:*\nGunakan /claim \`${token}\` untuk klaim akses admin.`, {
       parse_mode: 'Markdown'
     });
   });
@@ -109,27 +108,27 @@ function registerAdminActions(bot) {
   // ➖ Remove Admin
   bot.action('remove_admin', async (ctx) => {
     const fromId = ctx.from.id.toString();
-    if (!(await isAdmin(fromId))) return ctx.answerCbQuery(ctx.i18n.t('admin.not_admin'), { show_alert: true });
+    if (!(await isAdmin(fromId))) return ctx.answerCbQuery('Kamu bukan admin.', { show_alert: true });
     pendingAdminInput.set(fromId, { type: 'remove' });
-    await ctx.editMessageText(ctx.i18n.t('admin.remove_prompt'), { parse_mode: 'Markdown' });
+    await ctx.editMessageText('Kirim *User ID* yang ingin **DIHAPUS** dari admin:', { parse_mode: 'Markdown' });
   });
 
   // 📢 Broadcast
   bot.action('broadcast', async (ctx) => {
     const fromId = ctx.from.id.toString();
-    if (!(await isAdmin(fromId))) return ctx.answerCbQuery(ctx.i18n.t('admin.not_admin'), { show_alert: true });
+    if (!(await isAdmin(fromId))) return ctx.answerCbQuery('Kamu bukan admin.', { show_alert: true });
     pendingAdminInput.set(fromId, { type: 'broadcast' });
-    await ctx.editMessageText(ctx.i18n.t('admin.broadcast_prompt'), { parse_mode: 'Markdown' });
+    await ctx.editMessageText('Ketik pesan *broadcast* yang ingin dikirim ke semua user:', { parse_mode: 'Markdown' });
   });
 
   // 👤 Daftar Admin
   bot.action('list_admins', async (ctx) => {
     const fromId = ctx.from.id.toString();
-    if (!(await isAdmin(fromId))) return ctx.answerCbQuery(ctx.i18n.t('admin.not_admin'), { show_alert: true });
+    if (!(await isAdmin(fromId))) return ctx.answerCbQuery('Kamu bukan admin.', { show_alert: true });
     const admins = await listAdmins();
     await ctx.reply(admins.length
-      ? ctx.i18n.t('admin.admin_list', { list: admins.map(id => `- ${id}`).join('\n') })
-      : ctx.i18n.t('admin.no_admins'));
+      ? `Daftar Admin:\n${admins.map(id => `- ${id}`).join('\n')}`
+      : 'Tidak ada admin.');
   });
 
   // Input Handler dari semua mode (add/remove/broadcast)
@@ -141,14 +140,14 @@ function registerAdminActions(bot) {
     const text = ctx.message.text.trim();
 
     if (pending.type === 'add') {
-      if (!/^\d+$/.test(text)) return ctx.reply(ctx.i18n.t('admin.invalid_user_id'));
+      if (!/^\d+$/.test(text)) return ctx.reply('User ID tidak valid.');
       await addAdmin(text);
-      ctx.reply(ctx.i18n.t('admin.added', { userId: text }));
+      ctx.reply(`User ${text} sudah ditambahkan sebagai admin.`);
     }
 
     if (pending.type === 'remove') {
       await removeAdmin(text);
-      ctx.reply(ctx.i18n.t('admin.removed', { userId: text }));
+      ctx.reply(`User ${text} sudah dihapus dari admin.`);
     }
 
     if (pending.type === 'broadcast') {
@@ -164,11 +163,15 @@ function registerAdminActions(bot) {
           console.error(`Gagal kirim ke ${uid}`, e);
         }
       }
-      ctx.reply(ctx.i18n.t('admin.broadcast_sent', { count }));
+      ctx.reply(`Broadcast terkirim ke ${count} user.`);
     }
 
     pendingAdminInput.delete(fromId);
   });
+
+
+
+ 
 }
 
 module.exports = {
