@@ -8,30 +8,28 @@ const { createCanvas, registerFont } = require('canvas');
 const bcrypt = require('bcrypt');
 const fs = require('fs');
 const path = require('path');
+const session = require('telegraf/session');
 
 const { BOT_TOKEN, BASE_URL } = require('./config');
 const { getCategoryMarkdownList } = require('./gecko');
 const { themeNames } = require('../lib/settings/model/theme');
 const renderers = require('../lib/settings/model/list');
 const { redis } = require('../lib/redis');
-const session = require('telegraf/session');
-
-const setupMenu = require('./CTA/menu');
-//const { registerAdminCommands } = require('./CTA/admin');
-// CTA AREA
-setupMenu(bot);
-//registerAdminCommands(bot);
-//require('./CTA/auth')(bot);
-require('./CTA/handlercoin')(bot);
-
-
-
-const LINK_KEY = 'user_passwords';
-const USER_SET = 'tg:users';
-const GARAM = parseInt(process.env.GARAM || '10', 10);
 
 const bot = new Telegraf(BOT_TOKEN);
 bot.use(session());
+
+// Baru require modul yang pakai bot
+const setupMenu = require('./CTA/menu');
+setupMenu(bot);
+require('./CTA/handlercoin')(bot);
+// require('./CTA/admin')(bot); // aktifkan jika perlu
+// require('./CTA/auth')(bot); // aktifkan jika perlu
+
+// Data dasar
+const LINK_KEY = 'user_passwords';
+const USER_SET = 'tg:users';
+const GARAM = parseInt(process.env.GARAM || '10', 10);
 
 const modelsName = Object.keys(renderers);
 const themes = themeNames.join('\n');
@@ -40,6 +38,7 @@ const tempSession = new Map();
 const fontDir = path.join(__dirname, '../lib/data/fonts');
 const fontsCache = new Map();
 
+// Muat font ke Redis + canvas
 async function loadFonts() {
   const fonts = [
     { name: 'Verdana', path: path.join(fontDir, 'Verdana.ttf') },
@@ -64,16 +63,13 @@ async function loadFonts() {
     }
 
     fontsCache.set(font.name, fontData);
-
     const tmpFontPath = `/tmp/${font.name}.ttf`;
     fs.writeFileSync(tmpFontPath, fontData);
     registerFont(tmpFontPath, { family: font.name });
   }
 }
 
-
-
-
+// Command awal
 bot.command('card', async ctx => {
   const userId = ctx.from.id.toString();
   tempSession.set(userId, { step: 'model' });
@@ -84,6 +80,7 @@ bot.command('card', async ctx => {
   ));
 });
 
+// Handler tombol
 bot.on('callback_query', async ctx => {
   const userId = ctx.from.id.toString();
   const session = tempSession.get(userId) || {};
@@ -134,6 +131,7 @@ bot.on('callback_query', async ctx => {
   return ctx.answerCbQuery();
 });
 
+// Input jumlah coin
 bot.on('text', async ctx => {
   const userId = ctx.from.id.toString();
   const session = tempSession.get(userId);
@@ -195,4 +193,5 @@ bot.on('text', async ctx => {
   tempSession.delete(userId);
 });
 
+// Ekspor bot
 module.exports = { bot };
