@@ -17,7 +17,14 @@ const { redis } = require('../lib/redis');
 const session = require('telegraf/session');
 
 const setupMenu = require('./CTA/menu');
-const { registerAdminCommands } = require('./CTA/admin');
+//const { registerAdminCommands } = require('./CTA/admin');
+// CTA AREA
+setupMenu(bot);
+//registerAdminCommands(bot);
+//require('./CTA/auth')(bot);
+require('./CTA/handlercoin')(bot);
+
+
 
 const LINK_KEY = 'user_passwords';
 const USER_SET = 'tg:users';
@@ -64,11 +71,6 @@ async function loadFonts() {
   }
 }
 
-// CTA AREA
-setupMenu(bot);
-registerAdminCommands(bot);
-require('./CTA/auth')(bot);
-require('./CTA/handlercoin')(bot);
 
 
 
