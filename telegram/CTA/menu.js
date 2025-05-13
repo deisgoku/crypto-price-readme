@@ -18,11 +18,12 @@ module.exports = function setupMenu(bot) {
 
   // /start
   bot.command('start', (ctx) => {
-    ctx.reply('Selamat datang! Pilih menu di bawah:', {
-      reply_markup: Markup.inlineKeyboard([
+    ctx.reply(
+      'Selamat datang! Pilih menu di bawah:',
+      Markup.inlineKeyboard([
         [Markup.button.callback('📋 Buka Menu', 'menu')],
-      ]),
-    });
+      ])
+    );
   });
 
   // Callback: start ulang
@@ -103,7 +104,9 @@ module.exports = function setupMenu(bot) {
   });
 
   // FAQ
-  bot.action('faq', (ctx) => ctx.answerCbQuery('FAQ belum tersedia.'));
+  bot.action('faq', (ctx) =>
+    ctx.answerCbQuery('FAQ belum tersedia.')
+  );
 
   // Sponsor
   bot.action('sponsor', (ctx) => {
