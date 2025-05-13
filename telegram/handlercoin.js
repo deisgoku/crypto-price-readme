@@ -1,6 +1,8 @@
 // telegram/handlers.js
 const fetch = require('node-fetch');
 
+// --- Utility Functions ---
+
 function escapeMarkdown(text) {
   return text.replace(/[*_`[\]]/g, '\\$&');
 }
@@ -28,6 +30,8 @@ function centerText(text, width) {
   const pad = Math.max(0, Math.floor((width - text.length) / 2));
   return spacer.repeat(pad) + text;
 }
+
+// --- Symbol Search ---
 
 async function resolveSymbolToIds(symbol) {
   const res = await fetch('https://api.coingecko.com/api/v3/coins/list');
@@ -141,6 +145,8 @@ async function handleSymbolCommand(ctx, coinId) {
   }
 }
 
+// --- Category Search ---
+
 async function resolveCategories(category) {
   const res = await fetch('https://api.coingecko.com/api/v3/coins/categories/list');
   const categories = await res.json();
@@ -162,36 +168,21 @@ async function searchCategoryCommand(ctx, category) {
     }
 
     const spacer = '\u2007';
-    const maxTotalWidth = 60;
-    const maxNameLen = Math.min(Math.max(...categories.map(c => c.name.length), 20), 24);
-    const maxIdLen = Math.min(Math.max(...categories.map(c => c.category_id.length), 20), 28);
-    const gap = 2;
-    const lineLen = 4 + maxNameLen + gap + maxIdLen;
-    const totalLen = Math.min(lineLen, maxTotalWidth);
+    const totalLen = 60;
     const year = new Date().getFullYear();
     const creditText = `${year} © Crypto Market Card`;
     const creditLink = `[${creditText}](https://t.me/crypto_market_card_bot/gcmc)`;
 
     let reply = centerText(`🔎 Ditemukan ${categories.length} kategori`, totalLen) + '\n';
     reply += centerText(`dengan kata: ${category.toUpperCase()}`, totalLen) + '\n';
-    reply += '```\n' + '-'.repeat(totalLen) + '\n';
-    reply += ` #  ${centerText('NAMA', maxNameLen)}${spacer.repeat(gap)}${centerText('ID', maxIdLen)}\n`;
-    reply += '-'.repeat(totalLen) + '\n';
+    reply += '```\n';
 
     categories.forEach((cat, i) => {
-      const nameLines = wrapText(cat.name, maxNameLen);
-      const idLines = wrapText(cat.category_id, maxIdLen);
-      const maxLines = Math.max(nameLines.length, idLines.length);
-
-      for (let j = 0; j < maxLines; j++) {
-        const num = j === 0 ? `${i + 1}.`.padStart(3) : '   ';
-        const name = (nameLines[j] || '').padEnd(maxNameLen);
-        const id = idLines[j] || '';
-        reply += `${num} ${name}${spacer.repeat(gap)}${id}\n`;
-      }
+      reply += `${i + 1}. ${cat.name}\n`;
+      reply += `   ID: ${cat.category_id}\n\n`;
     });
 
-    reply += '-'.repeat(totalLen) + '\n```\n';
+    reply += '```' + '\n';
     reply += centerText(creditText, totalLen).replace(creditText, creditLink);
 
     return ctx.reply(reply, {
@@ -256,6 +247,8 @@ async function handleCategoryCommand(ctx, categoryId, count = 5) {
     return ctx.reply('☹️ Terjadi kesalahan saat mengambil data market kategori');
   }
 }
+
+// --- Bot Command Handler ---
 
 module.exports = bot => {
   bot.command('cat', async (ctx) => {
