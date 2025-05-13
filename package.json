@@ -60,7 +60,6 @@
     "react-select": "^5.7.3",
     "react-turnstile": "^1.0.7",
     "telegraf": "^4.12.2",
-    "@kofalt/telegraf-i18n": "^6.0.0",
     "xmldom": "^0.6.0"
   },
   "devDependencies": {
