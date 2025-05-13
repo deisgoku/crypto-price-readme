@@ -2,7 +2,7 @@ const { Markup } = require('telegraf');
 const { sendHelp } = require('./help');
 const { getAdminMenu, registerAdminActions } = require('./admin');
 const { sendSupport, registerSupportActions } = require('./support');
-const { isAdmin } = require('./auth');
+
 
 module.exports = function setupMenu(bot) {
   registerAdminActions(bot);
