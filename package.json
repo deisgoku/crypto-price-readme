@@ -60,7 +60,7 @@
     "react-select": "^5.7.3",
     "react-turnstile": "^1.0.7",
     "telegraf": "^4.12.2",
-    "telegraf-i18n": "^5.0.0",
+    "@darkbrow/telegraf-i18n": "^6.6.0",
     "xmldom": "^0.6.0"
   },
   "devDependencies": {
