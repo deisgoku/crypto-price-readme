@@ -2,7 +2,7 @@
 
 const { Telegraf, Markup } = require('telegraf');
 const bcrypt = require('bcrypt');
-const { redis } = require('../lib/redis');
+const { redis } = require('../../lib/redis');
 
 const ADMIN_SET = 'tg:admins';
 const USER_SET = 'tg:users';
