@@ -1,4 +1,7 @@
-const { Markup } = require('telegraf');
+// telegram/CTA/menu.js
+
+
+const { Telegraf, Markup } = require('telegraf');
 const { sendHelp } = require('./help');
 const { getAdminMenu, registerAdminActions } = require('./admin');
 const { sendSupport, registerSupportActions } = require('./support');
