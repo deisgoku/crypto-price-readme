@@ -2,7 +2,7 @@
 const {
   loginUser,
   isRegistered
-} = require('../lib/follow-check');
+} = require('../../lib/follow-check');
 
 module.exports = bot => {
 
