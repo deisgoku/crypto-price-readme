@@ -68,7 +68,12 @@ require('./CTA/menu')(bot);
 bot.start(ctx => {
   ctx.reply(
     `Selamat datang di *Crypto Card Bot!*\n\nGunakan /card untuk membuat kartu crypto.\nGunakan /help untuk melihat perintah lain.`,
-    { parse_mode: 'Markdown' }
+    {
+      parse_mode: 'Markdown',
+      reply_markup: Markup.inlineKeyboard([
+        [Markup.button.callback('📋 Buka Menu', 'menu')],
+      ]),
+    }
   );
 });
 
