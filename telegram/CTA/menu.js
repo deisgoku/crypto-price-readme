@@ -118,7 +118,7 @@ module.exports = function setupMenu(bot) {
     });
   });
 
-  bot.action('sponsor', async (ctx) => {
+  bot.action('support_back', async (ctx) => {
     const text = getSponsorContent();
     await ctx.editMessageText(text, {
       parse_mode: 'Markdown',
@@ -126,7 +126,7 @@ module.exports = function setupMenu(bot) {
     });
   });
 
-  bot.action('support_back', async (ctx) => {
+  bot.action('sponsor', async (ctx) => {
     await sendSupport(ctx);
   });
 
