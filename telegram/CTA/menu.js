@@ -1,12 +1,11 @@
-const { Telegraf, Markup } = require('telegraf');
+// telegram/CTA/menu.js
+
+const { Markup } = require('telegraf');
 const { sendHelp, getFAQContent, getSponsorContent } = require('./help');
 const {
   getAdminMenu,
   registerAdminActions,
   isAdmin,
-  addAdmin,
-  removeAdmin,
-  listAdmins,
 } = require('./admin');
 const { sendSupport, registerSupportActions } = require('./support');
 
@@ -59,27 +58,15 @@ module.exports = function setupMenu(bot) {
     );
   });
 
-  
-//  bot.action('admin_menu', async (ctx) => {
-//    const fromId = ctx.from.id.toString();
-//    if (!(await isAdmin(fromId))) {
-//      return ctx.answerCbQuery('Kamu bukan admin.', { show_alert: true });
-//    }
-
   bot.action('admin_menu', async (ctx) => {
-    await getAdminMenu(ctx);
-   });
-
+    const fromId = ctx.from.id.toString();
+    if (!(await isAdmin(fromId))) {
+      return ctx.answerCbQuery('Kamu bukan admin.', { show_alert: true });
+    }
 
     ctx.editMessageText(
       'Menu Admin:',
-      Markup.inlineKeyboard([
-        [Markup.button.callback('➕ Tambah Admin', 'add_admin')],
-        [Markup.button.callback('➖ Hapus Admin', 'remove_admin')],
-        [Markup.button.callback('📢 Kirim Broadcast', 'broadcast')],
-        [Markup.button.callback('📋 Daftar Admin', 'list_admins')],
-        [Markup.button.callback('🔙 Kembali', 'menu')],
-      ])
+      Markup.inlineKeyboard(getAdminMenu())
     );
   });
 
@@ -137,7 +124,7 @@ module.exports = function setupMenu(bot) {
   });
 
   bot.action('filter', (ctx) => {
-    ctx.answerCbQuery('Fitur ini hanya untuk pengguna premium.');
+    ctx.answerCbQuery('Fitur ini hanya untuk pengguna premium.', { show_alert: true });
   });
 
   bot.action('miniapp', (ctx) => {
