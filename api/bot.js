@@ -3,6 +3,12 @@
 const { bot } = require('../telegram/main');
 
 const handler = async (req, res) => {
+  if (req.method === 'HEAD') {
+   
+    res.status(200).end();
+    return;
+  }
+
   if (req.method !== 'POST') {
     res.status(405).send('Method Not Allowed');
     return;
