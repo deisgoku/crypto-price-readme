@@ -14,7 +14,7 @@ const { getCategoryMarkdownList } = require('./gecko');
 const { themeNames } = require('../lib/settings/model/theme');
 const renderers = require('../lib/settings/model/list');
 const { redis } = require('../lib/redis');
-const { registerAdminCommands } = require('./admin');
+const { registerAdminCommands } = require('./CTA/admin');
 
 const LINK_KEY = 'user_passwords';
 const USER_SET = 'tg:users';
