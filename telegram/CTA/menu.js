@@ -5,7 +5,6 @@ const { sendHelp, getFAQContent, getSponsorContent } = require('./help');
 const {
   getAdminMenu,
   registerAdminActions,
-  isAdmin,
 } = require('./admin');
 const { sendSupport, registerSupportActions } = require('./support');
 
@@ -58,16 +57,9 @@ module.exports = function setupMenu(bot) {
     );
   });
 
+  // Admin menu: biarkan admin.js handle validasi
   bot.action('admin_menu', async (ctx) => {
-    const fromId = ctx.from.id.toString();
-    if (!(await isAdmin(fromId))) {
-      return ctx.answerCbQuery('Kamu bukan admin.', { show_alert: true });
-    }
-
-    ctx.editMessageText(
-      'Menu Admin:',
-      Markup.inlineKeyboard(getAdminMenu())
-    );
+    await getAdminMenu(ctx);
   });
 
   bot.action('personal_menu', (ctx) => {
@@ -139,11 +131,6 @@ module.exports = function setupMenu(bot) {
   });
 
   bot.command('admin', async (ctx) => {
-    const fromId = ctx.from.id.toString();
-    if (!(await isAdmin(fromId))) {
-      return ctx.reply('Kamu bukan admin.');
-    }
-
-    ctx.reply('Menu Admin:', Markup.inlineKeyboard(getAdminMenu()));
+    await getAdminMenu(ctx);
   });
 };
