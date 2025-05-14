@@ -88,6 +88,9 @@ function registerHelpActions(bot) {
     await ctx.editMessageText(getFAQContent(), {
       parse_mode: 'Markdown',
       disable_web_page_preview: true,
+      reply_markup: Markup.inlineKeyboard([
+        [Markup.button.callback('🔙 Kembali', 'help')]
+      ]).reply_markup
     });
   });
 
@@ -95,6 +98,9 @@ function registerHelpActions(bot) {
     await ctx.editMessageText(getSponsorContent(), {
       parse_mode: 'Markdown',
       disable_web_page_preview: false,
+      reply_markup: Markup.inlineKeyboard([
+        [Markup.button.callback('🔙 Kembali', 'help')]
+      ]).reply_markup
     });
   });
 
