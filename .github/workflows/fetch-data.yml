@@ -32,8 +32,7 @@ jobs:
         uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: Deploy Telegram Bot to Fly.io
-        run: flyctl deploy --remote-only
-
+        run: flyctl deploy --remote-only --app crypto-market
       - name: Set Telegram Webhook
         run: |
           curl -X POST https://api.telegram.org/bot${BOT_TOKEN}/setWebhook \
