@@ -59,11 +59,17 @@ module.exports = function setupMenu(bot) {
     );
   });
 
+  
+//  bot.action('admin_menu', async (ctx) => {
+//    const fromId = ctx.from.id.toString();
+//    if (!(await isAdmin(fromId))) {
+//      return ctx.answerCbQuery('Kamu bukan admin.', { show_alert: true });
+//    }
+
   bot.action('admin_menu', async (ctx) => {
-    const fromId = ctx.from.id.toString();
-    if (!(await isAdmin(fromId))) {
-      return ctx.answerCbQuery('Kamu bukan admin.', { show_alert: true });
-    }
+    await getAdminMenu(ctx);
+   });
+
 
     ctx.editMessageText(
       'Menu Admin:',
