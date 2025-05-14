@@ -16,4 +16,4 @@ RUN npm install
 COPY . .
 
 # Jalankan entry point bot
-CMD ["node", "api/bot.js"]
+CMD ["node", "telegram/server.js"]
