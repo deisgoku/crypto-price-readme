@@ -57,11 +57,12 @@ module.exports = function setupMenu(bot) {
     );
   });
 
-  // Admin menu: biarkan admin.js handle validasi
+  
   bot.action('admin_menu', async (ctx) => {
-    await getAdminMenu(ctx);
+  const buttons = getAdminMenu();
+  await ctx.editMessageText('Menu Admin:', Markup.inlineKeyboard(buttons));
   });
-
+  
   bot.action('personal_menu', (ctx) => {
     ctx.editMessageText(
       'Pengaturan Pribadi:',
