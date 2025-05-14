@@ -1,4 +1,4 @@
-name: Generate Traffic Badge
+name: Generate Traffic Badge & Deploy Bot
 
 on:
   schedule:
@@ -16,3 +16,19 @@ jobs:
         run: |
           curl -X PUT https://crypto-price-on.vercel.app/api/traffic-badge \
             -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}"
+
+  deploy-to-fly:
+    needs: update-traffic-count
+    runs-on: ubuntu-latest
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install Fly.io CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy Telegram Bot to Fly.io
+        run: flyctl deploy --remote-only
