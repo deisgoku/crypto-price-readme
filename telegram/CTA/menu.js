@@ -1,6 +1,6 @@
 const { Markup } = require('telegraf');
-const { redis } = require('../../lib/redis'); // Pastikan sudah konfigurasi redis client benar
-const { sendHelp, getFAQContent, getSponsorContent } = require('./help');
+const { redis } = require('../../lib/redis');
+const { sendHelp, getFAQList, getFAQAnswer, getSponsorContent } = require('./help');
 const { getAdminMenu, registerAdminActions } = require('./admin');
 const { sendSupport, registerSupportActions } = require('./support');
 
@@ -30,7 +30,6 @@ module.exports = function setupMenu(bot) {
       );
       await ctx.answerCbQuery();
     } catch (err) {
-      // pesan error di log, tapi ga crash
       console.error('Error di action start:', err);
     }
   });
@@ -62,7 +61,7 @@ module.exports = function setupMenu(bot) {
           Markup.button.callback('🔙 Kembali', 'start'),
         ],
       ]);
-      if (!cached) await redis.setex(key, 600, text); // Cache 10 menit
+      if (!cached) await redis.setex(key, 600, text);
       await ctx.editMessageText(text, keyboard);
       await ctx.answerCbQuery();
     } catch (err) {
@@ -128,10 +127,10 @@ module.exports = function setupMenu(bot) {
     }
   });
 
-  // Language selection (lang_id, lang_en, lang_es, etc)
+  // Language selection (lang_id, lang_en, lang_es)
   bot.action(/^lang_/, async (ctx) => {
     try {
-      // TODO: Simpan preferensi bahasa di DB/cache sesuai kebutuhan
+      // TODO: Simpan preferensi bahasa user jika perlu
       await ctx.answerCbQuery('Bahasa telah diubah.', { show_alert: true });
       await ctx.editMessageText(
         'Pengaturan bahasa diperbarui.',
@@ -145,23 +144,39 @@ module.exports = function setupMenu(bot) {
     }
   });
 
-  // FAQ
+  // FAQ - Tampilkan daftar pertanyaan
   bot.action('faq', async (ctx) => {
-    const key = `tg:${ctx.from.id}:faq`;
     try {
-      let text = await redis.get(key);
-      if (!text) {
-        text = getFAQContent();
-        await redis.setex(key, 600, text);
-      }
+      const { text, keyboard } = getFAQList();
       await ctx.editMessageText(text, {
         parse_mode: 'Markdown',
+        reply_markup: keyboard.reply_markup,
         disable_web_page_preview: true,
       });
       await ctx.answerCbQuery();
     } catch (err) {
       console.error('Error di faq:', err);
       await ctx.answerCbQuery('Gagal memuat FAQ.', { show_alert: true });
+    }
+  });
+
+  // FAQ Question detail (callback data: faq_q_<index>)
+  bot.action(/faq_q_\d+/, async (ctx) => {
+    try {
+      const id = ctx.match[0].split('_')[2];
+      const answer = getFAQAnswer(id);
+      const keyboard = Markup.inlineKeyboard([
+        [Markup.button.callback('🔙 Kembali ke FAQ', 'faq')],
+      ]);
+      await ctx.editMessageText(answer, {
+        parse_mode: 'Markdown',
+        reply_markup: keyboard.reply_markup,
+        disable_web_page_preview: true,
+      });
+      await ctx.answerCbQuery();
+    } catch (err) {
+      console.error('Error di faq question:', err);
+      await ctx.answerCbQuery('Gagal memuat jawaban FAQ.', { show_alert: true });
     }
   });
 
