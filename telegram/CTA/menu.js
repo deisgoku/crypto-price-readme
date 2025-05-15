@@ -1,6 +1,5 @@
-// telegram/CTA/menu.js
-
 const { Markup } = require('telegraf');
+const { redis } = require('../lib/redis'); // Tambahan Redis
 const { sendHelp, getFAQContent, getSponsorContent } = require('./help');
 const {
   getAdminMenu,
@@ -30,60 +29,69 @@ module.exports = function setupMenu(bot) {
     );
   });
 
-  bot.action('menu', (ctx) => {
-    ctx.editMessageText(
-      'Menu Utama:',
-      Markup.inlineKeyboard([
-        [
-          Markup.button.callback('🛠️ Admin Tools', 'admin_menu'),
-          Markup.button.callback('⚙️ Pengaturan Pribadi', 'personal_menu'),
-        ],
-        [
-          Markup.button.callback('❓ FAQ', 'faq'),
-          Markup.button.callback('🆘 Bantuan', 'help'),
-        ],
-        [
-          Markup.button.callback('💖 Sponsor Kami', 'sponsor'),
-          Markup.button.callback('🔒 Filter Premium', 'filter'),
-        ],
-        [
-          Markup.button.callback('🌐 Ganti Bahasa', 'language'),
-          Markup.button.url('🧩 MiniApp Web', 'https://crypto-price-on.vercel.app/unlock?ref=telegram'),
-        ],
-        [
-          Markup.button.callback('🔙 Kembali', 'start'),
-        ],
-      ])
-    );
+  bot.action('menu', async (ctx) => {
+    const key = `tg:${ctx.from.id}:menu`;
+    const cached = await redis.get(key);
+    const text = 'Menu Utama:';
+    const keyboard = Markup.inlineKeyboard([
+      [
+        Markup.button.callback('🛠️ Admin Tools', 'admin_menu'),
+        Markup.button.callback('⚙️ Pengaturan Pribadi', 'personal_menu'),
+      ],
+      [
+        Markup.button.callback('❓ FAQ', 'faq'),
+        Markup.button.callback('🆘 Bantuan', 'help'),
+      ],
+      [
+        Markup.button.callback('💖 Sponsor Kami', 'sponsor'),
+        Markup.button.callback('🔒 Filter Premium', 'filter'),
+      ],
+      [
+        Markup.button.callback('🌐 Ganti Bahasa', 'language'),
+        Markup.button.url('🧩 MiniApp Web', 'https://crypto-price-on.vercel.app/unlock?ref=telegram'),
+      ],
+      [
+        Markup.button.callback('🔙 Kembali', 'start'),
+      ],
+    ]);
+    if (!cached) await redis.setex(key, 120, text);
+    await ctx.editMessageText(text, keyboard);
   });
 
-  
   bot.action('admin_menu', async (ctx) => {
-  const buttons = getAdminMenu();
-  await ctx.editMessageText('Menu Admin:', Markup.inlineKeyboard(buttons));
-  });
-  
-  bot.action('personal_menu', (ctx) => {
-    ctx.editMessageText(
-      'Pengaturan Pribadi:',
-      Markup.inlineKeyboard([
-        [Markup.button.callback('🔗 Hubungkan Akun', 'link')],
-        [Markup.button.callback('❌ Putuskan Akun', 'unlink')],
-        [Markup.button.callback('🔙 Kembali', 'menu')],
-      ])
-    );
+    const key = `tg:${ctx.from.id}:admin_menu`;
+    const cached = await redis.get(key);
+    const text = 'Menu Admin:';
+    const buttons = getAdminMenu();
+    if (!cached) await redis.setex(key, 120, text);
+    await ctx.editMessageText(text, Markup.inlineKeyboard(buttons));
   });
 
-  bot.action('language', (ctx) => {
-    ctx.editMessageText(
-      'Pilih bahasa:',
-      Markup.inlineKeyboard([
-        [Markup.button.callback('🇮🇩 Bahasa Indonesia', 'lang_id')],
-        [Markup.button.callback('🇬🇧 English', 'lang_en')],
-        [Markup.button.callback('🇪🇸 Español', 'lang_es')],
-        [Markup.button.callback('🔙 Kembali', 'menu')],
-      ])
-    );
+  bot.action('personal_menu', async (ctx) => {
+    const key = `tg:${ctx.from.id}:personal_menu`;
+    const cached = await redis.get(key);
+    const text = 'Pengaturan Pribadi:';
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback('🔗 Hubungkan Akun', 'link')],
+      [Markup.button.callback('❌ Putuskan Akun', 'unlink')],
+      [Markup.button.callback('🔙 Kembali', 'menu')],
+    ]);
+    if (!cached) await redis.setex(key, 120, text);
+    await ctx.editMessageText(text, keyboard);
+  });
+
+  bot.action('language', async (ctx) => {
+    const key = `tg:${ctx.from.id}:language`;
+    const cached = await redis.get(key);
+    const text = 'Pilih bahasa:';
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback('🇮🇩 Bahasa Indonesia', 'lang_id')],
+      [Markup.button.callback('🇬🇧 English', 'lang_en')],
+      [Markup.button.callback('🇪🇸 Español', 'lang_es')],
+      [Markup.button.callback('🔙 Kembali', 'menu')],
+    ]);
+    if (!cached) await redis.setex(key, 120, text);
+    await ctx.editMessageText(text, keyboard);
   });
 
   bot.action(/^lang_/, (ctx) => {
@@ -97,7 +105,12 @@ module.exports = function setupMenu(bot) {
   });
 
   bot.action('faq', async (ctx) => {
-    const text = getFAQContent();
+    const key = `tg:${ctx.from.id}:faq`;
+    let text = await redis.get(key);
+    if (!text) {
+      text = getFAQContent();
+      await redis.setex(key, 300, text);
+    }
     await ctx.editMessageText(text, {
       parse_mode: 'Markdown',
       disable_web_page_preview: true,
@@ -105,7 +118,12 @@ module.exports = function setupMenu(bot) {
   });
 
   bot.action('support_back', async (ctx) => {
-    const text = getSponsorContent();
+    const key = `tg:${ctx.from.id}:support_back`;
+    let text = await redis.get(key);
+    if (!text) {
+      text = getSponsorContent();
+      await redis.setex(key, 300, text);
+    }
     await ctx.editMessageText(text, {
       parse_mode: 'Markdown',
       disable_web_page_preview: false,
@@ -113,6 +131,9 @@ module.exports = function setupMenu(bot) {
   });
 
   bot.action('sponsor', async (ctx) => {
+    const key = `tg:${ctx.from.id}:sponsor`;
+    const cached = await redis.get(key);
+    if (!cached) await redis.setex(key, 300, '1');
     await sendSupport(ctx);
   });
 
@@ -127,6 +148,9 @@ module.exports = function setupMenu(bot) {
   bot.command('help', sendHelp);
 
   bot.action('help', async (ctx) => {
+    const key = `tg:${ctx.from.id}:help`;
+    const cached = await redis.get(key);
+    if (!cached) await redis.setex(key, 300, '1');
     await ctx.answerCbQuery();
     await sendHelp(ctx);
   });
