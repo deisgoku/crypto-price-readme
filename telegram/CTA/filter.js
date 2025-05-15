@@ -1,3 +1,6 @@
+
+
+const { handleSymbolCommand } = require('./handlercoin');
 const { redis } = require('../../lib/redis');
 const { Markup } = require('telegraf');
 
@@ -43,7 +46,7 @@ async function listFilters(chatId) {
 
 
 
-// Tangkap pesan user & cek filter, jika filter text dimulai !c, panggil handleCommandC
+// Tangkap pesan user
 async function handleFilterMessage(ctx) {
   const text = ctx.message?.text?.toLowerCase();
   if (!text || text.startsWith('/')) return;
@@ -96,6 +99,9 @@ module.exports = bot => {
   bot.command('filter', async ctx => {
     const userId = ctx.from.id;
     const chatId = ctx.chat.id;
+
+    // ANTISPAM SEMENTARA DIMATIKAN
+    // if (await preventSpam(`spam:filter:${userId}`, 5)) return;
 
     const args = ctx.message.text.split(' ');
     const keyword = args[1];
