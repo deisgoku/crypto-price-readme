@@ -1,7 +1,6 @@
 const { Markup } = require('telegraf');
-const { redis } = require('../../lib/redis'); // sesuaikan dengan struktur kamu
+const { redis } = require('../../lib/redis');
 
-// ================== HELP MAIN ==================
 async function sendHelp(ctx) {
   const key = `tg:${ctx.from.id}:help`;
   const cached = await redis.get(key);
@@ -48,8 +47,9 @@ async function sendHelp(ctx) {
   }
 }
 
-// ================== FAQ ==================
-const faqText = `*FAQ Bot Crypto:*
+function getFAQContent() {
+  return `
+*FAQ Bot Crypto:*
 
 1. _Apa itu Coin Card?_
    → Gambar berisi info harga coin crypto.
@@ -58,20 +58,19 @@ const faqText = `*FAQ Bot Crypto:*
    → Gunakan simbol coin resmi (mis: BTC, ETH). Gunakan /s untuk cari.
 
 3. _Bagaimana cara menjadi admin atau premium?_
-   → Hubungi pemilik, lalu klaim token pakai \`/claim <token>\`.
+   → Hubungi pemilik, lalu klaim token pakai /claim <token>.
 
 4. _Apa gunanya /link dan /me?_
    → Untuk menghubungkan identitas pengguna dan melihat statistik akun.
 
 5. _Saya tidak menemukan coin tertentu?_
-   → Gunakan /s <nama> untuk pencarian manual.`;
-
-function getFAQContent() {
-  return faqText;
+   → Gunakan /s <nama> untuk pencarian manual.
+`;
 }
 
-// ================== SPONSOR ==================
-const sponsorText = `*Dukung dan Gunakan Mini App Kami:*
+function getSponsorContent() {
+  return `
+*Dukung dan Gunakan Mini App Kami:*
 
 [Crypto Market Card](https://t.me/crypto_market_card_bot/gcmc)  
 → Dapatkan kartu harga crypto real-time  
@@ -87,13 +86,10 @@ const sponsorText = `*Dukung dan Gunakan Mini App Kami:*
 *Web App Stars Unlock:*  
 [Unlock Premium](https://crypto-price-on.vercel.app/unlock?ref=telegram)
 
-_Afiliasi & bonus Stars akan tersedia segera._`;
-
-function getSponsorContent() {
-  return sponsorText;
+_Afiliasi & bonus Stars akan tersedia segera._
+`;
 }
 
-// ================== ACTIONS ==================
 function registerHelpActions(bot) {
   bot.action('faq', async (ctx) => {
     const key = `tg:${ctx.from.id}:faq`;
@@ -104,22 +100,26 @@ function registerHelpActions(bot) {
       await redis.setex(key, 300, cached);
     }
 
+    const replyMarkup = Markup.inlineKeyboard([
+      [Markup.button.callback('🔙 Kembali', 'help')]
+    ]);
+
     try {
+      console.log('[FAQ] updateType:', ctx.updateType);
+      console.log('[FAQ] message ID:', ctx.callbackQuery?.message?.message_id);
+
       await ctx.editMessageText(cached, {
         parse_mode: 'Markdown',
         disable_web_page_preview: true,
-        reply_markup: Markup.inlineKeyboard([
-          [Markup.button.callback('🔙 Kembali', 'help')]
-        ]).reply_markup
+        reply_markup: replyMarkup.reply_markup
       });
     } catch (err) {
-      console.error('[FAQ Error]', err);
+      console.error('[FAQ editMessageText ERROR]', err);
+
       await ctx.reply(cached, {
         parse_mode: 'Markdown',
         disable_web_page_preview: true,
-        reply_markup: Markup.inlineKeyboard([
-          [Markup.button.callback('🔙 Kembali', 'help')]
-        ])
+        reply_markup: replyMarkup.reply_markup
       });
     }
   });
@@ -133,13 +133,25 @@ function registerHelpActions(bot) {
       await redis.setex(key, 300, cached);
     }
 
-    await ctx.editMessageText(cached, {
-      parse_mode: 'Markdown',
-      disable_web_page_preview: false,
-      reply_markup: Markup.inlineKeyboard([
-        [Markup.button.callback('🔙 Kembali', 'help')]
-      ]).reply_markup
-    });
+    const replyMarkup = Markup.inlineKeyboard([
+      [Markup.button.callback('🔙 Kembali', 'help')]
+    ]);
+
+    try {
+      await ctx.editMessageText(cached, {
+        parse_mode: 'Markdown',
+        disable_web_page_preview: false,
+        reply_markup: replyMarkup.reply_markup
+      });
+    } catch (err) {
+      console.error('[Sponsor editMessageText ERROR]', err);
+
+      await ctx.reply(cached, {
+        parse_mode: 'Markdown',
+        disable_web_page_preview: false,
+        reply_markup: replyMarkup.reply_markup
+      });
+    }
   });
 
   bot.action('help', async (ctx) => {
@@ -148,10 +160,9 @@ function registerHelpActions(bot) {
   });
 }
 
-// ================== EXPORT ==================
 module.exports = {
   sendHelp,
   getFAQContent,
   getSponsorContent,
-  registerHelpActions,
+  registerHelpActions
 };
