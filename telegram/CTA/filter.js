@@ -1,52 +1,68 @@
 const { redis } = require('../../lib/redis');
 const { Markup } = require('telegraf');
-const { handleSymbolCommand } = require('./handlercoin'); 
 
-// Fungsi helper untuk key redis filter per chat
+// Key filter per chat
 function getFilterKey(chatId) {
   return `filters:${chatId}`;
 }
 
-// Fungsi tambah filter
-async function addFilter(chatId, userId, keyword, text, markup = null) {
-  const filters = await redis.hgetall(getFilterKey(chatId));
-  if (Object.keys(filters).length >= 5) {
-    // Contoh cek batas filter gratis, kamu bisa buat premium nanti
-    throw new Error('Maksimal 5 filter untuk pengguna gratis.');
-  }
-  const data = { userId, text, markup };
-  await redis.hset(getFilterKey(chatId), keyword.toLowerCase(), JSON.stringify(data));
+async function isPremium(userId) {
+  return await redis.get(`tg:premium:${userId}`);
 }
 
-// Fungsi hapus filter
+// Tambah filter
+async function addFilter(chatId, userId, keyword, responseText, replyMarkup) {
+  const key = getFilterKey(chatId);
+  const existing = await redis.hgetall(key);
+  const premium = await isPremium(userId);
+
+  if (!premium && Object.keys(existing).length >= 5) {
+    throw new Error('Batas 5 filter tercapai. Upgrade ke premium untuk lebih banyak.');
+  }
+
+  const data = { text: responseText };
+  if (replyMarkup) data.markup = replyMarkup;
+
+  await redis.hset(key, { [keyword.toLowerCase()]: JSON.stringify(data) });
+}
+
+// Hapus filter
 async function removeFilter(chatId, keyword) {
   await redis.hdel(getFilterKey(chatId), keyword.toLowerCase());
 }
 
-// Fungsi list semua filter
+// Daftar semua filter
 async function listFilters(chatId) {
-  const filters = await redis.hgetall(getFilterKey(chatId));
-  return filters;
+  const raw = await redis.hgetall(getFilterKey(chatId));
+  const parsed = {};
+  for (const [k, v] of Object.entries(raw)) {
+    parsed[k] = JSON.parse(v);
+  }
+  return parsed;
 }
 
-// Handler filter message
+
+
+// Tangkap pesan user & cek filter, jika filter text dimulai !c, panggil handleCommandC
 async function handleFilterMessage(ctx) {
-  const text = ctx.message?.text;
+  const text = ctx.message?.text?.toLowerCase();
   if (!text || text.startsWith('/')) return;
 
   const filters = await redis.hgetall(getFilterKey(ctx.chat.id));
+
   for (const keyword in filters) {
-    if (text.toLowerCase().includes(keyword)) {
+    if (text.includes(keyword)) {
       const data = JSON.parse(filters[keyword]);
 
+      // Jika response filter diawali !c, jalankan command !c secara dinamis
       if (data.text.trim().startsWith('!c ')) {
         const coinId = data.text.trim().slice(3).trim();
         return handleSymbolCommand(ctx, coinId);
       }
 
+      // Kalau bukan command !c, balas biasa
       const options = {};
-      const trimmedText = data.text.trim();
-      const isMono = trimmedText.startsWith('```') || trimmedText.startsWith('`');
+      const isMono = data.text.trim().startsWith('```') || data.text.trim().startsWith('`');
       if (!isMono) options.parse_mode = 'Markdown';
       if (data.markup) options.reply_markup = data.markup;
 
@@ -55,8 +71,9 @@ async function handleFilterMessage(ctx) {
   }
 }
 
-// Export modul filter ke bot
+// Export fitur ke bot
 module.exports = bot => {
+  // Menu
   bot.action('filter_menu', async ctx => {
     await ctx.editMessageText(
       '🧰 *Kelola Filter Chat*\n\n- Maksimal 5 filter untuk pengguna gratis\n- Premium dapat menambahkan lebih banyak filter\n\nGunakan tombol di bawah untuk mengatur filter Anda.',
@@ -75,9 +92,11 @@ module.exports = bot => {
     await ctx.answerCbQuery();
   });
 
+  // /filter <kata> <balasan>
   bot.command('filter', async ctx => {
     const userId = ctx.from.id;
     const chatId = ctx.chat.id;
+
     const args = ctx.message.text.split(' ');
     const keyword = args[1];
     const response = args.slice(2).join(' ');
@@ -111,6 +130,7 @@ module.exports = bot => {
     }
   });
 
+  // /unfilter <kata>
   bot.command('unfilter', async ctx => {
     const keyword = ctx.message.text.split(' ')[1];
     if (!keyword) return ctx.reply('Gunakan: /unfilter <kata>');
@@ -118,6 +138,7 @@ module.exports = bot => {
     ctx.reply(`Filter *"${keyword}"* dihapus.`, { parse_mode: 'Markdown' });
   });
 
+  // /filters
   bot.command('filters', async ctx => {
     const filters = await listFilters(ctx.chat.id);
     if (!Object.keys(filters).length) return ctx.reply('Belum ada filter.');
@@ -125,5 +146,6 @@ module.exports = bot => {
     ctx.reply(`Filter aktif:\n${list}`, { parse_mode: 'Markdown' });
   });
 
+  // Tembakan pesan non-command
   bot.on('text', handleFilterMessage);
 };
