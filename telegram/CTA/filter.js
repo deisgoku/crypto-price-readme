@@ -30,6 +30,12 @@ async function listFilters(chatId) {
 }
 
 
+function centerText(text, width) {
+  const spacer = '\u2007';
+  const pad = Math.max(0, Math.floor((width - text.length) / 2));
+  return spacer.repeat(pad) + text;
+}
+
 async function handleSymbolCommand(ctx, coinId) {
   try {
     const url = `https://crypto-price-on.vercel.app/api/data?coin=${coinId}`;
