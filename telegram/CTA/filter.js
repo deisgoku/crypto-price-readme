@@ -2,31 +2,44 @@ const fetch = require('node-fetch');
 const { redis } = require('../../lib/redis');
 const { Markup } = require('telegraf');
 
+// Key filter per chat
 function getFilterKey(chatId) {
-  return `filter:${chatId}`;
+  return `filters:${chatId}`;
 }
 
 async function isPremium(userId) {
   return await redis.get(`tg:premium:${userId}`);
 }
 
-async function addFilter(chatId, userId, keyword, text) {
-  const filters = (await redis.hgetall(getFilterKey(chatId))) || {};
-  const maxFilters = (await isPremium(userId)) ? 50 : 5;
+// Tambah filter
+async function addFilter(chatId, userId, keyword, responseText, replyMarkup) {
+  const key = getFilterKey(chatId);
+  const existing = await redis.hgetall(key);
+  const premium = await isPremium(userId);
 
-  if (!filters[keyword] && Object.keys(filters).length >= maxFilters) {
-    throw new Error(`Batas filter tercapai. Maksimal: ${maxFilters} filter.`);
+  if (!premium && Object.keys(existing).length >= 5) {
+    throw new Error('Batas 5 filter tercapai. Upgrade ke premium untuk lebih banyak.');
   }
 
-  await redis.hset(getFilterKey(chatId), keyword, text);
+  const data = { text: responseText };
+  if (replyMarkup) data.markup = replyMarkup;
+
+  await redis.hset(key, { [keyword.toLowerCase()]: JSON.stringify(data) });
 }
 
+// Hapus filter
 async function removeFilter(chatId, keyword) {
-  await redis.hdel(getFilterKey(chatId), keyword);
+  await redis.hdel(getFilterKey(chatId), keyword.toLowerCase());
 }
 
+// Daftar semua filter
 async function listFilters(chatId) {
-  return (await redis.hgetall(getFilterKey(chatId))) || {};
+  const raw = await redis.hgetall(getFilterKey(chatId));
+  const parsed = {};
+  for (const [k, v] of Object.entries(raw)) {
+    parsed[k] = JSON.parse(v);
+  }
+  return parsed;
 }
 
 
@@ -61,11 +74,11 @@ async function handleSymbolCommand(ctx, coinId) {
     const creditLink = `[${creditText}](https://t.me/crypto_market_card_bot/gcmc)`;
 
     let msg = `📊 Market ${result.symbol.toUpperCase()}\n`;
-    msg += '```\n' + '-'.repeat(totalLen) + '\n';
+    msg += '```\n' + '━'.repeat(totalLen) + '\n';
     for (const [label, value] of Object.entries(data)) {
-      msg += `${label.padEnd(labelMax)} : ${value.padStart(valueMax)}\n`;
+      msg += `${label.padEnd(labelMax)} : ${value.padStart(valueMax)}\n\n`;
     }
-    msg += '-'.repeat(totalLen) + '\n```\n';
+    msg += '━'.repeat(totalLen) + '\n```\n';
     msg += centerText(creditText, totalLen).replace(creditText, creditLink);
 
     return ctx.reply(msg, {
