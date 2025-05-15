@@ -7,19 +7,19 @@ async function sendHelp(ctx) {
   const key = `tg:${ctx.from.id}:help`;
   const cached = await redis.get(key);
 
-  const helpText = `*Perintah Umum:*
+  const helpText = `*Perintah:* 
 /start - Mulai bot
 /help - Bantuan & FAQ
 /card - Buat kartu crypto
 /link - Hubungkan akun
 /unlink - Putuskan akun
-/me - Info akun pribadi
+/me - Info akun
 
-*Admin:*
-/addadmin - Tambah admin
-/removeadmin - Hapus admin
-/admins - Daftar admin
-/broadcast - Kirim pesan ke semua user`;
+*Admin:* 
+/addadmin  
+/removeadmin  
+/admins 
+/broadcast`;
 
   const keyboard = Markup.inlineKeyboard([
     [
@@ -27,7 +27,7 @@ async function sendHelp(ctx) {
       Markup.button.callback('💜 Sponsor', 'sponsor')
     ],
     [
-      Markup.button.webApp('🧾 WebApp Kartu Crypto', 'https://crypto-price-on.vercel.app/unlock?ref=telegram')
+      Markup.button.webApp('🧾 Crypto Market Card', 'https://crypto-price-on.vercel.app/unlock?ref=telegram')
     ],
     [
       Markup.button.callback('🔙 Kembali ke Menu', 'menu')
@@ -54,20 +54,20 @@ function getSponsorContent() {
 *Dukung dan Gunakan Mini App Kami:*
 
 [Crypto Market Card](https://t.me/crypto_market_card_bot/gcmc)  
-→ Kartu harga crypto real-time  
+→ Dapatkan kartu harga crypto real-time  
 → Bisa dipakai di Telegram, GitHub README, atau dibagikan  
 → Powered by CoinGecko & Binance  
-→ Dibuat oleh [@Deisgoku](https://x.com/Deisgoku)
+→ Dikembangkan oleh [@Deisgoku](https://x.com/Deisgoku)
 
 *Dukung Developer:*
 - [PayPal](https://www.paypal.me/DIskandar)
 - [Ko-fi](https://ko-fi.com/deisgoku)
 - [Trakteer](https://trakteer.id/deisgoku)
 
-*Unlock Premium:*
-[WebApp Stars Unlock](https://crypto-price-on.vercel.app/unlock?ref=telegram)
+*Web App Stars Unlock:*  
+[Unlock Premium](https://crypto-price-on.vercel.app/unlock?ref=telegram)
 
-_Afiliasi & bonus Stars akan hadir segera._
+_Afiliasi & bonus Stars akan tersedia segera._
 `;
 }
 
@@ -86,58 +86,96 @@ function getFAQList() {
 }
 
 function registerHelpActions(bot) {
-  // Aksi buka daftar FAQ
+  // FAQ list
   bot.action('faq', async (ctx) => {
-    const { text, keyboard } = getFAQList();
-    await ctx.editMessageText(text, {
-      parse_mode: 'Markdown',
-      reply_markup: keyboard.reply_markup
-    });
+    try {
+      await ctx.answerCbQuery();
+      const { text, keyboard } = getFAQList();
+      await ctx.editMessageText(text, {
+        parse_mode: 'Markdown',
+        reply_markup: keyboard.reply_markup
+      });
+    } catch (err) {
+      console.error('Error edit FAQ list:', err);
+      const { text, keyboard } = getFAQList();
+      await ctx.reply(text, {
+        parse_mode: 'Markdown',
+        reply_markup: keyboard.reply_markup
+      });
+    }
   });
 
-  // Tiap jawaban FAQ
+  // FAQ answers
   const faqAnswers = {
-    faq_q1: '*Apa itu Coin Card?*\n\n→ Gambar otomatis berisi info harga crypto real-time. Cocok untuk share atau dipantau harian.',
-    faq_q2: '*Harga coin saya kosong?*\n\n→ Gunakan simbol resmi (contoh: BTC, ETH). Cek simbol dengan /s <nama coin>.',
-    faq_q3: '*Cara jadi admin/premium?*\n\n→ Hubungi pemilik bot. Klaim token dengan perintah /claim <token>.',
-    faq_q4: '*Gunanya /link dan /me?*\n\n→ Untuk menghubungkan akun Telegram kamu dan melihat data akun seperti penggunaan dan status.',
-    faq_q5: '*Coin tidak ditemukan?*\n\n→ Gunakan perintah /s <nama coin> untuk cari simbol yang tepat.'
+    faq_q1: '*Apa itu Coin Card?*\n\n→ Gambar berisi info harga coin crypto.',
+    faq_q2: '*Harga coin saya kosong?*\n\n→ Gunakan simbol resmi (mis: BTC, ETH). Cek dengan /s <nama coin>.',
+    faq_q3: '*Cara jadi admin/premium?*\n\n→ Hubungi pemilik bot dan klaim token lewat /claim <token>.',
+    faq_q4: '*Gunanya /link dan /me?*\n\n→ Untuk menghubungkan ID Telegram kamu dan melihat statistik akun.',
+    faq_q5: '*Coin tidak ditemukan?*\n\n→ Gunakan /s <nama coin> untuk pencarian manual.'
   };
 
-  for (const [key, answer] of Object.entries(faqAnswers)) {
-    bot.action(key, async (ctx) => {
-      await ctx.editMessageText(answer, {
-        parse_mode: 'Markdown',
-        reply_markup: Markup.inlineKeyboard([
-          [Markup.button.callback('🔙 Kembali ke FAQ', 'faq')]
-        ]).reply_markup
-      });
+  for (const [action, text] of Object.entries(faqAnswers)) {
+    bot.action(action, async (ctx) => {
+      try {
+        await ctx.answerCbQuery();
+        await ctx.editMessageText(text, {
+          parse_mode: 'Markdown',
+          reply_markup: Markup.inlineKeyboard([
+            [Markup.button.callback('🔙 Kembali ke FAQ', 'faq')]
+          ]).reply_markup
+        });
+      } catch (err) {
+        console.error(`Error edit FAQ answer (${action}):`, err);
+        await ctx.reply(text, {
+          parse_mode: 'Markdown',
+          reply_markup: Markup.inlineKeyboard([
+            [Markup.button.callback('🔙 Kembali ke FAQ', 'faq')]
+          ]).reply_markup
+        });
+      }
     });
   }
 
   // Sponsor
   bot.action('sponsor', async (ctx) => {
-    const key = `tg:${ctx.from.id}:sponsor`;
-    let cached = await redis.get(key);
+    try {
+      await ctx.answerCbQuery();
+      const key = `tg:${ctx.from.id}:sponsor`;
+      let cached = await redis.get(key);
 
-    if (!cached) {
-      cached = getSponsorContent();
-      await redis.setex(key, 300, cached);
+      if (!cached) {
+        cached = getSponsorContent();
+        await redis.setex(key, 300, cached);
+      }
+
+      await ctx.editMessageText(cached, {
+        parse_mode: 'Markdown',
+        disable_web_page_preview: false,
+        reply_markup: Markup.inlineKeyboard([
+          [Markup.button.callback('🔙 Kembali ke Bantuan', 'help')]
+        ]).reply_markup
+      });
+    } catch (err) {
+      console.error('Error edit Sponsor:', err);
+      const cached = getSponsorContent();
+      await ctx.reply(cached, {
+        parse_mode: 'Markdown',
+        disable_web_page_preview: false,
+        reply_markup: Markup.inlineKeyboard([
+          [Markup.button.callback('🔙 Kembali ke Bantuan', 'help')]
+        ]).reply_markup
+      });
     }
-
-    await ctx.editMessageText(cached, {
-      parse_mode: 'Markdown',
-      disable_web_page_preview: false,
-      reply_markup: Markup.inlineKeyboard([
-        [Markup.button.callback('🔙 Kembali ke Bantuan', 'help')]
-      ]).reply_markup
-    });
   });
 
-  // Kembali ke halaman bantuan utama
+  // Kembali ke menu bantuan
   bot.action('help', async (ctx) => {
-    await ctx.answerCbQuery();
-    await sendHelp(ctx);
+    try {
+      await ctx.answerCbQuery();
+      await sendHelp(ctx);
+    } catch (err) {
+      console.error('Error kembali ke help:', err);
+    }
   });
 }
 
