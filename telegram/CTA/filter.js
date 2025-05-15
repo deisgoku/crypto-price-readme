@@ -10,13 +10,6 @@ async function isPremium(userId) {
   return await redis.get(`tg:premium:${userId}`);
 }
 
-// Helper anti-spam
-async function preventSpam(key, ttl) {
-  if (await redis.get(key)) return true;
-  await redis.set(key, '1', { EX: ttl });
-  return false;
-}
-
 // Tambah filter
 async function addFilter(chatId, userId, keyword, responseText, replyMarkup) {
   const key = getFilterKey(chatId);
@@ -95,7 +88,8 @@ module.exports = bot => {
     const userId = ctx.from.id;
     const chatId = ctx.chat.id;
 
-    if (await preventSpam(`spam:filter:${userId}`, 5)) return;
+    // ANTISPAM SEMENTARA DIMATIKAN
+    // if (await preventSpam(`spam:filter:${userId}`, 5)) return;
 
     const args = ctx.message.text.split(' ');
     const keyword = args[1];
