@@ -104,13 +104,24 @@ function registerHelpActions(bot) {
       await redis.setex(key, 300, cached);
     }
 
-    await ctx.editMessageText(cached, {
-      parse_mode: 'Markdown',
-      disable_web_page_preview: true,
-      reply_markup: Markup.inlineKeyboard([
-        [Markup.button.callback('🔙 Kembali', 'help')]
-      ]).reply_markup
-    });
+    try {
+      await ctx.editMessageText(cached, {
+        parse_mode: 'Markdown',
+        disable_web_page_preview: true,
+        reply_markup: Markup.inlineKeyboard([
+          [Markup.button.callback('🔙 Kembali', 'help')]
+        ]).reply_markup
+      });
+    } catch (err) {
+      console.error('[FAQ Error]', err);
+      await ctx.reply(cached, {
+        parse_mode: 'Markdown',
+        disable_web_page_preview: true,
+        reply_markup: Markup.inlineKeyboard([
+          [Markup.button.callback('🔙 Kembali', 'help')]
+        ])
+      });
+    }
   });
 
   bot.action('sponsor', async (ctx) => {
