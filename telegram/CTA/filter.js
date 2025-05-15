@@ -34,12 +34,7 @@ async function removeFilter(chatId, keyword) {
 
 // Daftar semua filter
 async function listFilters(chatId) {
-  const raw = await redis.hgetall(getFilterKey(chatId));
-  const parsed = {};
-  for (const [k, v] of Object.entries(raw)) {
-    parsed[k] = JSON.parse(v);
-  }
-  return parsed;
+  return await redis.hgetall(getFilterKey(chatId)) || {};
 }
 
 
