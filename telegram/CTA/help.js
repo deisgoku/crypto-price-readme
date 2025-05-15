@@ -1,5 +1,3 @@
-// telegram/CTA/help.js
-
 const { Markup } = require('telegraf');
 const { redis } = require('../../lib/redis');
 
@@ -49,7 +47,6 @@ async function sendHelp(ctx) {
   }
 }
 
-// Fungsi untuk render pesan FAQ dengan jawaban opsional di atas tombol
 function renderFAQMessage(answerText) {
   const faqButtons = [
     [Markup.button.callback('1. Apa itu Coin Card?', 'faq_q1')],
@@ -57,9 +54,9 @@ function renderFAQMessage(answerText) {
     [Markup.button.callback('3. Cara jadi admin/premium?', 'faq_q3')],
     [Markup.button.callback('4. Gunanya /link dan /me?', 'faq_q4')],
     [Markup.button.callback('5. Coin tidak ditemukan?', 'faq_q5')],
+    [Markup.button.callback('🔙 Kembali ke Bantuan', 'help')]
   ];
 
-  // Jika ada jawaban, tampilkan dulu jawaban, lalu baru judul FAQ
   const text = (answerText ? answerText + '\n\n' : '') + '*FAQ - Pilih Pertanyaan:*';
 
   return {
@@ -91,7 +88,6 @@ _Afiliasi & bonus Stars akan tersedia segera._
 }
 
 function registerHelpActions(bot) {
-  // Tampilkan FAQ tanpa jawaban (kosong)
   bot.action('faq', async (ctx) => {
     try {
       await ctx.answerCbQuery();
@@ -110,7 +106,6 @@ function registerHelpActions(bot) {
     }
   });
 
-  // Jawaban FAQ
   const faqAnswers = {
     faq_q1: '*Apa itu Coin Card?*\n\n→ Gambar berisi info harga coin crypto.',
     faq_q2: '*Harga coin saya kosong?*\n\n→ Gunakan simbol resmi (mis: BTC, ETH). Cek dengan /s <nama coin>.',
@@ -119,7 +114,6 @@ function registerHelpActions(bot) {
     faq_q5: '*Coin tidak ditemukan?*\n\n→ Gunakan /s <nama coin> untuk pencarian manual.'
   };
 
-  // Untuk setiap tombol FAQ, edit pesan dengan jawaban di atas tombol FAQ
   for (const [action, answerText] of Object.entries(faqAnswers)) {
     bot.action(action, async (ctx) => {
       try {
@@ -138,7 +132,6 @@ function registerHelpActions(bot) {
     });
   }
 
-  // Sponsor
   bot.action('sponsor', async (ctx) => {
     try {
       await ctx.answerCbQuery();
@@ -152,7 +145,7 @@ function registerHelpActions(bot) {
 
       await ctx.editMessageText(cached, {
         parse_mode: 'Markdown',
-        disable_web_page_preview: false,
+        disable_web_page_preview: true,
         reply_markup: Markup.inlineKeyboard([
           [Markup.button.callback('🔙 Kembali ke Bantuan', 'help')]
         ]).reply_markup
@@ -162,7 +155,7 @@ function registerHelpActions(bot) {
       const cached = getSponsorContent();
       await ctx.reply(cached, {
         parse_mode: 'Markdown',
-        disable_web_page_preview: false,
+        disable_web_page_preview: true,
         reply_markup: Markup.inlineKeyboard([
           [Markup.button.callback('🔙 Kembali ke Bantuan', 'help')]
         ]).reply_markup
@@ -170,7 +163,6 @@ function registerHelpActions(bot) {
     }
   });
 
-  // Kembali ke menu bantuan
   bot.action('help', async (ctx) => {
     try {
       await ctx.answerCbQuery();
