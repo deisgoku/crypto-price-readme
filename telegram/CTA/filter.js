@@ -4,7 +4,7 @@ const { Markup } = require('telegraf');
 
 // Key filter per chat
 function getFilterKey(chatId) {
-  return `filters:${chatId}`;
+  return `filter:${chatId}`;
 }
 
 async function isPremium(userId) {
