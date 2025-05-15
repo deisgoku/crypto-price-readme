@@ -85,6 +85,25 @@ function getFAQList() {
   };
 }
 
+function getFAQAnswer(id) {
+  // id bisa berupa angka 1..5 atau string 'faq_q1'..'faq_q5'
+  const faqAnswers = {
+    faq_q1: '*Apa itu Coin Card?*\n\n→ Gambar berisi info harga coin crypto.',
+    faq_q2: '*Harga coin saya kosong?*\n\n→ Gunakan simbol resmi (mis: BTC, ETH). Cek dengan /s <nama coin>.',
+    faq_q3: '*Cara jadi admin/premium?*\n\n→ Hubungi pemilik bot dan klaim token lewat /claim <token>.',
+    faq_q4: '*Gunanya /link dan /me?*\n\n→ Untuk menghubungkan ID Telegram kamu dan melihat statistik akun.',
+    faq_q5: '*Coin tidak ditemukan?*\n\n→ Gunakan /s <nama coin> untuk pencarian manual.'
+  };
+
+  if (typeof id === 'number') {
+    return faqAnswers[`faq_q${id}`] || 'Jawaban tidak ditemukan.';
+  } else if (typeof id === 'string') {
+    return faqAnswers[id] || 'Jawaban tidak ditemukan.';
+  } else {
+    return 'Jawaban tidak ditemukan.';
+  }
+}
+
 function registerHelpActions(bot) {
   // FAQ list
   bot.action('faq', async (ctx) => {
@@ -181,6 +200,8 @@ function registerHelpActions(bot) {
 
 module.exports = {
   sendHelp,
-  registerHelpActions, 
-  getFAQList
+  registerHelpActions,
+  getFAQList,
+  getFAQAnswer,
+  getSponsorContent
 };
