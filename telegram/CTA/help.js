@@ -181,5 +181,6 @@ function registerHelpActions(bot) {
 
 module.exports = {
   sendHelp,
-  registerHelpActions
+  registerHelpActions, 
+  getFAQList
 };
