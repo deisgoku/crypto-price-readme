@@ -21,10 +21,8 @@ async function addFilter(chatId, userId, keyword, responseText, replyMarkup) {
     throw new Error('Batas 5 filter tercapai. Upgrade ke premium untuk lebih banyak.');
   }
 
-  const data = { text: responseText };
-  if (replyMarkup) data.markup = replyMarkup;
-
-  await redis.hset(key, { [keyword.toLowerCase()]: JSON.stringify(data) });
+  // Simpan langsung 
+  await redis.hset(key, { [keyword.toLowerCase()]: responseText });
 }
 
 // Hapus filter
