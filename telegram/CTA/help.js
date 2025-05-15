@@ -1,8 +1,7 @@
-// telegram/CTA/help.js
-
 const { Markup } = require('telegraf');
-const { redis } = require('../../lib/redis'); // pastikan ini sesuai strukturmu
+const { redis } = require('../../lib/redis'); // sesuaikan dengan struktur kamu
 
+// ================== HELP MAIN ==================
 async function sendHelp(ctx) {
   const key = `tg:${ctx.from.id}:help`;
   const cached = await redis.get(key);
@@ -49,9 +48,8 @@ async function sendHelp(ctx) {
   }
 }
 
-function getFAQContent() {
-  return `
-*FAQ Bot Crypto:*
+// ================== FAQ ==================
+const faqText = `*FAQ Bot Crypto:*
 
 1. _Apa itu Coin Card?_
    → Gambar berisi info harga coin crypto.
@@ -60,19 +58,20 @@ function getFAQContent() {
    → Gunakan simbol coin resmi (mis: BTC, ETH). Gunakan /s untuk cari.
 
 3. _Bagaimana cara menjadi admin atau premium?_
-   → Hubungi pemilik, lalu klaim token pakai /claim <token>.
+   → Hubungi pemilik, lalu klaim token pakai \`/claim <token>\`.
 
 4. _Apa gunanya /link dan /me?_
    → Untuk menghubungkan identitas pengguna dan melihat statistik akun.
 
 5. _Saya tidak menemukan coin tertentu?_
-   → Gunakan /s <nama> untuk pencarian manual.
-`;
+   → Gunakan /s <nama> untuk pencarian manual.`;
+
+function getFAQContent() {
+  return faqText;
 }
 
-function getSponsorContent() {
-  return `
-*Dukung dan Gunakan Mini App Kami:*
+// ================== SPONSOR ==================
+const sponsorText = `*Dukung dan Gunakan Mini App Kami:*
 
 [Crypto Market Card](https://t.me/crypto_market_card_bot/gcmc)  
 → Dapatkan kartu harga crypto real-time  
@@ -88,10 +87,13 @@ function getSponsorContent() {
 *Web App Stars Unlock:*  
 [Unlock Premium](https://crypto-price-on.vercel.app/unlock?ref=telegram)
 
-_Afiliasi & bonus Stars akan tersedia segera._
-`;
+_Afiliasi & bonus Stars akan tersedia segera._`;
+
+function getSponsorContent() {
+  return sponsorText;
 }
 
+// ================== ACTIONS ==================
 function registerHelpActions(bot) {
   bot.action('faq', async (ctx) => {
     const key = `tg:${ctx.from.id}:faq`;
@@ -135,6 +137,7 @@ function registerHelpActions(bot) {
   });
 }
 
+// ================== EXPORT ==================
 module.exports = {
   sendHelp,
   getFAQContent,
