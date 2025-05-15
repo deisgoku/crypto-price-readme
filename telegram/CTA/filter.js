@@ -1,6 +1,6 @@
 const { redis } = require('../../lib/redis');
 const { Markup } = require('telegraf');
-const { handleSymbolCommand } = require('./handlecoin'); // import fungsi coin asli
+const { handleSymbolCommand } = require('./handlercoin'); // import fungsi coin asli
 
 // Key filter Redis per chat
 function getFilterKey(chatId) {
