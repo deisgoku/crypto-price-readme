@@ -64,6 +64,7 @@ registerAdminCommands(bot);
 require('./CTA/auth')(bot);
 require('./CTA/handlercoin')(bot);
 require('./CTA/menu')(bot);
+require('./CTA/filter')(bot);
 
 bot.start(ctx => {
   ctx.reply(
