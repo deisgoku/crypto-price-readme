@@ -1,4 +1,3 @@
-// telegram/CTA/menu.js
 const { Markup } = require('telegraf');
 const { redis } = require('../../lib/redis');
 const {
@@ -57,7 +56,7 @@ module.exports = function setupMenu(bot) {
         ],
         [
           Markup.button.callback('💖 Sponsor Kami', 'sponsor'),
-          Markup.button.callback('🔒 Filter Premium', 'filter'),
+          Markup.button.callback('🔍 Filter', 'filter_menu'),
         ],
         [
           Markup.button.callback('🌐 Ganti Bahasa', 'language'),
@@ -175,24 +174,6 @@ module.exports = function setupMenu(bot) {
     } catch (err) {
       console.error('Error di support_back:', err);
       await ctx.answerCbQuery('Gagal memuat sponsor.', { show_alert: true });
-    }
-  });
-
-  // Filter premium
-  bot.action('filter', async (ctx) => {
-    try {
-      await ctx.answerCbQuery('Fitur ini hanya untuk pengguna premium.', { show_alert: true });
-    } catch (err) {
-      console.error('Error di filter:', err);
-    }
-  });
-
-  // Miniapp
-  bot.action('miniapp', async (ctx) => {
-    try {
-      await ctx.answerCbQuery('Buka miniapp melalui link di menu utama.');
-    } catch (err) {
-      console.error('Error di miniapp:', err);
     }
   });
 
