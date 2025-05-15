@@ -1,5 +1,5 @@
 const { Markup } = require('telegraf');
-const { redis } = require('../lib/redis'); // Tambahan Redis
+const { redis } = require('../../lib/redis'); // Tambahan Redis
 const { sendHelp, getFAQContent, getSponsorContent } = require('./help');
 const {
   getAdminMenu,
