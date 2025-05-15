@@ -1,26 +1,24 @@
-const { Markup } = require('telegraf');
 const { redis } = require('../../lib/redis');
+const { Markup } = require('telegraf');
 
-// === Helper ===
-function getFilterKey(chatId) {
-  return `filter:${chatId}`;
-}
+const getFilterKey = chatId => `filter:${chatId}`;
+const getPremiumKey = userId => `tg:premium:${userId}`;
+const getSpamKey = userId => `spam:filter:${userId}`;
 
 async function isPremium(userId) {
-  return await redis.get(`tg:premium:${userId}`);
+  return await redis.get(getPremiumKey(userId));
 }
 
-// === Logic Filter ===
 async function addFilter(chatId, userId, keyword, response) {
   const key = getFilterKey(chatId);
   const filterCount = await redis.hlen(key);
   const premium = await isPremium(userId);
 
   if (!premium && filterCount >= 5) {
-    throw new Error('Batas filter gratis tercapai (maks 5). Upgrade premium untuk lebih banyak.');
+    throw new Error('Kamu mencapai batas 5 filter. Upgrade ke premium untuk menambah lebih banyak.');
   }
 
-  await redis.hset(key, keyword.toLowerCase(), response);
+  await redis.hset(key, { [keyword.toLowerCase()]: response });
 }
 
 async function removeFilter(chatId, keyword) {
@@ -33,88 +31,63 @@ async function listFilters(chatId) {
   return await redis.hgetall(key);
 }
 
-// === Handler Pesan (Tanggapan Filter) ===
 async function handleFilterMessage(ctx) {
   const chatId = ctx.chat.id.toString();
   const text = ctx.message?.text?.toLowerCase();
-  const fromBot = ctx.message?.from?.is_bot;
+  if (!text || text.startsWith('/') || text.startsWith('!')) return;
 
-  if (!text || fromBot) return;
-
-  // Abaikan semua command
-  if (text.startsWith('/') || text.startsWith('!')) return;
-
-  const filters = await redis.hgetall(getFilterKey(chatId));
+  const filters = await listFilters(chatId);
   for (const keyword in filters) {
     if (text.includes(keyword)) {
-      const response = filters[keyword];
-      if (response.startsWith('!')) {
-        // Kirim ulang sebagai command agar diproses handler
-        return ctx.telegram.sendMessage(ctx.chat.id, response, {
-          reply_to_message_id: ctx.message.message_id,
-        });
-      }
-      return ctx.reply(response);
+      return ctx.reply(filters[keyword]);
     }
   }
 }
 
-// === Bot Handler ===
 module.exports = bot => {
-  // Menu UI Filter
-  bot.action('filter_menu', async (ctx) => {
-    const key = `tg:${ctx.from.id}:filter_menu`;
+  // UI Menu Filter
+  bot.action('filter_menu', async ctx => {
     const text = '🧰 *Kelola Filter Chat*\n\n' +
       '- Maksimal 5 filter untuk pengguna gratis\n' +
       '- Premium dapat menambahkan lebih banyak filter\n\n' +
       'Gunakan tombol di bawah untuk mengatur filter Anda.';
-
+    
     const keyboard = Markup.inlineKeyboard([
-      [
-        Markup.button.switchToCurrentChat('➕ Tambah Filter', '/filter '),
-        Markup.button.switchToCurrentChat('➖ Hapus Filter', '/unfilter ')
-      ],
+      [Markup.button.switchToCurrentChat('➕ Tambah Filter', '/filter ')],
+      [Markup.button.switchToCurrentChat('➖ Hapus Filter', '/unfilter ')],
       [Markup.button.callback('📃 Daftar Filter', 'filter_list')],
-      [Markup.button.callback('⬅️ Kembali ke Menu', 'personal_menu')],
+      [Markup.button.callback('🔙 Kembali', 'personal_menu')],
     ]);
 
-    try {
-      if (!await redis.get(key)) await redis.setex(key, 600, text);
-      await ctx.editMessageText(text, {
-        parse_mode: 'Markdown',
-        reply_markup: keyboard.reply_markup
-      });
-      await ctx.answerCbQuery();
-    } catch (err) {
-      console.error('Error di filter_menu:', err);
-      await ctx.answerCbQuery('Gagal memuat menu filter.', { show_alert: true });
-    }
-  });
-
-  // List Filter via Tombol
-  bot.action('filter_list', async ctx => {
-    const filters = await listFilters(ctx.chat.id);
-    if (!Object.keys(filters).length) {
-      return ctx.answerCbQuery('Belum ada filter.');
-    }
-
-    const list = Object.keys(filters).map(k => `- ${k}`).join('\n');
-    await ctx.reply(`📃 Filter aktif:\n${list}`);
+    await ctx.editMessageText(text, {
+      parse_mode: 'Markdown',
+      reply_markup: keyboard.reply_markup,
+    });
     await ctx.answerCbQuery();
   });
 
-  // Tambah Filter
+  // Tampilkan daftar filter
+  bot.action('filter_list', async ctx => {
+    const filters = await listFilters(ctx.chat.id);
+    const list = Object.keys(filters).map(k => `- \`${k}\``).join('\n') || 'Belum ada filter.';
+    await ctx.editMessageText(`📃 *Daftar Filter Aktif:*\n\n${list}`, {
+      parse_mode: 'Markdown',
+      reply_markup: Markup.inlineKeyboard([
+        [Markup.button.callback('🔙 Kembali', 'filter_menu')]
+      ]).reply_markup
+    });
+    await ctx.answerCbQuery();
+  });
+
+  // Command: /filter <keyword> <response>
   bot.command('filter', async ctx => {
     const userId = ctx.from.id.toString();
-    const spamKey = `spam:filter:${userId}`;
-    const [_, keyword, ...responseParts] = ctx.message.text.split(' ');
-    const response = responseParts.join(' ');
+    const spamKey = getSpamKey(userId);
+    if (await redis.get(spamKey)) return ctx.reply('Tunggu sebentar sebelum menambahkan filter lagi.');
 
-    if (!keyword || !response) return ctx.reply('Gunakan: /filter <kata> <balasan>');
-
-    if (await redis.get(spamKey)) {
-      return ctx.reply('Tunggu beberapa detik sebelum menambahkan filter lagi.');
-    }
+    const [_, keyword, ...resp] = ctx.message.text.split(' ');
+    const response = resp.join(' ');
+    if (!keyword || !response) return ctx.reply('Gunakan format: /filter <kata> <balasan>');
 
     try {
       await addFilter(ctx.chat.id, userId, keyword, response);
@@ -125,24 +98,21 @@ module.exports = bot => {
     }
   });
 
-  // Hapus Filter
+  // Command: /unfilter <keyword>
   bot.command('unfilter', async ctx => {
     const keyword = ctx.message.text.split(' ')[1];
-    if (!keyword) return ctx.reply('Gunakan: /unfilter <kata>');
-
+    if (!keyword) return ctx.reply('Gunakan format: /unfilter <kata>');
     await removeFilter(ctx.chat.id, keyword);
-    ctx.reply(`Filter "${keyword}" dihapus.`);
+    ctx.reply(`Filter *"${keyword}"* dihapus.`, { parse_mode: 'Markdown' });
   });
 
-  // Lihat semua filter
+  // Command: /filters
   bot.command('filters', async ctx => {
     const filters = await listFilters(ctx.chat.id);
-    if (!Object.keys(filters).length) return ctx.reply('Belum ada filter.');
-
-    const list = Object.keys(filters).map(k => `- ${k}`).join('\n');
-    ctx.reply(`📃 Filter aktif:\n${list}`);
+    const list = Object.keys(filters).map(k => `- \`${k}\``).join('\n') || 'Belum ada filter.';
+    ctx.reply(`📃 *Filter Aktif:*\n\n${list}`, { parse_mode: 'Markdown' });
   });
 
-  // Tangkap semua pesan teks
+  // Auto reply berbasis filter
   bot.on('text', handleFilterMessage);
 };
