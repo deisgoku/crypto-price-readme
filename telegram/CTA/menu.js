@@ -1,12 +1,16 @@
 // telegram/CTA/menu.js
 const { Markup } = require('telegraf');
 const { redis } = require('../../lib/redis');
-const { getFAQList, getFAQAnswer, getSponsorContent, registerHelpActions } = require('./help');
+const {
+  getHelpContent,
+  getFAQContent,
+  registerHelpActions,
+} = require('./help');
 const { getAdminMenu, registerAdminActions } = require('./admin');
-const { registerSupportActions } = require('./support');
+const { getSponsorContent, registerSupportActions } = require('./support');
 
 module.exports = function setupMenu(bot) {
-  // Daftarkan action tambahan admin & support (modular)
+  // Daftarkan semua action modular
   registerAdminActions(bot);
   registerSupportActions(bot);
   registerHelpActions(bot);
@@ -21,7 +25,7 @@ module.exports = function setupMenu(bot) {
     );
   });
 
-  // Callback action 'start' untuk tombol menu
+  // Callback start
   bot.action('start', async (ctx) => {
     try {
       await ctx.editMessageText(
@@ -108,81 +112,53 @@ module.exports = function setupMenu(bot) {
     }
   });
 
-  // Menu language
-  bot.action('language', async (ctx) => {
-    const key = `tg:${ctx.from.id}:language`;
-    try {
-      let cached = await redis.get(key);
-      const text = 'Pilih bahasa:';
-      const keyboard = Markup.inlineKeyboard([
-        [Markup.button.callback('🇮🇩 Bahasa Indonesia', 'lang_id')],
-        [Markup.button.callback('🇬🇧 English', 'lang_en')],
-        [Markup.button.callback('🇪🇸 Español', 'lang_es')],
-        [Markup.button.callback('🔙 Kembali', 'menu')],
-      ]);
-      if (!cached) await redis.setex(key, 600, text);
-      await ctx.editMessageText(text, keyboard);
-      await ctx.answerCbQuery();
-    } catch (err) {
-      console.error('Error di language:', err);
-      await ctx.answerCbQuery('Gagal membuka pilihan bahasa.', { show_alert: true });
-    }
-  });
-
-  // Pilihan bahasa
-  bot.action(/^lang_/, async (ctx) => {
-    try {
-      // Simpan preferensi bahasa user di DB atau redis jika perlu (TODO)
-      await ctx.answerCbQuery('Bahasa telah diubah.', { show_alert: true });
-      await ctx.editMessageText(
-        'Pengaturan bahasa diperbarui.',
-        Markup.inlineKeyboard([
-          [Markup.button.callback('📋 Kembali ke Menu', 'menu')],
-        ])
-      );
-    } catch (err) {
-      console.error('Error di lang_ action:', err);
-      await ctx.answerCbQuery('Gagal mengubah bahasa.', { show_alert: true });
-    }
-  });
-
-  // FAQ list
+  // FAQ
   bot.action('faq', async (ctx) => {
+    const key = `tg:${ctx.from.id}:faq`;
     try {
-      const { text, keyboard } = getFAQList();
+      let text = await redis.get(key);
+      if (!text) {
+        text = getFAQContent();
+        await redis.setex(key, 600, text);
+      }
       await ctx.editMessageText(text, {
         parse_mode: 'Markdown',
-        reply_markup: keyboard.reply_markup,
         disable_web_page_preview: true,
+        reply_markup: Markup.inlineKeyboard([
+          [Markup.button.callback('🔙 Kembali', 'menu')],
+        ]),
       });
       await ctx.answerCbQuery();
     } catch (err) {
       console.error('Error di faq:', err);
-      await ctx.answerCbQuery('Gagal memuat FAQ.', { show_alert: true });
+      await ctx.answerCbQuery('Gagal membuka FAQ.', { show_alert: true });
     }
   });
 
-  // FAQ question detail
-  bot.action(/faq_q_\d+/, async (ctx) => {
+  // Bantuan
+  bot.action('help', async (ctx) => {
+    const key = `tg:${ctx.from.id}:help`;
     try {
-      const id = ctx.match[0].split('_')[2];
-      const answer = getFAQAnswer(id);
-      const keyboard = Markup.inlineKeyboard([
-        [Markup.button.callback('🔙 Kembali ke FAQ', 'faq')],
-      ]);
-      await ctx.editMessageText(answer, {
+      let text = await redis.get(key);
+      if (!text) {
+        text = getHelpContent();
+        await redis.setex(key, 600, text);
+      }
+      await ctx.editMessageText(text, {
         parse_mode: 'Markdown',
-        reply_markup: keyboard.reply_markup,
         disable_web_page_preview: true,
+        reply_markup: Markup.inlineKeyboard([
+          [Markup.button.callback('🔙 Kembali', 'menu')],
+        ]),
       });
       await ctx.answerCbQuery();
     } catch (err) {
-      console.error('Error di faq question:', err);
-      await ctx.answerCbQuery('Gagal memuat jawaban FAQ.', { show_alert: true });
+      console.error('Error di help:', err);
+      await ctx.answerCbQuery('Gagal membuka bantuan.', { show_alert: true });
     }
   });
 
-  // Sponsor content (support_back)
+  // Sponsor
   bot.action('support_back', async (ctx) => {
     const key = `tg:${ctx.from.id}:support_back`;
     try {
@@ -211,7 +187,7 @@ module.exports = function setupMenu(bot) {
     }
   });
 
-  // Miniapp (link only)
+  // Miniapp
   bot.action('miniapp', async (ctx) => {
     try {
       await ctx.answerCbQuery('Buka miniapp melalui link di menu utama.');
@@ -220,7 +196,43 @@ module.exports = function setupMenu(bot) {
     }
   });
 
-  // Command admin (optional)
+  // Ganti bahasa
+  bot.action('language', async (ctx) => {
+    const key = `tg:${ctx.from.id}:language`;
+    try {
+      let cached = await redis.get(key);
+      const text = 'Pilih bahasa:';
+      const keyboard = Markup.inlineKeyboard([
+        [Markup.button.callback('🇮🇩 Bahasa Indonesia', 'lang_id')],
+        [Markup.button.callback('🇬🇧 English', 'lang_en')],
+        [Markup.button.callback('🇪🇸 Español', 'lang_es')],
+        [Markup.button.callback('🔙 Kembali', 'menu')],
+      ]);
+      if (!cached) await redis.setex(key, 600, text);
+      await ctx.editMessageText(text, keyboard);
+      await ctx.answerCbQuery();
+    } catch (err) {
+      console.error('Error di language:', err);
+      await ctx.answerCbQuery('Gagal membuka pilihan bahasa.', { show_alert: true });
+    }
+  });
+
+  bot.action(/^lang_/, async (ctx) => {
+    try {
+      await ctx.answerCbQuery('Bahasa telah diubah.', { show_alert: true });
+      await ctx.editMessageText(
+        'Pengaturan bahasa diperbarui.',
+        Markup.inlineKeyboard([
+          [Markup.button.callback('📋 Kembali ke Menu', 'menu')],
+        ])
+      );
+    } catch (err) {
+      console.error('Error di lang_ action:', err);
+      await ctx.answerCbQuery('Gagal mengubah bahasa.', { show_alert: true });
+    }
+  });
+
+  // Command alternatif: /admin
   bot.command('admin', async (ctx) => {
     try {
       await getAdminMenu(ctx);
