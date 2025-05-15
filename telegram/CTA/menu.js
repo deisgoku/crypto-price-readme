@@ -200,18 +200,7 @@ module.exports = function setupMenu(bot) {
     }
   });
 
-  bot.action('sponsor', async (ctx) => {
-    const key = `tg:${ctx.from.id}:sponsor`;
-    try {
-      const cached = await redis.get(key);
-      if (!cached) await redis.setex(key, 600, '1');
-      await sendSupport(ctx);
-      await ctx.answerCbQuery();
-    } catch (err) {
-      console.error('Error di sponsor:', err);
-      await ctx.answerCbQuery('Gagal memuat sponsor.', { show_alert: true });
-    }
-  });
+  
 
   // Filter premium
   bot.action('filter', async (ctx) => {
@@ -231,21 +220,6 @@ module.exports = function setupMenu(bot) {
     }
   });
 
-  // Help command & action
-  bot.command('help', sendHelp);
-
-  bot.action('help', async (ctx) => {
-    const key = `tg:${ctx.from.id}:help`;
-    try {
-      const cached = await redis.get(key);
-      if (!cached) await redis.setex(key, 600, '1');
-      await sendHelp(ctx);
-      await ctx.answerCbQuery();
-    } catch (err) {
-      console.error('Error di help action:', err);
-      await ctx.answerCbQuery('Gagal menampilkan bantuan.', { show_alert: true });
-    }
-  });
 
   // Admin command
   bot.command('admin', async (ctx) => {
