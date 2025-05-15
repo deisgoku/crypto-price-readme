@@ -11,7 +11,7 @@ async function isPremium(userId) {
 }
 
 async function addFilter(chatId, userId, keyword, text) {
-  const filters = await redis.hgetall(getFilterKey(chatId)) || {};
+  const filters = (await redis.hgetall(getFilterKey(chatId))) || {};
   const maxFilters = (await isPremium(userId)) ? 50 : 5;
 
   if (!filters[keyword] && Object.keys(filters).length >= maxFilters) {
@@ -26,7 +26,7 @@ async function removeFilter(chatId, keyword) {
 }
 
 async function listFilters(chatId) {
-  return await redis.hgetall(getFilterKey(chatId)) || {};
+  return (await redis.hgetall(getFilterKey(chatId))) || {};
 }
 
 async function handleFilterMessage(ctx) {
@@ -56,10 +56,86 @@ async function handleFilterMessage(ctx) {
 }
 
 module.exports = bot => {
+  bot.action('filter_menu', async ctx => {
+    try {
+      const cacheKey = `tg:${ctx.chat.id}:filter_menu`;
+      let cached = await redis.get(cacheKey);
+      if (!cached) {
+        cached = '🧰 *Kelola Filter Chat*\n\nGunakan tombol berikut:';
+        await redis.setex(cacheKey, 300, cached);
+      }
+
+      await ctx.answerCbQuery();
+      return ctx.reply(cached, {
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard([
+          [
+            Markup.button.callback('➕ Tambah Filter', 'check_limit_before_add'),
+            Markup.button.callback('🗑️ Hapus Filter', 'filter_remove')
+          ],
+          [Markup.button.callback('📃 Lihat Filter', 'lihat_filters')],
+          [Markup.button.callback('⬅️ Kembali ke Menu', 'personal_menu')]
+        ])
+      });
+    } catch (err) {
+      console.error('[filter_menu]', err.message);
+    }
+  });
+
+  bot.action('check_limit_before_add', async ctx => {
+    try {
+      const userId = ctx.from.id;
+      const chatId = ctx.chat.id;
+      const key = getFilterKey(chatId);
+      const existing = (await redis.hgetall(key)) || {};
+      const premium = await isPremium(userId);
+
+      if (!premium && Object.keys(existing).length >= 5) {
+        return ctx.answerCbQuery(
+          'Batas 5 filter tercapai. Upgrade ke premium untuk lebih banyak.',
+          { show_alert: true }
+        );
+      }
+
+      await ctx.answerCbQuery('Silakan kirim /filter <kata> <balasan>', { show_alert: true });
+    } catch (err) {
+      console.error('[check_limit_before_add]', err.message);
+    }
+  });
+
+  bot.action('filter_remove', async ctx => {
+    try {
+      await ctx.answerCbQuery();
+      await ctx.reply('Contoh: /unfilter doge', { parse_mode: 'Markdown' });
+    } catch (err) {
+      console.error('[filter_remove]', err.message);
+    }
+  });
+
+  bot.action('lihat_filters', async ctx => {
+    try {
+      await ctx.answerCbQuery();
+      const cacheKey = `tg:${ctx.chat.id}:lihat_filters`;
+      let cached = await redis.get(cacheKey);
+      if (cached) return ctx.reply(cached, { parse_mode: 'Markdown' });
+
+      const filters = await listFilters(ctx.chat.id);
+      const keys = Object.keys(filters);
+      if (!keys.length) return ctx.reply('Belum ada filter.');
+
+      const list = keys.map(k => `- \`${k}\``).join('\n');
+      const text = `Filter aktif:\n${list}`;
+      await redis.setex(cacheKey, 300, text);
+      ctx.reply(text, { parse_mode: 'Markdown' });
+    } catch (err) {
+      console.error('[lihat_filters]', err.message);
+    }
+  });
+
   bot.command('filter', async ctx => {
     try {
-      const chatId = ctx.chat.id;
       const userId = ctx.from.id;
+      const chatId = ctx.chat.id;
       const args = ctx.message.text.split(' ');
       const keyword = args[1];
       const response = args.slice(2).join(' ');
@@ -71,13 +147,28 @@ module.exports = bot => {
         );
       }
 
-      await addFilter(chatId, userId, keyword, response);
+      const linkRegex = /([^]+)(https?:\/\/[^\s)]+)/g;
+      const buttons = [];
+      let match;
+
+      while ((match = linkRegex.exec(response)) !== null) {
+        buttons.push(Markup.button.url(match[1], match[2]));
+      }
+
+      const replyMarkup = buttons.length
+        ? Markup.inlineKeyboard(buttons.map(btn => [btn])).reply_markup
+        : null;
+
+      const cleanText = response.replace(linkRegex, '$1');
+
+      await addFilter(chatId, userId, keyword, cleanText);
 
       await redis.del(`tg:${chatId}:lihat_filters`);
       await redis.del(`tg:${chatId}:filters_cmd`);
 
       ctx.reply(`Filter untuk *"${keyword}"* disimpan.`, {
-        parse_mode: 'Markdown'
+        parse_mode: 'Markdown',
+        reply_markup: replyMarkup
       });
     } catch (err) {
       ctx.reply(err.message);
@@ -102,57 +193,20 @@ module.exports = bot => {
 
   bot.command('filters', async ctx => {
     try {
-      const chatId = ctx.chat.id;
-      const cacheKey = `tg:${chatId}:filters_cmd`;
+      const cacheKey = `tg:${ctx.chat.id}:filters_cmd`;
       let cached = await redis.get(cacheKey);
+      if (cached) return ctx.reply(cached, { parse_mode: 'Markdown' });
 
-      const buttons = Markup.inlineKeyboard([
-        [
-          Markup.button.callback('➕ Tambah Filter', 'check_limit_before_add'),
-          Markup.button.callback('🗑️ Hapus Filter', 'filter_remove')
-        ],
-        [Markup.button.callback('📃 Lihat Filter', 'lihat_filters')],
-        [Markup.button.callback('⬅️ Kembali ke Menu', 'personal_menu')]
-      ]);
-
-      if (cached) {
-        return ctx.reply(cached, {
-          parse_mode: 'Markdown',
-          ...buttons
-        });
-      }
-
-      const filters = await listFilters(chatId);
+      const filters = await listFilters(ctx.chat.id);
       const keys = Object.keys(filters);
       if (!keys.length) return ctx.reply('Belum ada filter.');
 
       const list = keys.map(k => `- \`${k}\``).join('\n');
       const text = `Filter aktif:\n${list}`;
       await redis.setex(cacheKey, 300, text);
-
-      ctx.reply(text, {
-        parse_mode: 'Markdown',
-        ...buttons
-      });
+      ctx.reply(text, { parse_mode: 'Markdown' });
     } catch (err) {
       console.error('[filters]', err.message);
-    }
-  });
-
-  bot.action('lihat_filters', async ctx => {
-    try {
-      await ctx.answerCbQuery();
-      const chatId = ctx.chat.id;
-      const filters = await listFilters(chatId);
-      const keys = Object.keys(filters);
-      if (!keys.length) return ctx.reply('Belum ada filter.');
-
-      const list = keys.map(k => `- \`${k}\``).join('\n');
-      const text = `Filter aktif:\n${list}`;
-      await redis.setex(`tg:${chatId}:lihat_filters`, 300, text);
-      return ctx.reply(text, { parse_mode: 'Markdown' });
-    } catch (err) {
-      console.error('[lihat_filters]', err.message);
     }
   });
 
