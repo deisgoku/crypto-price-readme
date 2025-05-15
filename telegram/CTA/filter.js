@@ -1,14 +1,16 @@
+// telegram/CTA/filter.js
 
 
 const { handleSymbolCommand } = require('./handlercoin');
 const { redis } = require('../../lib/redis');
 const { Markup } = require('telegraf');
 
-// Key filter per chat
+// Key Redis per chat
 function getFilterKey(chatId) {
   return `filters:${chatId}`;
 }
 
+// Cek status premium
 async function isPremium(userId) {
   return await redis.get(`tg:premium:${userId}`);
 }
@@ -44,50 +46,58 @@ async function listFilters(chatId) {
   return parsed;
 }
 
-
-
-// Tangkap pesan user
+// Tangkap pesan non-command
 async function handleFilterMessage(ctx) {
   const text = ctx.message?.text?.toLowerCase();
   if (!text || text.startsWith('/')) return;
 
-  const filters = await redis.hgetall(getFilterKey(ctx.chat.id));
+  const raw = await redis.hgetall(getFilterKey(ctx.chat.id));
+  const filters = raw || {};
 
   for (const keyword in filters) {
-    if (text.includes(keyword)) {
+    try {
       const data = JSON.parse(filters[keyword]);
 
-      // Jika response filter diawali !c, jalankan command !c secara dinamis
-      if (data.text.trim().startsWith('!c ')) {
-        const coinId = data.text.trim().slice(3).trim();
-        return handleSymbolCommand(ctx, coinId);
+      if (text.includes(keyword)) {
+        // Jika response diawali !c, jalankan handleSymbolCommand
+        if (data.text?.trim().startsWith('!c ')) {
+          const coinId = data.text.trim().slice(3).trim();
+          return handleSymbolCommand(ctx, coinId);
+        }
+
+        const options = {};
+        const isMono = data.text?.trim().startsWith('```') || data.text?.trim().startsWith('`');
+        if (!isMono) options.parse_mode = 'Markdown';
+        if (data.markup) options.reply_markup = data.markup;
+
+        return ctx.reply(data.text, options);
       }
-
-      // Kalau bukan command !c, balas biasa
-      const options = {};
-      const isMono = data.text.trim().startsWith('```') || data.text.trim().startsWith('`');
-      if (!isMono) options.parse_mode = 'Markdown';
-      if (data.markup) options.reply_markup = data.markup;
-
-      return ctx.reply(data.text, options);
+    } catch (err) {
+      console.error('Gagal parse filter:', err.message);
+      continue;
     }
   }
 }
 
 // Export fitur ke bot
 module.exports = bot => {
-  // Menu
+  // Menu filter
   bot.action('filter_menu', async ctx => {
     await ctx.editMessageText(
-      '🧰 *Kelola Filter Chat*\n\n- Maksimal 5 filter untuk pengguna gratis\n- Premium dapat menambahkan lebih banyak filter\n\nGunakan tombol di bawah untuk mengatur filter Anda.',
+      '🧰 *Kelola Filter Chat*\n\n' +
+      '- Maksimal 5 filter untuk pengguna gratis\n' +
+      '- Premium dapat menambahkan lebih banyak filter\n\n' +
+      '*Gunakan tombol di bawah untuk:*\n' +
+      '- Menambah, menghapus, atau melihat filter\n' +
+      '- Jika tombol gagal, gunakan perintah manual seperti `/filter` atau `/unfilter`',
       {
         parse_mode: 'Markdown',
         reply_markup: Markup.inlineKeyboard([
           [
-            Markup.button.switchToCurrentChat('➕ Tambah Filter', '/filter '),
-            Markup.button.switchToCurrentChat('🗑️ Hapus Filter', '/unfilter ')
+            Markup.button.callback('➕ Tambah Filter', 'filter_add'),
+            Markup.button.callback('🗑️ Hapus Filter', 'filter_remove')
           ],
-          [Markup.button.switchToCurrentChat('📃 Lihat Filter', '/filters')],
+          [Markup.button.callback('📃 Lihat Filter', 'lihat_filters')],
           [Markup.button.callback('⬅️ Kembali ke Menu', 'personal_menu')]
         ])
       }
@@ -95,13 +105,37 @@ module.exports = bot => {
     await ctx.answerCbQuery();
   });
 
-  // /filter <kata> <balasan>
+  // Callback: Tambah filter
+  bot.action('filter_add', async ctx => {
+    await ctx.answerCbQuery();
+    await ctx.reply(
+      '*Contoh:*\n/filter doge !c doge\n\nGunakan format:\n`/filter <kata> <balasan>`',
+      { parse_mode: 'Markdown' }
+    );
+  });
+
+  // Callback: Hapus filter
+  bot.action('filter_remove', async ctx => {
+    await ctx.answerCbQuery();
+    await ctx.reply(
+      '*Contoh:*\n/unfilter doge\n\nGunakan format:\n`/unfilter <kata>`',
+      { parse_mode: 'Markdown' }
+    );
+  });
+
+  // Callback: Lihat filter
+  bot.action('lihat_filters', async ctx => {
+    await ctx.answerCbQuery();
+    const filters = await listFilters(ctx.chat.id);
+    if (!Object.keys(filters).length) return ctx.reply('Belum ada filter.');
+    const list = Object.keys(filters).map(k => `- \`${k}\``).join('\n');
+    ctx.reply(`Filter aktif:\n${list}`, { parse_mode: 'Markdown' });
+  });
+
+  // Command: /filter <kata> <balasan>
   bot.command('filter', async ctx => {
     const userId = ctx.from.id;
     const chatId = ctx.chat.id;
-
-    // ANTISPAM SEMENTARA DIMATIKAN
-    // if (await preventSpam(`spam:filter:${userId}`, 5)) return;
 
     const args = ctx.message.text.split(' ');
     const keyword = args[1];
@@ -136,7 +170,7 @@ module.exports = bot => {
     }
   });
 
-  // /unfilter <kata>
+  // Command: /unfilter <kata>
   bot.command('unfilter', async ctx => {
     const keyword = ctx.message.text.split(' ')[1];
     if (!keyword) return ctx.reply('Gunakan: /unfilter <kata>');
@@ -144,7 +178,7 @@ module.exports = bot => {
     ctx.reply(`Filter *"${keyword}"* dihapus.`, { parse_mode: 'Markdown' });
   });
 
-  // /filters
+  // Command: /filters
   bot.command('filters', async ctx => {
     const filters = await listFilters(ctx.chat.id);
     if (!Object.keys(filters).length) return ctx.reply('Belum ada filter.');
@@ -152,6 +186,6 @@ module.exports = bot => {
     ctx.reply(`Filter aktif:\n${list}`, { parse_mode: 'Markdown' });
   });
 
-  // Tembakan pesan non-command
+  // Handler pesan biasa
   bot.on('text', handleFilterMessage);
 };
