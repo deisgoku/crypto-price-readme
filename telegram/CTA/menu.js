@@ -1,6 +1,6 @@
 const { Markup } = require('telegraf');
 const { redis } = require('../../lib/redis');
-const { sendHelp, getFAQList, getFAQAnswer, getSponsorContent } = require('./help');
+const { sendHelp, getFAQList, getFAQAnswer, getSponsorContent, registerHelpActions } = require('./help');
 const { getAdminMenu, registerAdminActions } = require('./admin');
 const { sendSupport, registerSupportActions } = require('./support');
 
