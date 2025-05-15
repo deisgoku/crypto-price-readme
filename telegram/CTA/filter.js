@@ -1,4 +1,4 @@
-const { handleSymbolCommand } = require('./handlercoin');
+const fetch = require('node-fetch');
 const { redis } = require('../../lib/redis');
 const { Markup } = require('telegraf');
 
@@ -28,6 +28,52 @@ async function removeFilter(chatId, keyword) {
 async function listFilters(chatId) {
   return (await redis.hgetall(getFilterKey(chatId))) || {};
 }
+
+
+async function handleSymbolCommand(ctx, coinId) {
+  try {
+    const url = `https://crypto-price-on.vercel.app/api/data?coin=${coinId}`;
+    const res = await fetch(url);
+    const json = await res.json();
+
+    if (!json.data || !json.data.length) {
+      return ctx.reply(`☹️ Data ${coinId} tidak ditemukan.\n\nCoba cek lagi ID-nya pakai /c ${coinId}, kali typo.`);
+    }
+
+    const result = json.data[0];
+    const data = {
+      HARGA: result.price,
+      VOLUME: result.volume,
+      TREND: result.trend,
+    };
+
+    const labelMax = Math.max(...Object.keys(data).map(k => k.length));
+    const valueMax = Math.max(...Object.values(data).map(v => v.length));
+    const totalLen = labelMax + 3 + valueMax;
+    const year = new Date().getFullYear();
+    const creditText = `${year} © Crypto Market Card`;
+    const creditLink = `[${creditText}](https://t.me/crypto_market_card_bot/gcmc)`;
+
+    let msg = `📊 Market ${result.symbol.toUpperCase()}\n`;
+    msg += '```\n' + '-'.repeat(totalLen) + '\n';
+    for (const [label, value] of Object.entries(data)) {
+      msg += `${label.padEnd(labelMax)} : ${value.padStart(valueMax)}\n`;
+    }
+    msg += '-'.repeat(totalLen) + '\n```\n';
+    msg += centerText(creditText, totalLen).replace(creditText, creditLink);
+
+    return ctx.reply(msg, {
+      parse_mode: 'Markdown',
+      disable_web_page_preview: true
+    });
+  } catch (e) {
+    console.error(e);
+    return ctx.reply(`☹️ Terjadi kesalahan saat mengambil data ${coinId}`);
+  }
+}
+
+
+
 
 async function handleFilterMessage(ctx) {
   const textRaw = ctx.message?.text;
