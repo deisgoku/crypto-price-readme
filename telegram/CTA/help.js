@@ -1,6 +1,12 @@
+// telegram/CTA/help.js
+
 const { Markup } = require('telegraf');
+const { redis } = require('../../lib/redis'); // pastikan ini sesuai strukturmu
 
 async function sendHelp(ctx) {
+  const key = `tg:${ctx.from.id}:help`;
+  const cached = await redis.get(key);
+
   const helpText = `*Perintah:* 
 /start - Mulai bot
 /help - Bantuan & FAQ
@@ -22,21 +28,24 @@ async function sendHelp(ctx) {
     ],
     [
       Markup.button.webApp('🧾 Crypto Market Card', 'https://crypto-price-on.vercel.app/unlock?ref=telegram')
+    ],
+    [
+      Markup.button.callback('🔙 Kembali ke Menu', 'menu')
     ]
   ]);
 
+  if (!cached) await redis.setex(key, 300, '1');
+
+  const options = {
+    parse_mode: 'Markdown',
+    disable_web_page_preview: true,
+    reply_markup: keyboard.reply_markup
+  };
+
   if (ctx.updateType === 'callback_query') {
-    await ctx.editMessageText(helpText, {
-      parse_mode: 'Markdown',
-      disable_web_page_preview: true,
-      reply_markup: keyboard.reply_markup
-    });
+    await ctx.editMessageText(helpText, options);
   } else {
-    await ctx.reply(helpText, {
-      parse_mode: 'Markdown',
-      disable_web_page_preview: true,
-      reply_markup: keyboard.reply_markup
-    });
+    await ctx.reply(helpText, options);
   }
 }
 
@@ -85,7 +94,15 @@ _Afiliasi & bonus Stars akan tersedia segera._
 
 function registerHelpActions(bot) {
   bot.action('faq', async (ctx) => {
-    await ctx.editMessageText(getFAQContent(), {
+    const key = `tg:${ctx.from.id}:faq`;
+    let cached = await redis.get(key);
+
+    if (!cached) {
+      cached = getFAQContent();
+      await redis.setex(key, 300, cached);
+    }
+
+    await ctx.editMessageText(cached, {
       parse_mode: 'Markdown',
       disable_web_page_preview: true,
       reply_markup: Markup.inlineKeyboard([
@@ -95,7 +112,15 @@ function registerHelpActions(bot) {
   });
 
   bot.action('sponsor', async (ctx) => {
-    await ctx.editMessageText(getSponsorContent(), {
+    const key = `tg:${ctx.from.id}:sponsor`;
+    let cached = await redis.get(key);
+
+    if (!cached) {
+      cached = getSponsorContent();
+      await redis.setex(key, 300, cached);
+    }
+
+    await ctx.editMessageText(cached, {
       parse_mode: 'Markdown',
       disable_web_page_preview: false,
       reply_markup: Markup.inlineKeyboard([
