@@ -1,15 +1,17 @@
+// telegram/CTA/menu.js
 const { Markup } = require('telegraf');
 const { redis } = require('../../lib/redis');
-const { sendHelp, getFAQList, getFAQAnswer, getSponsorContent, registerHelpActions } = require('./help');
+const { getFAQList, getFAQAnswer, getSponsorContent, registerHelpActions } = require('./help');
 const { getAdminMenu, registerAdminActions } = require('./admin');
-const { sendSupport, registerSupportActions } = require('./support');
+const { registerSupportActions } = require('./support');
 
 module.exports = function setupMenu(bot) {
-  // Daftarkan action tambahan admin & support
+  // Daftarkan action tambahan admin & support (modular)
   registerAdminActions(bot);
   registerSupportActions(bot);
+  registerHelpActions(bot);
 
-  // Command start
+  // Command /start
   bot.command('start', (ctx) => {
     ctx.reply(
       'Selamat datang! Pilih menu di bawah:',
@@ -19,7 +21,7 @@ module.exports = function setupMenu(bot) {
     );
   });
 
-  // Action start (callback)
+  // Callback action 'start' untuk tombol menu
   bot.action('start', async (ctx) => {
     try {
       await ctx.editMessageText(
@@ -70,7 +72,7 @@ module.exports = function setupMenu(bot) {
     }
   });
 
-  // Admin menu
+  // Menu admin
   bot.action('admin_menu', async (ctx) => {
     const key = `tg:${ctx.from.id}:admin_menu`;
     try {
@@ -86,7 +88,7 @@ module.exports = function setupMenu(bot) {
     }
   });
 
-  // Personal menu
+  // Menu personal
   bot.action('personal_menu', async (ctx) => {
     const key = `tg:${ctx.from.id}:personal_menu`;
     try {
@@ -106,7 +108,7 @@ module.exports = function setupMenu(bot) {
     }
   });
 
-  // Language menu
+  // Menu language
   bot.action('language', async (ctx) => {
     const key = `tg:${ctx.from.id}:language`;
     try {
@@ -127,10 +129,10 @@ module.exports = function setupMenu(bot) {
     }
   });
 
-  // Language selection (lang_id, lang_en, lang_es)
+  // Pilihan bahasa
   bot.action(/^lang_/, async (ctx) => {
     try {
-      // TODO: Simpan preferensi bahasa user jika perlu
+      // Simpan preferensi bahasa user di DB atau redis jika perlu (TODO)
       await ctx.answerCbQuery('Bahasa telah diubah.', { show_alert: true });
       await ctx.editMessageText(
         'Pengaturan bahasa diperbarui.',
@@ -144,7 +146,7 @@ module.exports = function setupMenu(bot) {
     }
   });
 
-  // FAQ - Tampilkan daftar pertanyaan
+  // FAQ list
   bot.action('faq', async (ctx) => {
     try {
       const { text, keyboard } = getFAQList();
@@ -160,7 +162,7 @@ module.exports = function setupMenu(bot) {
     }
   });
 
-  // FAQ Question detail (callback data: faq_q_<index>)
+  // FAQ question detail
   bot.action(/faq_q_\d+/, async (ctx) => {
     try {
       const id = ctx.match[0].split('_')[2];
@@ -180,7 +182,7 @@ module.exports = function setupMenu(bot) {
     }
   });
 
-  // Sponsor content
+  // Sponsor content (support_back)
   bot.action('support_back', async (ctx) => {
     const key = `tg:${ctx.from.id}:support_back`;
     try {
@@ -200,8 +202,6 @@ module.exports = function setupMenu(bot) {
     }
   });
 
-  
-
   // Filter premium
   bot.action('filter', async (ctx) => {
     try {
@@ -220,8 +220,7 @@ module.exports = function setupMenu(bot) {
     }
   });
 
-
-  // Admin command
+  // Command admin (optional)
   bot.command('admin', async (ctx) => {
     try {
       await getAdminMenu(ctx);
