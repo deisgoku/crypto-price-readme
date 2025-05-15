@@ -2,72 +2,67 @@ const { handleSymbolCommand } = require('./handlercoin');
 const { redis } = require('../../lib/redis');
 const { Markup } = require('telegraf');
 
-// Key filter Redis per chat
 function getFilterKey(chatId) {
   return `filter:${chatId}`;
 }
 
-// Cek premium user (tetap pakai userId)
 async function isPremium(userId) {
   return await redis.get(`tg:premium:${userId}`);
 }
 
-// Tambah filter dengan batas 5 untuk non premium
-async function addFilter(chatId, userId, keyword, responseText) {
-  const key = getFilterKey(chatId);
-  const existing = await redis.hgetall(key) || {};
-  const premium = await isPremium(userId);
+async function addFilter(chatId, userId, keyword, text, markup = null) {
+  const filters = await redis.hgetall(getFilterKey(chatId)) || {};
+  const maxFilters = (await isPremium(userId)) ? 50 : 5;
 
-  if (!premium && Object.keys(existing).length >= 5) {
-    throw new Error('Batas 5 filter tercapai. Upgrade ke premium untuk lebih banyak.');
+  if (!filters[keyword] && Object.keys(filters).length >= maxFilters) {
+    throw new Error(`Batas filter tercapai. Maksimal: ${maxFilters} filter.`);
   }
 
-  await redis.hset(key, keyword.toLowerCase(), responseText);
+  const data = { text, markup };
+  await redis.hset(getFilterKey(chatId), keyword, JSON.stringify(data));
 }
 
-// Hapus filter berdasarkan keyword
 async function removeFilter(chatId, keyword) {
-  await redis.hdel(getFilterKey(chatId), keyword.toLowerCase());
+  await redis.hdel(getFilterKey(chatId), keyword);
 }
 
-// Ambil semua filter untuk chat
 async function listFilters(chatId) {
-  return (await redis.hgetall(getFilterKey(chatId))) || {};
+  return await redis.hgetall(getFilterKey(chatId)) || {};
 }
 
-// Handle pesan masuk dan cek apakah mengandung keyword filter
 async function handleFilterMessage(ctx) {
-  try {
-    const text = ctx.message?.text?.toLowerCase();
-    if (!text || text.startsWith('/')) return;
+  const textRaw = ctx.message?.text;
+  if (!textRaw) return;
+  const text = textRaw.toLowerCase();
+  if (text.startsWith('/')) return;
 
-    const chatId = ctx.chat.id;
-    const filters = await listFilters(chatId);
+  const filters = await redis.hgetall(getFilterKey(ctx.chat.id)) || {};
 
-    for (const keyword in filters) {
-      if (text.includes(keyword)) {
-        const value = filters[keyword];
-        if (value.trim().startsWith('!c ')) {
-          const coinId = value.trim().slice(3).trim();
-          return handleSymbolCommand(ctx, coinId);
-        }
+  for (const keyword in filters) {
+    if (text.includes(keyword.toLowerCase())) {
+      const data = JSON.parse(filters[keyword]);
+      const trimmedText = data.text.trim();
 
-        const isMono = value.trim().startsWith('```') || value.trim().startsWith('`');
-        const options = {};
-        if (!isMono) options.parse_mode = 'Markdown';
-
-        return ctx.reply(value, options);
+      if (trimmedText.startsWith('!c ')) {
+        const coinId = trimmedText.slice(3).trim();
+        return handleSymbolCommand(ctx, coinId);
       }
+
+      const options = {};
+      const isMono = trimmedText.startsWith('```') || trimmedText.startsWith('`');
+      if (!isMono) options.parse_mode = 'Markdown';
+
+      if (data.markup) options.reply_markup = data.markup;
+
+      return ctx.reply(trimmedText, options);
     }
-  } catch (err) {
-    console.error('[Filter Message Error]', err.message);
   }
 }
 
 module.exports = bot => {
   bot.action('filter_menu', async ctx => {
     try {
-      const cacheKey = `tg:${ctx.chat.id}:filter_menu`;
+      const cacheKey = `tg:${ctx.from.id}:filter_menu`;
       let cached = await redis.get(cacheKey);
       if (!cached) {
         cached = '🧰 *Kelola Filter Chat*\n\nGunakan tombol berikut:';
@@ -95,13 +90,13 @@ module.exports = bot => {
     try {
       const chatId = ctx.chat.id;
       const userId = ctx.from.id;
-      const key = getFilterKey(chatId);
-      const existing = await redis.hgetall(key) || {};
+      const filters = await redis.hgetall(getFilterKey(chatId)) || {};
       const premium = await isPremium(userId);
+      const maxFilters = premium ? 50 : 5;
 
-      if (!premium && Object.keys(existing).length >= 5) {
+      if (!premium && Object.keys(filters).length >= maxFilters) {
         return ctx.answerCbQuery(
-          'Batas 5 filter tercapai. Upgrade ke premium untuk lebih banyak.',
+          `Batas ${maxFilters} filter tercapai. Upgrade ke premium untuk lebih banyak.`,
           { show_alert: true }
         );
       }
@@ -156,25 +151,21 @@ module.exports = bot => {
         );
       }
 
-      // Parsing tombol URL khusus jika ada
+      // Parsing tombol URL (sesuai format)
       const linkRegex = /([^]+)(https?:\/\/[^\s)]+)/g;
       const buttons = [];
       let match;
-
       while ((match = linkRegex.exec(response)) !== null) {
         buttons.push(Markup.button.url(match[1], match[2]));
       }
-
       const replyMarkup = buttons.length
         ? Markup.inlineKeyboard(buttons.map(btn => [btn])).reply_markup
         : null;
 
-      // Simpan text tanpa markup khusus
       const cleanText = response.replace(linkRegex, '$1');
 
-      await addFilter(chatId, userId, keyword, cleanText);
+      await addFilter(chatId, userId, keyword, cleanText, replyMarkup);
 
-      // Hapus cache agar list update
       await redis.del(`tg:${chatId}:lihat_filters`);
       await redis.del(`tg:${chatId}:filters_cmd`);
 
