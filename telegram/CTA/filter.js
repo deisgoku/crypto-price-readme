@@ -1,59 +1,73 @@
 const { redis } = require('../../lib/redis');
 const { Markup } = require('telegraf');
+const { handleSymbolCommand } = require('./handlecoin'); // import fungsi coin asli
 
-// ... fungsi getFilterKey, isPremium, addFilter, removeFilter, listFilters sama kayak sebelumnya ...
-
-// Fungsi ambil harga coin asli
-async function getPriceCoin(coin) {
-  // Contoh: panggil API eksternal, ganti ini dengan API lo sendiri
-  // return await fetchPriceFromAPI(coin);
-  // Buat contoh dummy:
-  const prices = { doge: 0.07, btc: 30000, eth: 2000 };
-  return prices[coin.toLowerCase()] || null;
+// Key filter Redis per chat
+function getFilterKey(chatId) {
+  return `filter:${chatId}`;
 }
 
-// Handler !c asli yang bisa dipakai di filter dan command
-async function handleCommandC(ctx, coin) {
-  if (!coin) return ctx.reply('Tolong masukkan nama coin, contoh: !c doge');
+// Dummy cek premium, ganti sesuai logic asli
+async function isPremium(userId) {
+  return userId % 2 === 1;
+}
 
-  try {
-    const price = await getPriceCoin(coin);
-    if (!price) return ctx.reply(`Coin ${coin} tidak ditemukan.`);
+// Simpan filter ke Redis (value simpan object JSON { text, markup })
+async function addFilter(chatId, userId, keyword, text, markup = null) {
+  const filters = await redis.hgetall(getFilterKey(chatId)) || {};
+  const maxFilters = (await isPremium(userId)) ? 50 : 5;
 
-    return ctx.reply(`Harga ${coin.toUpperCase()} sekarang: $${price}`);
-  } catch (e) {
-    console.error(e);
-    return ctx.reply('Gagal ambil harga coin.');
+  if (!filters[keyword] && Object.keys(filters).length >= maxFilters) {
+    throw new Error(`Batas filter tercapai. Maksimal: ${maxFilters} filter.`);
   }
+
+  const data = { text, markup };
+  await redis.hset(getFilterKey(chatId), keyword, JSON.stringify(data));
 }
 
-// Tangkap pesan user & cek filter, jika filter text dimulai !c, jalankan handleCommandC
-async function handleFilterMessage(ctx) {
-  const text = ctx.message?.text?.toLowerCase();
-  if (!text || text.startsWith('/')) return;
+// Hapus filter
+async function removeFilter(chatId, keyword) {
+  await redis.hdel(getFilterKey(chatId), keyword);
+}
 
-  const filters = await redis.hgetall(getFilterKey(ctx.chat.id));
+// List semua filter
+async function listFilters(chatId) {
+  return await redis.hgetall(getFilterKey(chatId)) || {};
+}
+
+// Handler pesan cek filter
+async function handleFilterMessage(ctx) {
+  const textRaw = ctx.message?.text;
+  if (!textRaw) return;
+  const text = textRaw.toLowerCase();
+  if (text.startsWith('/')) return; // skip command
+
+  const filters = await redis.hgetall(getFilterKey(ctx.chat.id)) || {};
 
   for (const keyword in filters) {
-    if (text.includes(keyword)) {
+    if (text.includes(keyword.toLowerCase())) {
       const data = JSON.parse(filters[keyword]);
+      const trimmedText = data.text.trim();
 
-      if (data.text.trim().startsWith('!c ')) {
-        const coin = data.text.trim().slice(3).trim();
-        return handleCommandC(ctx, coin);
+      if (trimmedText.startsWith('!c ')) {
+        // jalankan handleSymbolCommand jika filter dimulai !c <coin>
+        const coinId = trimmedText.slice(3).trim();
+        return handleSymbolCommand(ctx, coinId);
       }
 
+      // opsi parse_mode Markdown kecuali jika pakai backticks (monospace)
       const options = {};
-      const isMono = data.text.trim().startsWith('```') || data.text.trim().startsWith('`');
+      const isMono = trimmedText.startsWith('```') || trimmedText.startsWith('`');
       if (!isMono) options.parse_mode = 'Markdown';
+
       if (data.markup) options.reply_markup = data.markup;
 
-      return ctx.reply(data.text, options);
+      return ctx.reply(trimmedText, options);
     }
   }
 }
 
-// Export fitur ke bot
+// Export fitur filter ke bot
 module.exports = bot => {
   bot.action('filter_menu', async ctx => {
     await ctx.editMessageText(
@@ -82,27 +96,14 @@ module.exports = bot => {
 
     if (!keyword || !response) {
       return ctx.reply(
-        'Gunakan: `/filter doge !c doge`\n\nUntuk tombol custom:\n/filter buy [Buy](https://example.com)',
+        'Gunakan: `/filter doge !c doge`\n\nContoh filter biasa:\n/filter hello Halo semua!',
         { parse_mode: 'Markdown' }
       );
     }
 
     try {
-      const markdownRegex = /([^]+)(https?:\/\/[^\s)]+)/g;
-      const buttons = [];
-      let match;
-
-      while ((match = markdownRegex.exec(response)) !== null) {
-        buttons.push(Markup.button.url(match[1], match[2]));
-      }
-
-      const replyMarkup = buttons.length
-        ? Markup.inlineKeyboard(buttons.map(b => [b])).reply_markup
-        : null;
-
-      const cleanText = response.replace(markdownRegex, '$1');
-
-      await addFilter(chatId, userId, keyword, cleanText, replyMarkup);
+      // Kirim markup null karena tidak parsing tombol khusus di sini
+      await addFilter(chatId, userId, keyword.toLowerCase(), response, null);
       ctx.reply(`Filter untuk *"${keyword}"* disimpan.`, { parse_mode: 'Markdown' });
     } catch (err) {
       ctx.reply(err.message);
@@ -112,7 +113,7 @@ module.exports = bot => {
   bot.command('unfilter', async ctx => {
     const keyword = ctx.message.text.split(' ')[1];
     if (!keyword) return ctx.reply('Gunakan: /unfilter <kata>');
-    await removeFilter(ctx.chat.id, keyword);
+    await removeFilter(ctx.chat.id, keyword.toLowerCase());
     ctx.reply(`Filter *"${keyword}"* dihapus.`, { parse_mode: 'Markdown' });
   });
 
