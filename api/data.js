@@ -97,7 +97,7 @@ async function buildCategoryIndex(limit = 250) {
 
 
 // === FETCHERS ===
-async function fetchGeckoSymbols(symbols = [], limit = 5) {
+async function fetchGeckoSymbols(symbols = [], limit = 5, categoryIndex = null) {
   const coinListRes = await fetch(`${COINGECKO_API}/coins/list`);
   const coinList = await coinListRes.json();
 
@@ -110,48 +110,72 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
 
   if (!matchedIds.length) throw new Error('Symbol tidak ditemukan di CoinGecko');
 
-  const priceUrl = `${COINGECKO_API}/simple/price?ids=${matchedIds.join(',')}&vs_currencies=usd`;
-  const priceRes = await fetch(priceUrl);
-  if (!priceRes.ok) throw new Error('CoinGecko simple price fetch failed');
-  const priceData = await priceRes.json();
+  const [priceRes, marketRes] = await Promise.all([
+    fetch(`${COINGECKO_API}/simple/price?ids=${matchedIds.join(',')}&vs_currencies=usd`),
+    fetch(`${COINGECKO_API}/coins/markets?vs_currency=usd&ids=${matchedIds.join(',')}`),
+  ]);
+  if (!priceRes.ok || !marketRes.ok) throw new Error('Gagal ambil data harga/market dari CoinGecko');
 
-  const marketUrl = `${COINGECKO_API}/coins/markets?vs_currency=usd&ids=${matchedIds.join(',')}`;
-  const marketRes = await fetch(marketUrl);
-  if (!marketRes.ok) throw new Error('CoinGecko market data fetch failed');
-  const marketData = await marketRes.json();
+  const [priceData, marketData] = await Promise.all([priceRes.json(), marketRes.json()]);
 
   const results = [];
 
   for (const id of matchedIds) {
-    const coin = marketData.find(c => c.id === id);
-    const price = priceData[id]?.usd || 0;
-    const { price: formattedPrice, micin } = formatPrice(price);
+    try {
+      const coin = marketData.find(c => c.id === id);
+      const price = priceData[id]?.usd || 0;
+      const { price: formattedPrice, micin } = formatPrice(price);
 
-    // Fetch detail untuk ambil contract_address
-    const detailRes = await fetch(`${COINGECKO_API}/coins/${id}`);
-    if (!detailRes.ok) throw new Error(`Gagal ambil detail untuk ${id}`);
-    const detail = await detailRes.json();
+      let contract_address = {};
+      let symbol = coin?.symbol?.toUpperCase() || id.toUpperCase();
 
-    let contract_address = {};
-    if (detail.platforms && typeof detail.platforms === 'object') {
-      for (const [platform, address] of Object.entries(detail.platforms)) {
-        if (address && typeof address === 'string' && address.trim().length > 0) {
-          contract_address[platform] = address.trim();
+      // Ambil detail buat contract address & fallback kategori
+      const detailRes = await fetch(`${COINGECKO_API}/coins/${id}`);
+      const detail = await detailRes.json();
+
+      if (detail.platforms && typeof detail.platforms === 'object') {
+        for (const [platform, address] of Object.entries(detail.platforms)) {
+          if (address && typeof address === 'string' && address.trim().length > 0) {
+            contract_address[platform] = address.trim();
+          }
         }
       }
-    }
 
-    results.push({
-      symbol: coin?.symbol?.toUpperCase() || id.toUpperCase(),
-      price: formattedPrice,
-      micin,
-      volume: formatVolume(coin?.total_volume || 0),
-      trend: formatTrend(coin?.price_change_percentage_24h || 0),
-      contract_address,
-      sparkline: [],
-    });
+      // Kalau data kosong atau harga 0, coba fallback via kategori
+      if ((!coin || price === 0) && categoryIndex && detail.categories?.length) {
+        const fallbackSym = detail.symbol.toLowerCase();
+        const fallback = categoryIndex[fallbackSym];
+        if (fallback) {
+          results.push({
+            symbol: fallback.symbol,
+            price: fallback.price,
+            micin: fallback.micin,
+            volume: fallback.volume,
+            trend: fallback.trend,
+            contract_address,
+            sparkline: [],
+          });
+          console.warn(`[Fallback via Category] Gunakan ${detail.categories[0]} untuk ${fallbackSym}`);
+          continue;
+        }
+      }
+
+      results.push({
+        symbol,
+        price: formattedPrice,
+        micin,
+        volume: formatVolume(coin?.total_volume || 0),
+        trend: formatTrend(coin?.price_change_percentage_24h || 0),
+        contract_address,
+        sparkline: [],
+      });
+    } catch (err) {
+      console.warn(`[Lewati ${id}] ${err.message}`);
+      continue;
+    }
   }
 
+  if (!results.length) throw new Error('Semua simbol gagal diambil dari CoinGecko');
   return results;
 }
 
