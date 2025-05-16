@@ -12,7 +12,7 @@ async function isPremium(userId) {
 
 async function addFilter(chatId, userId, keyword, responseText) {
   const key = getFilterKey(chatId);
-  const existing = await redis.hgetall(key) || {}; // FIX DI SINI
+  const existing = await redis.hgetall(key) || {};
   const premium = await isPremium(userId);
 
   if (!premium && Object.keys(existing).length >= 5) {
@@ -109,15 +109,16 @@ async function handleFilterMessage(ctx) {
 
     return ctx.reply(cleanText, {
       parse_mode: isMono ? undefined : 'Markdown',
-      reply_markup: buttons.length ? Markup.inlineKeyboard(buttons.map(b => [b])).reply_markup : undefined
+      reply_markup: buttons.length
+        ? Markup.inlineKeyboard(buttons.map(b => [b])).reply_markup
+        : undefined
     });
   }
 }
 
 module.exports = bot => {
   bot.action('filter_menu', async ctx => {
-    await ctx.answerCbQuery();
-    ctx.reply('🧰 *Kelola Filter Chat*', {
+    await ctx.editMessageText('🧰 *Kelola Filter Chat*', {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
         [Markup.button.callback('➕ Tambah Filter', 'check_limit_before_add')],
@@ -149,41 +150,41 @@ module.exports = bot => {
     await ctx.answerCbQuery();
     const filters = await listFilters(ctx.chat.id);
     const list = Object.keys(filters).map(k => `- \`${k}\``).join('\n') || '_Belum ada filter_';
-    ctx.reply(`Filter aktif:\n${list}`, { parse_mode: 'Markdown' });
+
+    await ctx.editMessageText(`🧾 *Filter Aktif:*\n${list}`, {
+      parse_mode: 'Markdown',
+      reply_markup: Markup.inlineKeyboard([
+        [Markup.button.callback('⬅️ Kembali', 'filter_menu')]
+      ]).reply_markup
+    });
   });
 
   bot.command('filter', async ctx => {
-  try {
-    if (!ctx.message || !ctx.message.text) {
-      return ctx.reply('Perintah tidak valid.');
+    try {
+      if (!ctx.message || !ctx.message.text) {
+        return ctx.reply('Perintah tidak valid.');
+      }
+
+      const [cmd, keyword, ...resArr] = ctx.message.text.split(' ');
+      const response = resArr.join(' ');
+
+      if (!keyword || !response) {
+        return ctx.reply('Format: /filter <kata> <respon>');
+      }
+
+      await addFilter(ctx.chat.id, ctx.from.id, keyword, response);
+      ctx.reply(`Filter *${keyword}* disimpan.`, { parse_mode: 'Markdown' });
+    } catch (err) {
+      console.error('Error /filter:', err);
+      ctx.reply(`⚠️ ${err.message}`);
     }
-
-    const [cmd, keyword, ...resArr] = ctx.message.text.split(' ');
-    const response = resArr.join(' ');
-
-    if (!keyword || !response) {
-      return ctx.reply('Format: /filter <kata> <respon>');
-    }
-
-    await addFilter(ctx.chat.id, ctx.from.id, keyword, response);
-    ctx.reply(`Filter *${keyword}* disimpan.`, { parse_mode: 'Markdown' });
-  } catch (err) {
-    console.error('Error /filter:', err);
-    ctx.reply(`⚠️ ${err.message}`);
-  }
-});
+  });
 
   bot.command('unfilter', async ctx => {
     const keyword = ctx.message.text.split(' ')[1];
     if (!keyword) return ctx.reply('Gunakan: /unfilter <kata>');
     await removeFilter(ctx.chat.id, keyword);
     ctx.reply(`Filter *${keyword}* dihapus.`, { parse_mode: 'Markdown' });
-  });
-
-  bot.command('filters', async ctx => {
-    const filters = await listFilters(ctx.chat.id);
-    const list = Object.keys(filters).map(k => `- \`${k}\``).join('\n') || '_Belum ada filter_';
-    ctx.reply(`Filter aktif:\n${list}`, { parse_mode: 'Markdown' });
   });
 
   bot.on('text', handleFilterMessage);
