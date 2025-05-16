@@ -67,7 +67,7 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
   const coinListRes = await fetch(`${COINGECKO_API}/coins/list`);
   const coinList = await coinListRes.json();
 
-  // Cocokkan symbol ke ID dengan metode lebih cerdas
+  // Cocokkan symbol ke ID
   const matchedIds = symbols.map(sym => {
     const lowerSym = sym.toLowerCase();
     const candidates = coinList.filter(c => c.symbol.toLowerCase() === lowerSym);
@@ -77,7 +77,7 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
 
   if (!matchedIds.length) throw new Error('Symbol tidak ditemukan di CoinGecko');
 
-  // Ambil detail coin untuk mendapatkan kategori + CA secara paralel
+  // Fetch detail coin
   const detailPromises = matchedIds.map(id =>
     fetch(`${COINGECKO_API}/coins/${id}`).then(res => res.json())
   );
@@ -99,7 +99,7 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
       throw new Error(`Kategori tidak ditemukan untuk coin id ${id}`);
     }
 
-    // Ambil market data berdasarkan kategori
+    // Ambil market data kategori
     const marketRes = await fetch(`${COINGECKO_API}/coins/markets?vs_currency=usd&category=${categorySlug}&order=market_cap_desc&per_page=250&page=1&sparkline=false`);
     if (!marketRes.ok) throw new Error(`Gagal fetch market data kategori ${categorySlug}`);
     const marketData = await marketRes.json();
@@ -114,14 +114,35 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
     const price = coinMarketData.current_price || 'N/A';
     const { price: formattedPrice, micin } = formatPrice(price);
 
-    // Ambil semua contract address dari platforms
+    // Ambil contract_address dari platforms dan fallback ke detail_platforms
     let contract_address = {};
-    if (detail.platforms && typeof detail.platforms === 'object') {
-      for (const [platform, address] of Object.entries(detail.platforms)) {
-        if (address && typeof address === 'string' && address.trim()) {
-          contract_address[platform] = address.trim();
+    try {
+      if (detail.platforms && typeof detail.platforms === 'object') {
+        for (const [platform, address] of Object.entries(detail.platforms)) {
+          if (address && typeof address === 'string' && address.trim()) {
+            contract_address[platform] = address.trim();
+          }
         }
       }
+
+      if (
+        Object.keys(contract_address).length === 0 &&
+        detail.detail_platforms &&
+        typeof detail.detail_platforms === 'object'
+      ) {
+        for (const [platform, info] of Object.entries(detail.detail_platforms)) {
+          if (
+            info &&
+            typeof info === 'object' &&
+            typeof info.contract_address === 'string' &&
+            info.contract_address.trim()
+          ) {
+            contract_address[platform] = info.contract_address.trim();
+          }
+        }
+      }
+    } catch (err) {
+      console.warn(`Gagal ambil contract_address untuk ${id}:`, err.message);
     }
 
     results.push({
@@ -140,7 +161,7 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
 
 
 
-//## Area Category
+// Area Category
 async function fetchGeckoCategory(category, limit) {
   const url = `${COINGECKO_API}/coins/markets?vs_currency=usd&category=${encodeURIComponent(category)}&order=market_cap_desc&per_page=${limit}&page=1&sparkline=false`;
   const res = await fetch(url);
