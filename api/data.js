@@ -84,7 +84,6 @@ async function buildCategoryIndex(limit = 250) {
         micin,
         volume: formatVolume(coin.total_volume),
         trend: formatTrend(coin.price_change_percentage_24h),
-        contract_address: {}, // kosong dulu, diisi belakangan
         sparkline: [],
         fromCategory: cat.name,
       };
@@ -98,96 +97,62 @@ async function buildCategoryIndex(limit = 250) {
 
 
 // === FETCHERS ===
-// Tambahkan parameter optional index
-async function fetchGeckoSymbols(symbols = [], limit = 5, categoryIndex = null) {
+async function fetchGeckoSymbols(symbols = [], limit = 5) {
+  const coinListRes = await fetch(`${COINGECKO_API}/coins/list`);
+  const coinList = await coinListRes.json();
+
+  const matchedIds = symbols.map(sym => {
+    const lowerSym = sym.toLowerCase();
+    const candidates = coinList.filter(c => c.symbol.toLowerCase() === lowerSym);
+    const bestMatch = candidates.find(c => c.id.includes(lowerSym)) || candidates[0];
+    return bestMatch ? bestMatch.id : null;
+  }).filter(Boolean).slice(0, limit);
+
+  if (!matchedIds.length) throw new Error('Symbol tidak ditemukan di CoinGecko');
+
+  const priceUrl = `${COINGECKO_API}/simple/price?ids=${matchedIds.join(',')}&vs_currencies=usd`;
+  const priceRes = await fetch(priceUrl);
+  if (!priceRes.ok) throw new Error('CoinGecko simple price fetch failed');
+  const priceData = await priceRes.json();
+
+  const marketUrl = `${COINGECKO_API}/coins/markets?vs_currency=usd&ids=${matchedIds.join(',')}`;
+  const marketRes = await fetch(marketUrl);
+  if (!marketRes.ok) throw new Error('CoinGecko market data fetch failed');
+  const marketData = await marketRes.json();
+
   const results = [];
-  const lowerSymbols = symbols.map(s => s.toLowerCase()).slice(0, limit);
-  const symbolsToFetch = [];
 
-  // Isi dari index langsung
-  for (const sym of lowerSymbols) {
-    const dataFromIndex = categoryIndex?.[sym];
-    if (dataFromIndex) {
-      results.push({ ...dataFromIndex }); // clone object
-    } else {
-      symbolsToFetch.push(sym);
-    }
-  }
+  for (const id of matchedIds) {
+    const coin = marketData.find(c => c.id === id);
+    const price = priceData[id]?.usd || 0;
+    const { price: formattedPrice, micin } = formatPrice(price);
 
-  // Fallback ke CoinGecko API
-  let coinList;
-  if (symbolsToFetch.length) {
-    const coinListRes = await fetch(`${COINGECKO_API}/coins/list`);
-    coinList = await coinListRes.json();
+    // Fetch detail untuk ambil contract_address
+    const detailRes = await fetch(`${COINGECKO_API}/coins/${id}`);
+    if (!detailRes.ok) throw new Error(`Gagal ambil detail untuk ${id}`);
+    const detail = await detailRes.json();
 
-    const matchedIds = symbolsToFetch.map(sym => {
-      const candidates = coinList.filter(c => c.symbol.toLowerCase() === sym);
-      const bestMatch = candidates.find(c => c.id.includes(sym)) || candidates[0];
-      return bestMatch ? bestMatch.id : null;
-    }).filter(Boolean);
-
-    if (matchedIds.length) {
-      const marketRes = await fetch(`${COINGECKO_API}/coins/markets?vs_currency=usd&ids=${matchedIds.join(',')}`);
-      const marketData = await marketRes.json();
-
-      for (const id of matchedIds) {
-        const coin = marketData.find(c => c.id === id);
-        if (!coin) continue;
-
-        const { price, micin } = formatPrice(coin.current_price || 0);
-
-        const detailRes = await fetch(`${COINGECKO_API}/coins/${id}`);
-        const detail = await detailRes.json();
-
-        const contract_address = {};
-        if (detail.platforms && typeof detail.platforms === 'object') {
-          for (const [platform, address] of Object.entries(detail.platforms)) {
-            if (address?.trim()) contract_address[platform] = address.trim();
-          }
-        }
-
-        results.push({
-          symbol: coin.symbol.toUpperCase(),
-          price,
-          micin,
-          volume: formatVolume(coin.total_volume),
-          trend: formatTrend(coin.price_change_percentage_24h),
-          contract_address,
-          sparkline: [],
-          fromCategory: '',
-        });
-      }
-    }
-  }
-
-  // Tambahkan CA untuk hasil dari categoryIndex yang belum punya CA
-  if (!coinList) {
-    const coinListRes = await fetch(`${COINGECKO_API}/coins/list`);
-    coinList = await coinListRes.json();
-  }
-
-  for (const entry of results) {
-    if (!entry.contract_address || Object.keys(entry.contract_address).length === 0) {
-      const matched = coinList.find(c => c.symbol.toLowerCase() === entry.symbol.toLowerCase());
-      if (matched?.id) {
-        try {
-          const detailRes = await fetch(`${COINGECKO_API}/coins/${matched.id}`);
-          const detail = await detailRes.json();
-          const ca = {};
-          if (detail.platforms && typeof detail.platforms === 'object') {
-            for (const [platform, address] of Object.entries(detail.platforms)) {
-              if (address?.trim()) ca[platform] = address.trim();
-            }
-          }
-          entry.contract_address = ca;
-        } catch (e) {
-          console.error(`Gagal ambil CA untuk ${entry.symbol}:`, e.message);
+    let contract_address = {};
+    if (detail.platforms && typeof detail.platforms === 'object') {
+      for (const [platform, address] of Object.entries(detail.platforms)) {
+        if (address && typeof address === 'string' && address.trim().length > 0) {
+          contract_address[platform] = address.trim();
         }
       }
     }
+
+    results.push({
+      symbol: coin?.symbol?.toUpperCase() || id.toUpperCase(),
+      price: formattedPrice,
+      micin,
+      volume: formatVolume(coin?.total_volume || 0),
+      trend: formatTrend(coin?.price_change_percentage_24h || 0),
+      contract_address,
+      sparkline: [],
+    });
   }
 
-  return results.slice(0, limit);
+  return results;
 }
 
 
@@ -288,9 +253,6 @@ module.exports = async (req, res) => {
     const rawLimit = parseInt(count);
     const limit = isNaN(rawLimit) ? 5 : Math.min(rawLimit, 20);
 
-    // Build index untuk symbol CA lookup
-    const geckoIndex = await buildCategoryIndex(); // { id: { symbol, contract_address, market_data } }
-
     if (coin) {
       const coins = coin
         .split(',')
@@ -303,7 +265,7 @@ module.exports = async (req, res) => {
       if (cached) result = result.concat(cached);
       else {
         try {
-          const r = await fetchGeckoSymbols(coins, geckoIndex);
+          const r = await fetchGeckoSymbols(coins, limit);
           result = result.concat(r);
           await cacheData(cacheKey, r, 300);
         } catch {
