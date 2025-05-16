@@ -12,7 +12,7 @@ async function isPremium(userId) {
 
 async function addFilter(chatId, userId, keyword, responseText) {
   const key = getFilterKey(chatId);
-  const existing = await redis.hgetall(key);
+  const existing = await redis.hgetall(key) || {}; // FIX DI SINI
   const premium = await isPremium(userId);
 
   if (!premium && Object.keys(existing).length >= 5) {
