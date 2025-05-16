@@ -153,6 +153,7 @@ module.exports = bot => {
   });
 
   bot.command('filter', async ctx => {
+  try {
     const [cmd, keyword, ...resArr] = ctx.message.text.split(' ');
     const response = resArr.join(' ');
 
@@ -162,6 +163,9 @@ module.exports = bot => {
 
     await addFilter(ctx.chat.id, ctx.from.id, keyword, response);
     ctx.reply(`Filter *${keyword}* disimpan.`, { parse_mode: 'Markdown' });
+  } catch (err) {
+    ctx.reply(`⚠️ ${err.message}`);
+  }
   });
 
   bot.command('unfilter', async ctx => {
