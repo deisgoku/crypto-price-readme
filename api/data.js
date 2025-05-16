@@ -41,7 +41,7 @@ function formatPrice(value) {
 }
 
 // === REDIS CACHE ===
-async function cacheData(key, data, ttl = 300) {
+async function cacheData(key, data, ttl = 60) {
   try {
     // TTL dalam detik
     await redis.set(key, JSON.stringify(data), { ex: ttl }); 
@@ -67,22 +67,9 @@ async function getCache(key) {
 async function getContractAddress(symbol, geckoDetail) {
   let ca = {};
 
-  // 1. Coba dari CoinGecko dulu
+  // 1. Prioritaskan detail_platforms
   try {
-    if (geckoDetail.platforms) {
-      for (const [chain, addr] of Object.entries(geckoDetail.platforms)) {
-        if (addr && typeof addr === 'string' && addr.trim()) {
-          ca[chain] = addr.trim();
-        }
-      }
-    }
-
-    if (Object.keys(ca).length > 0) return ca;
-
-    if (
-      geckoDetail.detail_platforms &&
-      typeof geckoDetail.detail_platforms === 'object'
-    ) {
+    if (geckoDetail.detail_platforms && typeof geckoDetail.detail_platforms === 'object') {
       for (const [chain, info] of Object.entries(geckoDetail.detail_platforms)) {
         const addr = info?.contract_address;
         if (addr && typeof addr === 'string' && addr.trim()) {
@@ -91,6 +78,20 @@ async function getContractAddress(symbol, geckoDetail) {
       }
     }
 
+    // 2. Cek di platforms
+    if (
+      Object.keys(ca).length === 0 &&
+      geckoDetail.platforms &&
+      typeof geckoDetail.platforms === 'object'
+    ) {
+      for (const [chain, addr] of Object.entries(geckoDetail.platforms)) {
+        if (addr && typeof addr === 'string' && addr.trim()) {
+          ca[chain] = addr.trim();
+        }
+      }
+    }
+
+    // 3. Coba fallback ke asset_platform_id
     if (
       Object.keys(ca).length === 0 &&
       geckoDetail.asset_platform_id &&
@@ -107,30 +108,25 @@ async function getContractAddress(symbol, geckoDetail) {
     console.warn('Error ambil CA CoinGecko:', e.message);
   }
 
-  // 2. Fallback ke CoinMarketCap
+  // 4. Fallback ke CoinMarketCap
   try {
-    if (!CMC_API) throw new Error('CMC API key tidak tersedia');
+    if (!CMC_KEY) throw new Error('CMC API key tidak tersedia');
 
     const res = await fetch(
       `https://pro-api.coinmarketcap.com/v1/cryptocurrency/info?symbol=${symbol.toUpperCase()}`,
       {
-        headers: {
-          'X-CMC_PRO_API_KEY': CMC_API,
-        },
+        headers: { 'X-CMC_PRO_API_KEY': CMC_KEY },
       }
     );
 
     if (res.ok) {
       const json = await res.json();
-      if (json.data && json.data[symbol.toUpperCase()]) {
-        const platforms = json.data[symbol.toUpperCase()].platforms;
-        if (platforms) {
-          for (const [chain, addr] of Object.entries(platforms)) {
-            if (addr && typeof addr === 'string' && addr.trim()) {
-              ca[chain] = addr.trim();
-            }
-          }
-          if (Object.keys(ca).length > 0) return ca;
+      const cmcData = json.data?.[symbol.toUpperCase()];
+      if (cmcData?.platform) {
+        const { name, token_address } = cmcData.platform;
+        if (name && token_address) {
+          ca[name.toLowerCase()] = token_address;
+          return ca;
         }
       }
     }
@@ -138,7 +134,7 @@ async function getContractAddress(symbol, geckoDetail) {
     console.warn('Error ambil CA CoinMarketCap:', e.message);
   }
 
-  // 3. Fallback ke Binance (bisa dioptimasi lagi kalau Binance kasih API CA)
+  // 5. Fallback ke Binance
   try {
     const binanceRes = await fetch('https://api.binance.com/api/v3/exchangeInfo');
     if (binanceRes.ok) {
@@ -148,17 +144,18 @@ async function getContractAddress(symbol, geckoDetail) {
         (s) => s.baseAsset === symbolUpper || s.quoteAsset === symbolUpper
       );
       if (tokenInfo) {
-        // Binance biasanya tidak memberikan contract address langsung,
-        // tapi kalau ada bisa tambahkan di sini.
-        // contoh (kalau ada): ca['binance-smart-chain'] = tokenInfo.contractAddress;
+        // Binance tidak menyediakan contract address dalam exchangeInfo
+        // tapi bisa ditambahkan kalau suatu saat tersedia
       }
     }
   } catch (e) {
     console.warn('Error ambil CA Binance:', e.message);
   }
 
-  return ca; // kosong kalau gak ketemu
+  return ca; // tetap kembalikan walau kosong
 }
+
+
 
 async function fetchGeckoSymbols(symbols = [], limit = 5) {
   // Ambil semua coin list dari CoinGecko
