@@ -114,9 +114,10 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
     const price = coinMarketData.current_price || 'N/A';
     const { price: formattedPrice, micin } = formatPrice(price);
 
-    // Ambil contract_address dari platforms dan fallback ke detail_platforms
+    // Ambil contract_address dari platforms dan fallback ke detail_platforms dan asset_platform_id
     let contract_address = {};
     try {
+      // Cek platforms dulu
       if (detail.platforms && typeof detail.platforms === 'object') {
         for (const [platform, address] of Object.entries(detail.platforms)) {
           if (address && typeof address === 'string' && address.trim()) {
@@ -125,20 +126,29 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
         }
       }
 
+      // Kalau kosong, fallback ke detail_platforms
       if (
         Object.keys(contract_address).length === 0 &&
         detail.detail_platforms &&
         typeof detail.detail_platforms === 'object'
       ) {
-        for (const [platform, info] of Object.entries(detail.detail_platforms)) {
-          if (
-            info &&
-            typeof info === 'object' &&
-            typeof info.contract_address === 'string' &&
-            info.contract_address.trim()
-          ) {
-            contract_address[platform] = info.contract_address.trim();
+        for (const [platform, data] of Object.entries(detail.detail_platforms)) {
+          const addr = data?.contract_address;
+          if (addr && typeof addr === 'string' && addr.trim()) {
+            contract_address[platform] = addr.trim();
           }
+        }
+      }
+
+      // Fallback terakhir pake asset_platform_id
+      if (
+        Object.keys(contract_address).length === 0 &&
+        detail.asset_platform_id &&
+        detail.detail_platforms?.[detail.asset_platform_id]?.contract_address
+      ) {
+        const fallbackAddr = detail.detail_platforms[detail.asset_platform_id].contract_address;
+        if (fallbackAddr && typeof fallbackAddr === 'string') {
+          contract_address[detail.asset_platform_id] = fallbackAddr.trim();
         }
       }
     } catch (err) {
@@ -158,7 +168,6 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
 
   return results;
 }
-
 
 
 // Area Category
