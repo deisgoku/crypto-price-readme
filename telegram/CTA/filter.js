@@ -2,7 +2,7 @@ const fetch = require('node-fetch');
 const { redis } = require('../../lib/redis');
 const { Markup } = require('telegraf');
 
-// Key filter per chat
+// Key Redis per chat
 function getFilterKey(chatId) {
   return `filter:${chatId}`;
 }
@@ -11,8 +11,8 @@ async function isPremium(userId) {
   return await redis.get(`tg:premium:${userId}`);
 }
 
-// Tambah filter
-async function addFilter(chatId, userId, keyword, responseText, replyMarkup) {
+// Tambah filter (tanpa JSON)
+async function addFilter(chatId, userId, keyword, responseText) {
   const key = getFilterKey(chatId);
   const existing = await redis.hgetall(key);
   const premium = await isPremium(userId);
@@ -21,23 +21,16 @@ async function addFilter(chatId, userId, keyword, responseText, replyMarkup) {
     throw new Error('Batas 5 filter tercapai. Upgrade ke premium untuk lebih banyak.');
   }
 
-  const data = { text: responseText };
-  if (replyMarkup) data.markup = replyMarkup;
-
-  await redis.hset(key, { [keyword.toLowerCase()]: JSON.stringify(data) });
+  await redis.hset(key, { [keyword.toLowerCase()]: responseText });
 }
 
-
-// Hapus filter
 async function removeFilter(chatId, keyword) {
   await redis.hdel(getFilterKey(chatId), keyword.toLowerCase());
 }
 
-// Daftar semua filter
 async function listFilters(chatId) {
   return await redis.hgetall(getFilterKey(chatId)) || {};
 }
-
 
 function centerText(text, width) {
   const spacer = '\u2007';
@@ -87,189 +80,105 @@ async function handleSymbolCommand(ctx, coinId) {
   }
 }
 
-
-
-
 async function handleFilterMessage(ctx) {
   const textRaw = ctx.message?.text;
-  if (!textRaw) return;
-  const text = textRaw.toLowerCase();
-  if (text.startsWith('/')) return;
+  if (!textRaw || textRaw.startsWith('/')) return;
 
   const filters = await listFilters(ctx.chat.id);
 
   for (const keyword in filters) {
-    if (text.includes(keyword.toLowerCase())) {
-      const value = filters[keyword].trim();
+    if (textRaw.toLowerCase().includes(keyword.toLowerCase())) {
+      const full = filters[keyword].trim();
 
-      if (value.startsWith('!c ')) {
-        const coinId = value.slice(3).trim();
+      if (full.startsWith('!c ')) {
+        const coinId = full.slice(3).trim();
         return handleSymbolCommand(ctx, coinId);
       }
 
-      const isMono = value.startsWith('```') || value.startsWith('`');
-      const options = {};
-      if (!isMono) options.parse_mode = 'Markdown';
+      // Parsing tombol dari pola: Labelhttps://link
+      const linkRegex = /([^]+)(https?:\/\/[^\s)]+)/g;
+      const buttons = [];
+      let match;
+      while ((match = linkRegex.exec(full)) !== null) {
+        buttons.push(Markup.button.url(match[1], match[2]));
+      }
 
-      return ctx.reply(value, options);
+      const cleanText = full.replace(linkRegex, '$1');
+      const isMono = cleanText.startsWith('```') || cleanText.startsWith('`');
+
+      return ctx.reply(cleanText, {
+        parse_mode: isMono ? undefined : 'Markdown',
+        reply_markup: buttons.length ? Markup.inlineKeyboard(buttons.map(b => [b])).reply_markup : undefined
+      });
     }
   }
 }
 
 module.exports = bot => {
+  // Aksi
   bot.action('filter_menu', async ctx => {
-    try {
-      const cacheKey = `tg:${ctx.chat.id}:filter_menu`;
-      let cached = await redis.get(cacheKey);
-      if (!cached) {
-        cached = '🧰 *Kelola Filter Chat*\n\nGunakan tombol berikut:';
-        await redis.setex(cacheKey, 300, cached);
-      }
-
-      await ctx.answerCbQuery();
-      return ctx.reply(cached, {
-        parse_mode: 'Markdown',
-        ...Markup.inlineKeyboard([
-          [
-            Markup.button.callback('➕ Tambah Filter', 'check_limit_before_add'),
-            Markup.button.callback('🗑️ Hapus Filter', 'filter_remove')
-          ],
-          [Markup.button.callback('📃 Lihat Filter', 'lihat_filters')],
-          [Markup.button.callback('⬅️ Kembali ke Menu', 'personal_menu')]
-        ])
-      });
-    } catch (err) {
-      console.error('[filter_menu]', err.message);
-    }
+    await ctx.answerCbQuery();
+    ctx.reply('🧰 *Kelola Filter Chat*', {
+      parse_mode: 'Markdown',
+      ...Markup.inlineKeyboard([
+        [Markup.button.callback('➕ Tambah Filter', 'check_limit_before_add')],
+        [Markup.button.callback('🗑️ Hapus Filter', 'filter_remove')],
+        [Markup.button.callback('📃 Lihat Filter', 'lihat_filters')],
+        [Markup.button.callback('⬅️ Kembali ke Menu', 'personal_menu')]
+      ])
+    });
   });
 
   bot.action('check_limit_before_add', async ctx => {
-    try {
-      const userId = ctx.from.id;
-      const chatId = ctx.chat.id;
-      const key = getFilterKey(chatId);
-      const existing = (await redis.hgetall(key)) || {};
-      const premium = await isPremium(userId);
+    const userId = ctx.from.id;
+    const chatId = ctx.chat.id;
+    const existing = await redis.hgetall(getFilterKey(chatId));
+    const premium = await isPremium(userId);
 
-      if (!premium && Object.keys(existing).length >= 5) {
-        return ctx.answerCbQuery(
-          'Batas 5 filter tercapai. Upgrade ke premium untuk lebih banyak.',
-          { show_alert: true }
-        );
-      }
-
-      await ctx.answerCbQuery('Silakan kirim /filter <kata> <balasan>', { show_alert: true });
-    } catch (err) {
-      console.error('[check_limit_before_add]', err.message);
+    if (!premium && Object.keys(existing).length >= 5) {
+      return ctx.answerCbQuery('Batas 5 filter tercapai.', { show_alert: true });
     }
+    ctx.answerCbQuery('Silakan kirim /filter <kata> <respon>', { show_alert: true });
   });
 
-  bot.action('filter_remove', async ctx => {
-    try {
-      await ctx.answerCbQuery();
-      await ctx.reply('Contoh: /unfilter doge', { parse_mode: 'Markdown' });
-    } catch (err) {
-      console.error('[filter_remove]', err.message);
-    }
+  bot.action('filter_remove', ctx => {
+    ctx.answerCbQuery();
+    ctx.reply('Contoh: /unfilter doge');
   });
 
   bot.action('lihat_filters', async ctx => {
-    try {
-      await ctx.answerCbQuery();
-      const cacheKey = `tg:${ctx.chat.id}:lihat_filters`;
-      let cached = await redis.get(cacheKey);
-      if (cached) return ctx.reply(cached, { parse_mode: 'Markdown' });
-
-      const filters = await listFilters(ctx.chat.id);
-      const keys = Object.keys(filters);
-      if (!keys.length) return ctx.reply('Belum ada filter.');
-
-      const list = keys.map(k => `- \`${k}\``).join('\n');
-      const text = `Filter aktif:\n${list}`;
-      await redis.setex(cacheKey, 300, text);
-      ctx.reply(text, { parse_mode: 'Markdown' });
-    } catch (err) {
-      console.error('[lihat_filters]', err.message);
-    }
+    await ctx.answerCbQuery();
+    const filters = await listFilters(ctx.chat.id);
+    const list = Object.keys(filters).map(k => `- \`${k}\``).join('\n') || '_Belum ada filter_';
+    ctx.reply(`Filter aktif:\n${list}`, { parse_mode: 'Markdown' });
   });
 
+  // Perintah
   bot.command('filter', async ctx => {
-    try {
-      const userId = ctx.from.id;
-      const chatId = ctx.chat.id;
-      const args = ctx.message.text.split(' ');
-      const keyword = args[1];
-      const response = args.slice(2).join(' ');
+    const [cmd, keyword, ...resArr] = ctx.message.text.split(' ');
+    const response = resArr.join(' ');
 
-      if (!keyword || !response) {
-        return ctx.reply(
-          'Gunakan: /filter doge !c doge atau /filter buy [Beli](https://...)',
-          { parse_mode: 'Markdown' }
-        );
-      }
-
-      const linkRegex = /([^]+)(https?:\/\/[^\s)]+)/g;
-      const buttons = [];
-      let match;
-
-      while ((match = linkRegex.exec(response)) !== null) {
-        buttons.push(Markup.button.url(match[1], match[2]));
-      }
-
-      const replyMarkup = buttons.length
-        ? Markup.inlineKeyboard(buttons.map(btn => [btn])).reply_markup
-        : null;
-
-      const cleanText = response.replace(linkRegex, '$1');
-
-      await addFilter(chatId, userId, keyword, cleanText);
-
-      await redis.del(`tg:${chatId}:lihat_filters`);
-      await redis.del(`tg:${chatId}:filters_cmd`);
-
-      ctx.reply(`Filter untuk *"${keyword}"* disimpan.`, {
-        parse_mode: 'Markdown',
-        reply_markup: replyMarkup
-      });
-    } catch (err) {
-      ctx.reply(err.message);
+    if (!keyword || !response) {
+      return ctx.reply('Format: /filter <kata> <respon>');
     }
+
+    await addFilter(ctx.chat.id, ctx.from.id, keyword, response);
+    ctx.reply(`Filter *${keyword}* disimpan.`, { parse_mode: 'Markdown' });
   });
 
   bot.command('unfilter', async ctx => {
-    try {
-      const chatId = ctx.chat.id;
-      const keyword = ctx.message.text.split(' ')[1];
-      if (!keyword) return ctx.reply('Gunakan: /unfilter <kata>');
-
-      await removeFilter(chatId, keyword);
-      await redis.del(`tg:${chatId}:lihat_filters`);
-      await redis.del(`tg:${chatId}:filters_cmd`);
-
-      ctx.reply(`Filter *"${keyword}"* dihapus.`, { parse_mode: 'Markdown' });
-    } catch (err) {
-      console.error('[unfilter]', err.message);
-    }
+    const keyword = ctx.message.text.split(' ')[1];
+    if (!keyword) return ctx.reply('Gunakan: /unfilter <kata>');
+    await removeFilter(ctx.chat.id, keyword);
+    ctx.reply(`Filter *${keyword}* dihapus.`, { parse_mode: 'Markdown' });
   });
 
   bot.command('filters', async ctx => {
-    try {
-      const cacheKey = `tg:${ctx.chat.id}:filters_cmd`;
-      let cached = await redis.get(cacheKey);
-      if (cached) return ctx.reply(cached, { parse_mode: 'Markdown' });
-
-      const filters = await listFilters(ctx.chat.id);
-      const keys = Object.keys(filters);
-      if (!keys.length) return ctx.reply('Belum ada filter.');
-
-      const list = keys.map(k => `- \`${k}\``).join('\n');
-      const text = `Filter aktif:\n${list}`;
-      await redis.setex(cacheKey, 300, text);
-      ctx.reply(text, { parse_mode: 'Markdown' });
-    } catch (err) {
-      console.error('[filters]', err.message);
-    }
+    const filters = await listFilters(ctx.chat.id);
+    const list = Object.keys(filters).map(k => `- \`${k}\``).join('\n') || '_Belum ada filter_';
+    ctx.reply(`Filter aktif:\n${list}`, { parse_mode: 'Markdown' });
   });
 
+  // Handler teks biasa
   bot.on('text', handleFilterMessage);
 };
