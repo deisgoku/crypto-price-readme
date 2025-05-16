@@ -41,7 +41,7 @@ function formatPrice(value) {
 }
 
 // === REDIS CACHE ===
-async function cacheData(key, data, ttl = 60) {
+async function cacheData(key, data, ttl = 300) {
   try {
     // TTL dalam detik
     await redis.set(key, JSON.stringify(data), { ex: ttl }); 
@@ -62,24 +62,128 @@ async function getCache(key) {
 
 
 // === FETCHERS ===
+
+
+async function getContractAddress(symbol, geckoDetail) {
+  let ca = {};
+
+  // 1. Coba dari CoinGecko dulu
+  try {
+    if (geckoDetail.platforms) {
+      for (const [chain, addr] of Object.entries(geckoDetail.platforms)) {
+        if (addr && typeof addr === 'string' && addr.trim()) {
+          ca[chain] = addr.trim();
+        }
+      }
+    }
+
+    if (Object.keys(ca).length > 0) return ca;
+
+    if (
+      geckoDetail.detail_platforms &&
+      typeof geckoDetail.detail_platforms === 'object'
+    ) {
+      for (const [chain, info] of Object.entries(geckoDetail.detail_platforms)) {
+        const addr = info?.contract_address;
+        if (addr && typeof addr === 'string' && addr.trim()) {
+          ca[chain] = addr.trim();
+        }
+      }
+    }
+
+    if (
+      Object.keys(ca).length === 0 &&
+      geckoDetail.asset_platform_id &&
+      geckoDetail.detail_platforms?.[geckoDetail.asset_platform_id]?.contract_address
+    ) {
+      const fallbackAddr = geckoDetail.detail_platforms[geckoDetail.asset_platform_id].contract_address;
+      if (fallbackAddr && typeof fallbackAddr === 'string') {
+        ca[geckoDetail.asset_platform_id] = fallbackAddr.trim();
+      }
+    }
+
+    if (Object.keys(ca).length > 0) return ca;
+  } catch (e) {
+    console.warn('Error ambil CA CoinGecko:', e.message);
+  }
+
+  // 2. Fallback ke CoinMarketCap
+  try {
+    if (!CMC_API) throw new Error('CMC API key tidak tersedia');
+
+    const res = await fetch(
+      `https://pro-api.coinmarketcap.com/v1/cryptocurrency/info?symbol=${symbol.toUpperCase()}`,
+      {
+        headers: {
+          'X-CMC_PRO_API_KEY': CMC_API,
+        },
+      }
+    );
+
+    if (res.ok) {
+      const json = await res.json();
+      if (json.data && json.data[symbol.toUpperCase()]) {
+        const platforms = json.data[symbol.toUpperCase()].platforms;
+        if (platforms) {
+          for (const [chain, addr] of Object.entries(platforms)) {
+            if (addr && typeof addr === 'string' && addr.trim()) {
+              ca[chain] = addr.trim();
+            }
+          }
+          if (Object.keys(ca).length > 0) return ca;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Error ambil CA CoinMarketCap:', e.message);
+  }
+
+  // 3. Fallback ke Binance (bisa dioptimasi lagi kalau Binance kasih API CA)
+  try {
+    const binanceRes = await fetch('https://api.binance.com/api/v3/exchangeInfo');
+    if (binanceRes.ok) {
+      const binanceData = await binanceRes.json();
+      const symbolUpper = symbol.toUpperCase();
+      const tokenInfo = binanceData.symbols.find(
+        (s) => s.baseAsset === symbolUpper || s.quoteAsset === symbolUpper
+      );
+      if (tokenInfo) {
+        // Binance biasanya tidak memberikan contract address langsung,
+        // tapi kalau ada bisa tambahkan di sini.
+        // contoh (kalau ada): ca['binance-smart-chain'] = tokenInfo.contractAddress;
+      }
+    }
+  } catch (e) {
+    console.warn('Error ambil CA Binance:', e.message);
+  }
+
+  return ca; // kosong kalau gak ketemu
+}
+
 async function fetchGeckoSymbols(symbols = [], limit = 5) {
   // Ambil semua coin list dari CoinGecko
   const coinListRes = await fetch(`${COINGECKO_API}/coins/list`);
   const coinList = await coinListRes.json();
 
   // Cocokkan symbol ke ID
-  const matchedIds = symbols.map(sym => {
-    const lowerSym = sym.toLowerCase();
-    const candidates = coinList.filter(c => c.symbol.toLowerCase() === lowerSym);
-    const bestMatch = candidates.find(c => c.id.includes(lowerSym)) || candidates[0];
-    return bestMatch ? bestMatch.id : null;
-  }).filter(Boolean).slice(0, limit);
+  const matchedIds = symbols
+    .map((sym) => {
+      const lowerSym = sym.toLowerCase();
+      const candidates = coinList.filter(
+        (c) => c.symbol.toLowerCase() === lowerSym
+      );
+      const bestMatch =
+        candidates.find((c) => c.id.includes(lowerSym)) || candidates[0];
+      return bestMatch ? bestMatch.id : null;
+    })
+    .filter(Boolean)
+    .slice(0, limit);
 
   if (!matchedIds.length) throw new Error('Symbol tidak ditemukan di CoinGecko');
 
   // Fetch detail coin
-  const detailPromises = matchedIds.map(id =>
-    fetch(`${COINGECKO_API}/coins/${id}`).then(res => res.json())
+  const detailPromises = matchedIds.map((id) =>
+    fetch(`${COINGECKO_API}/coins/${id}`).then((res) => res.json())
   );
   const detailData = await Promise.all(detailPromises);
 
@@ -92,7 +196,9 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
     // Ambil kategori (slug)
     let categorySlug = null;
     if (detail.categories && detail.categories.length > 0) {
-      categorySlug = detail.categories[0].toLowerCase().replace(/\s+/g, '-');
+      categorySlug = detail.categories[0]
+        .toLowerCase()
+        .replace(/\s+/g, '-');
     }
 
     if (!categorySlug) {
@@ -100,60 +206,29 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
     }
 
     // Ambil market data kategori
-    const marketRes = await fetch(`${COINGECKO_API}/coins/markets?vs_currency=usd&category=${categorySlug}&order=market_cap_desc&per_page=250&page=1&sparkline=false`);
-    if (!marketRes.ok) throw new Error(`Gagal fetch market data kategori ${categorySlug}`);
+    const marketRes = await fetch(
+      `${COINGECKO_API}/coins/markets?vs_currency=usd&category=${categorySlug}&order=market_cap_desc&per_page=250&page=1&sparkline=false`
+    );
+    if (!marketRes.ok)
+      throw new Error(`Gagal fetch market data kategori ${categorySlug}`);
     const marketData = await marketRes.json();
 
     const coinSymbol = detail.symbol.toLowerCase();
-    const coinMarketData = marketData.find(c => c.symbol.toLowerCase() === coinSymbol);
+    const coinMarketData = marketData.find(
+      (c) => c.symbol.toLowerCase() === coinSymbol
+    );
 
     if (!coinMarketData) {
-      throw new Error(`Coin ${coinSymbol} tidak ditemukan dalam kategori ${categorySlug}`);
+      throw new Error(
+        `Coin ${coinSymbol} tidak ditemukan dalam kategori ${categorySlug}`
+      );
     }
 
     const price = coinMarketData.current_price || 'N/A';
     const { price: formattedPrice, micin } = formatPrice(price);
 
-    // Ambil contract_address dari platforms dan fallback ke detail_platforms dan asset_platform_id
-    let contract_address = {};
-    try {
-      // Cek platforms dulu
-      if (detail.platforms && typeof detail.platforms === 'object') {
-        for (const [platform, address] of Object.entries(detail.platforms)) {
-          if (address && typeof address === 'string' && address.trim()) {
-            contract_address[platform] = address.trim();
-          }
-        }
-      }
-
-      // Kalau kosong, fallback ke detail_platforms
-      if (
-        Object.keys(contract_address).length === 0 &&
-        detail.detail_platforms &&
-        typeof detail.detail_platforms === 'object'
-      ) {
-        for (const [platform, data] of Object.entries(detail.detail_platforms)) {
-          const addr = data?.contract_address;
-          if (addr && typeof addr === 'string' && addr.trim()) {
-            contract_address[platform] = addr.trim();
-          }
-        }
-      }
-
-      // Fallback terakhir pake asset_platform_id
-      if (
-        Object.keys(contract_address).length === 0 &&
-        detail.asset_platform_id &&
-        detail.detail_platforms?.[detail.asset_platform_id]?.contract_address
-      ) {
-        const fallbackAddr = detail.detail_platforms[detail.asset_platform_id].contract_address;
-        if (fallbackAddr && typeof fallbackAddr === 'string') {
-          contract_address[detail.asset_platform_id] = fallbackAddr.trim();
-        }
-      }
-    } catch (err) {
-      console.warn(`Gagal ambil contract_address untuk ${id}:`, err.message);
-    }
+    // Panggil getContractAddress untuk ambil CA dengan fallback
+    const contract_address = await getContractAddress(detail.symbol, detail);
 
     results.push({
       symbol: coinMarketData.symbol.toUpperCase(),
