@@ -12,8 +12,8 @@ async function isPremium(userId) {
 }
 
 // Tambah filter
-async function addFilter(userId, keyword, responseText) {
-  const key = getFilterKey(userId);
+async function addFilter(chatId, userId, keyword, responseText, replyMarkup) {
+  const key = getFilterKey(chatId);
   const existing = await redis.hgetall(key);
   const premium = await isPremium(userId);
 
@@ -21,8 +21,12 @@ async function addFilter(userId, keyword, responseText) {
     throw new Error('Batas 5 filter tercapai. Upgrade ke premium untuk lebih banyak.');
   }
 
-  await redis.hset(key, keyword.toLowerCase(), responseText);
+  const data = { text: responseText };
+  if (replyMarkup) data.markup = replyMarkup;
+
+  await redis.hset(key, { [keyword.toLowerCase()]: JSON.stringify(data) });
 }
+
 
 // Hapus filter
 async function removeFilter(chatId, keyword) {
