@@ -154,6 +154,10 @@ module.exports = bot => {
 
   bot.command('filter', async ctx => {
   try {
+    if (!ctx.message || !ctx.message.text) {
+      return ctx.reply('Perintah tidak valid.');
+    }
+
     const [cmd, keyword, ...resArr] = ctx.message.text.split(' ');
     const response = resArr.join(' ');
 
@@ -164,9 +168,10 @@ module.exports = bot => {
     await addFilter(ctx.chat.id, ctx.from.id, keyword, response);
     ctx.reply(`Filter *${keyword}* disimpan.`, { parse_mode: 'Markdown' });
   } catch (err) {
+    console.error('Error /filter:', err);
     ctx.reply(`⚠️ ${err.message}`);
   }
-  });
+});
 
   bot.command('unfilter', async ctx => {
     const keyword = ctx.message.text.split(' ')[1];
