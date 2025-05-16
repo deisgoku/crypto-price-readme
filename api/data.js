@@ -77,34 +77,48 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
 
   if (!matchedIds.length) throw new Error('Symbol tidak ditemukan di CoinGecko');
 
-  // Ambil harga terbaru dengan simple/price
-  const priceUrl = `${COINGECKO_API}/simple/price?ids=${matchedIds.join(',')}&vs_currencies=usd`;
-  const priceRes = await fetch(priceUrl);
-  if (!priceRes.ok) throw new Error('CoinGecko simple price fetch failed');
-  const priceData = await priceRes.json();
-
-  // Ambil volume dan trend dengan coins/markets
-  const marketUrl = `${COINGECKO_API}/coins/markets?vs_currency=usd&ids=${matchedIds.join(',')}`;
-  const marketRes = await fetch(marketUrl);
-  if (!marketRes.ok) throw new Error('CoinGecko market data fetch failed');
-  const marketData = await marketRes.json();
-
-  // Ambil detail coin untuk contract address secara paralel
+  // Ambil detail coin untuk mendapatkan kategori secara paralel
   const detailPromises = matchedIds.map(id =>
     fetch(`${COINGECKO_API}/coins/${id}`).then(res => res.json())
   );
   const detailData = await Promise.all(detailPromises);
 
-  // Gabungkan harga, volume, tren, dan contract address
-  return matchedIds.map(id => {
-    const coin = marketData.find(c => c.id === id);
-    const price = priceData[id]?.usd || 'N/A';
+  // Buat array hasil
+  const results = [];
+
+  for (let i = 0; i < matchedIds.length; i++) {
+    const id = matchedIds[i];
+    const detail = detailData[i];
+
+    // Ambil kategori pertama coin (format slug, lowercase dan dash)
+    let categorySlug = null;
+    if (detail.categories && detail.categories.length > 0) {
+      categorySlug = detail.categories[0].toLowerCase().replace(/\s+/g, '-');
+    }
+
+    if (!categorySlug) {
+      throw new Error(`Kategori tidak ditemukan untuk coin id ${id}`);
+    }
+
+    // Ambil data market coins berdasarkan kategori
+    const marketRes = await fetch(`${COINGECKO_API}/coins/markets?vs_currency=usd&category=${categorySlug}&order=market_cap_desc&per_page=250&page=1&sparkline=false`);
+    if (!marketRes.ok) throw new Error(`Failed to fetch market data for category ${categorySlug}`);
+    const marketData = await marketRes.json();
+
+    // Cari coin sesuai symbol di dalam data market
+    const coinSymbol = detail.symbol.toLowerCase();
+    const coinMarketData = marketData.find(c => c.symbol.toLowerCase() === coinSymbol);
+
+    if (!coinMarketData) {
+      throw new Error(`Coin symbol ${coinSymbol} tidak ditemukan di kategori ${categorySlug}`);
+    }
+
+    const price = coinMarketData.current_price || 'N/A';
     const { price: formattedPrice, micin } = formatPrice(price);
 
-    // Cari detail coin yang sesuai
-    const detail = detailData.find(d => d.id === id);
+    // Ambil contract address dari detail.platforms
     let contract_address = {};
-    if (detail && detail.platforms && typeof detail.platforms === 'object') {
+    if (detail.platforms && typeof detail.platforms === 'object') {
       for (const [platform, address] of Object.entries(detail.platforms)) {
         if (address && typeof address === 'string' && address.trim().length > 0) {
           contract_address[platform] = address.trim();
@@ -112,18 +126,19 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
       }
     }
 
-    return {
-      symbol: coin.symbol.toUpperCase(),
+    results.push({
+      symbol: coinMarketData.symbol.toUpperCase(),
       price: formattedPrice,
       micin,
-      volume: formatVolume(coin?.total_volume || 'N/A'),
-      trend: formatTrend(coin?.price_change_percentage_24h || 'N/A'),
-      sparkline: [],
+      volume: formatVolume(coinMarketData.total_volume || 'N/A'),
+      trend: formatTrend(coinMarketData.price_change_percentage_24h || 'N/A'),
+      sparkline: [], // bisa diisi jika diperlukan
       contract_address,
-    };
-  });
-}
+    });
+  }
 
+  return results;
+}
 async function fetchGeckoCategory(category, limit) {
   const url = `${COINGECKO_API}/coins/markets?vs_currency=usd&category=${encodeURIComponent(category)}&order=market_cap_desc&per_page=${limit}&page=1&sparkline=false`;
   const res = await fetch(url);
