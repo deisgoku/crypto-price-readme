@@ -19,8 +19,6 @@ function formatTrend(value) {
   return (trend >= 0 ? '+' : '') + trend + '%';
 }
 
-
-
 function escapeXml(unsafe) {
   return unsafe.replace(/[<>&'"]/g, c => ({
     '<': '&lt;', '>': '&gt;', '&': '&amp;', '\'': '&apos;', '"': '&quot;',
@@ -41,74 +39,172 @@ function formatPrice(value) {
 }
 
 // === REDIS CACHE ===
-async function cacheData(key, data, ttl = 60) {
+async function cacheData(key, data, ttl = 300) {
   try {
-    await redis.set(key, JSON.stringify(data), 'EX', ttl);
+    const value = typeof data === 'string' ? data : JSON.stringify(data);
+    await redis.set(key, value, 'EX', ttl);
   } catch (err) {
-    console.error('Redis set error:', err);
+    console.error(`[Redis SET] ${key} —`, err.message);
   }
 }
 
 async function getCache(key) {
   try {
     const data = await redis.get(key);
-    return data ? JSON.parse(data) : null;
+    if (!data) return null;
+    try {
+      return JSON.parse(data);
+    } catch (err) {
+      console.warn(`[Redis PARSE] ${key} —`, err.message);
+      return null;
+    }
   } catch (err) {
-    console.error('Redis get error:', err);
+    console.error(`[Redis GET] ${key} —`, err.message);
     return null;
   }
 }
 
-// === FETCHERS ===
-async function fetchGeckoSymbols(symbols = [], limit = 5) {
-  // Ambil semua coin list dari CoinGecko
-  const coinListRes = await fetch(`${COINGECKO_API}/coins/list`);
-  const coinList = await coinListRes.json();
 
-  // Cocokkan symbol ke ID dengan metode lebih cerdas
-  const matchedIds = symbols.map(sym => {
-    const lowerSym = sym.toLowerCase();
-    const candidates = coinList.filter(c => c.symbol.toLowerCase() === lowerSym);
-    const bestMatch = candidates.find(c => c.id.includes(lowerSym)) || candidates[0];
-    return bestMatch ? bestMatch.id : null;
-  }).filter(Boolean).slice(0, limit);
+// ####  Cat Index 
+async function buildCategoryIndex(limit = 250) {
+  const catListRes = await fetch(`${COINGECKO_API}/coins/categories/list`);
+  const catList = await catListRes.json();
 
-  if (!matchedIds.length) throw new Error('Symbol tidak ditemukan di CoinGecko');
+  const index = {};
+  for (const cat of catList) {
+    const marketRes = await fetch(`${COINGECKO_API}/coins/markets?vs_currency=usd&category=${encodeURIComponent(cat.category_id)}&per_page=${limit}&page=1`);
+    const data = await marketRes.json();
+    if (!Array.isArray(data)) continue;
 
-  // Ambil harga terbaru dengan simple/price
-  const priceUrl = `${COINGECKO_API}/simple/price?ids=${matchedIds.join(',')}&vs_currencies=usd`;
-  const priceRes = await fetch(priceUrl);
-  if (!priceRes.ok) throw new Error('CoinGecko simple price fetch failed');
-  const priceData = await priceRes.json();
+    for (const coin of data) {
+      const { price, micin } = formatPrice(coin.current_price);
+      const entry = {
+        symbol: coin.symbol.toUpperCase(),
+        price,
+        micin,
+        volume: formatVolume(coin.total_volume),
+        trend: formatTrend(coin.price_change_percentage_24h),
+        sparkline: [],
+        fromCategory: cat.name,
+      };
 
-  // Ambil volume dan trend dengan coins/markets
-  const marketUrl = `${COINGECKO_API}/coins/markets?vs_currency=usd&ids=${matchedIds.join(',')}`;
-  const marketRes = await fetch(marketUrl);
-  if (!marketRes.ok) throw new Error('CoinGecko market data fetch failed');
-  const marketData = await marketRes.json();
+      index[coin.symbol.toLowerCase()] = entry;
+    }
+  }
 
-  // Gabungkan harga, volume, dan tren
-  return matchedIds.map(id => {
-    const coin = marketData.find(c => c.id === id);
-    const price = priceData[id]?.usd || 'N/A';
-    const { price: formattedPrice, micin } = formatPrice(price);
-
-    return {
-      symbol: coin.symbol.toUpperCase(),
-      price: formattedPrice,
-      micin,
-      volume: formatVolume(coin?.total_volume || 'N/A'),
-      trend: formatTrend(coin?.price_change_percentage_24h || 'N/A'),
-      sparkline: [],
-    };
-  });
+  return index;
 }
+
+
+// === FETCHERS ===
+// Tambahkan parameter optional index
+async function fetchGeckoSymbols(symbols = [], limit = 5, categoryIndex = null) {
+  const results = [];
+  const lowerSymbols = symbols.map(s => s.toLowerCase()).slice(0, limit);
+  const symbolsToFetch = [];
+
+  for (const sym of lowerSymbols) {
+    const dataFromIndex = categoryIndex?.[sym];
+    if (dataFromIndex) {
+      results.push({
+        symbol: dataFromIndex.symbol,
+        price: dataFromIndex.price,
+        micin: dataFromIndex.micin,
+        volume: dataFromIndex.volume,
+        trend: dataFromIndex.trend,
+        contract_address: {}, // nanti isi di bawah
+        sparkline: [],
+        fromCategory: dataFromIndex.fromCategory || '',
+      });
+    } else {
+      symbolsToFetch.push(sym);
+    }
+  }
+
+  // Fallback: fetch dari CoinGecko jika tidak ditemukan di categoryIndex
+  if (symbolsToFetch.length) {
+    const coinListRes = await fetch(`${COINGECKO_API}/coins/list`);
+    const coinList = await coinListRes.json();
+
+    const matchedIds = symbolsToFetch.map(sym => {
+      const candidates = coinList.filter(c => c.symbol.toLowerCase() === sym);
+      const bestMatch = candidates.find(c => c.id.includes(sym)) || candidates[0];
+      return bestMatch ? bestMatch.id : null;
+    }).filter(Boolean);
+
+    if (matchedIds.length) {
+      const marketUrl = `${COINGECKO_API}/coins/markets?vs_currency=usd&ids=${matchedIds.join(',')}`;
+      const marketRes = await fetch(marketUrl);
+      const marketData = await marketRes.json();
+
+      for (const id of matchedIds) {
+        const coin = marketData.find(c => c.id === id);
+        if (!coin) continue;
+
+        const { price, micin } = formatPrice(coin.current_price || 0);
+
+        // Detail fetch untuk CA
+        const detailRes = await fetch(`${COINGECKO_API}/coins/${id}`);
+        const detail = await detailRes.json();
+
+        let contract_address = {};
+        if (detail.platforms && typeof detail.platforms === 'object') {
+          for (const [platform, address] of Object.entries(detail.platforms)) {
+            if (address && typeof address === 'string' && address.trim().length > 0) {
+              contract_address[platform] = address.trim();
+            }
+          }
+        }
+
+        results.push({
+          symbol: coin.symbol.toUpperCase(),
+          price,
+          micin,
+          volume: formatVolume(coin.total_volume),
+          trend: formatTrend(coin.price_change_percentage_24h),
+          contract_address,
+          sparkline: [],
+          fromCategory: '', // fallback tidak ada kategori
+        });
+      }
+    }
+  }
+
+  // Tambahkan CA juga untuk hasil dari categoryIndex
+  for (const entry of results) {
+    if (!entry.contract_address || Object.keys(entry.contract_address).length === 0) {
+      try {
+        const coinListRes = await fetch(`${COINGECKO_API}/coins/list`);
+        const coinList = await coinListRes.json();
+        const matched = coinList.find(c => c.symbol.toLowerCase() === entry.symbol.toLowerCase());
+        if (matched?.id) {
+          const detailRes = await fetch(`${COINGECKO_API}/coins/${matched.id}`);
+          const detail = await detailRes.json();
+          const ca = {};
+          if (detail.platforms && typeof detail.platforms === 'object') {
+            for (const [platform, address] of Object.entries(detail.platforms)) {
+              if (address && typeof address === 'string' && address.trim().length > 0) {
+                ca[platform] = address.trim();
+              }
+            }
+          }
+          entry.contract_address = ca;
+        }
+      } catch (e) {
+        console.error(`Gagal ambil CA untuk ${entry.symbol}:`, e.message);
+      }
+    }
+  }
+
+  return results.slice(0, limit);
+}
+
 
 async function fetchGeckoCategory(category, limit) {
   const url = `${COINGECKO_API}/coins/markets?vs_currency=usd&category=${encodeURIComponent(category)}&order=market_cap_desc&per_page=${limit}&page=1&sparkline=false`;
   const res = await fetch(url);
   const data = await res.json();
-  if (!res.ok || !Array.isArray(data) || data.length === 0) throw new Error('CoinGecko category fetch failed');
+  if (!res.ok || !Array.isArray(data) || data.length === 0) throw new Error('Gecko category fetch failed');
   return data.map(coin => {
     const { price, micin } = formatPrice(coin.current_price);
     return {
@@ -123,6 +219,8 @@ async function fetchGeckoCategory(category, limit) {
 }
 
 async function fetchCMC(categoryOrIds, isCategory, limit) {
+  if (!CMC_KEY) throw new Error('Missing CMC API Key');
+
   if (isCategory) {
     const slugRes = await fetch(`${CMC_API}/cryptocurrency/category`, {
       headers: { 'X-CMC_PRO_API_KEY': CMC_KEY }
@@ -185,7 +283,7 @@ async function fetchBinance(limit) {
     });
 }
 
-// === FINAL HANDLER ===
+// === MAIN HANDLER ===
 module.exports = async (req, res) => {
   const { coin, category, count = 5 } = req.query;
 
@@ -196,57 +294,66 @@ module.exports = async (req, res) => {
   try {
     let result = [];
 
-    // Maksimal user cuma bisa request sampai 20 item aja
     const rawLimit = parseInt(count);
-    const limit = isNaN(rawLimit) ? 5 : Math.min(rawLimit, 20);  // Pastikan limit nggak lebih dari 20
+    const limit = isNaN(rawLimit) ? 5 : Math.min(rawLimit, 20);
 
     if (coin) {
       const coins = coin
         .split(',')
         .map(c => c.trim().toLowerCase())
         .filter(Boolean)
-        .slice(0, limit);  // Batasi sesuai limit yang diatur
+        .slice(0, limit);
 
-      const cacheKey = `crypto:symbols:${coins.join(',')}`;
+      const cacheKey = `crypto:symbol:${coins.join(',')}`;
       const cached = await getCache(cacheKey);
-      if (cached) return res.json({ data: cached });
-
-      try {
-        result = await fetchGeckoSymbols(coins, limit);
-      } catch {
+      if (cached) result = result.concat(cached);
+      else {
         try {
-          result = await fetchCMC(coins.map(c => c.toUpperCase()), false, limit);
+          const r = await fetchGeckoSymbols(coins, limit);
+          result = result.concat(r);
+          await cacheData(cacheKey, r, 300);
         } catch {
-          result = await fetchBinance(limit);
+          try {
+            const r = await fetchCMC(coins.map(c => c.toUpperCase()), false, limit);
+            result = result.concat(r);
+            await cacheData(cacheKey, r, 300);
+          } catch {
+            const r = await fetchBinance(limit);
+            result = result.concat(r);
+            await cacheData(cacheKey, r, 300);
+          }
         }
       }
-
-      await cacheData(cacheKey, result, 300);
     }
 
     if (category) {
       const cacheKey = `crypto:category:${category}:${limit}`;
       const cached = await getCache(cacheKey);
-      if (cached) return res.json({ data: cached });
-
-      try {
-        result = await fetchGeckoCategory(category, limit);
-      } catch {
+      if (cached) result = result.concat(cached);
+      else {
         try {
-          result = await fetchCMC(category, true, limit);
+          const r = await fetchGeckoCategory(category, limit);
+          result = result.concat(r);
+          await cacheData(cacheKey, r, 300);
         } catch {
-          result = await fetchBinance(limit);
+          try {
+            const r = await fetchCMC(category, true, limit);
+            result = result.concat(r);
+            await cacheData(cacheKey, r, 300);
+          } catch {
+            const r = await fetchBinance(limit);
+            result = result.concat(r);
+            await cacheData(cacheKey, r, 300);
+          }
         }
       }
-
-      await cacheData(cacheKey, result, 300);
     }
 
     if (!result.length) return res.status(404).json({ error: 'Data tidak ditemukan' });
     return res.json({ data: result });
 
   } catch (err) {
-    console.error('ERROR API:', err);
+    console.error('[API ERROR]', err);
     return res.status(500).json({ error: 'Internal Server Error' });
   }
 };
