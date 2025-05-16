@@ -15,6 +15,8 @@ const { themeNames } = require('../lib/settings/model/theme');
 const renderers = require('../lib/settings/model/list');
 const { redis } = require('../lib/redis');
 const { registerAdminCommands } = require('./CTA/admin');
+const joinHandler = require('./CTA/join');
+
 
 const LINK_KEY = 'user_passwords';
 const USER_SET = 'tg:users';
@@ -62,9 +64,11 @@ async function loadFonts() {
 // Register all handlers
 registerAdminCommands(bot);
 require('./CTA/auth')(bot);
+joinHandler(bot);
 require('./CTA/handlercoin')(bot);
 require('./CTA/menu')(bot);
 require('./CTA/filter')(bot);
+
 
 bot.start(ctx => {
   ctx.reply(
