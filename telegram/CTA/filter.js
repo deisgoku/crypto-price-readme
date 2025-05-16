@@ -2,7 +2,6 @@ const fetch = require('node-fetch');
 const { redis } = require('../../lib/redis');
 const { Markup } = require('telegraf');
 
-// Key Redis per chat
 function getFilterKey(chatId) {
   return `filter:${chatId}`;
 }
@@ -11,7 +10,6 @@ async function isPremium(userId) {
   return await redis.get(`tg:premium:${userId}`);
 }
 
-// Tambah filter (tanpa JSON)
 async function addFilter(chatId, userId, keyword, responseText) {
   const key = getFilterKey(chatId);
   const existing = await redis.hgetall(key);
@@ -87,35 +85,36 @@ async function handleFilterMessage(ctx) {
   const filters = await listFilters(ctx.chat.id);
 
   for (const keyword in filters) {
-    if (textRaw.toLowerCase().includes(keyword.toLowerCase())) {
-      const full = filters[keyword].trim();
+    const full = filters[keyword];
 
-      if (full.startsWith('!c ')) {
-        const coinId = full.slice(3).trim();
-        return handleSymbolCommand(ctx, coinId);
-      }
+    if (typeof full !== 'string') continue;
+    if (!textRaw.toLowerCase().includes(keyword.toLowerCase())) continue;
 
-      // Parsing tombol dari pola: Labelhttps://link
-      const linkRegex = /([^]+)(https?:\/\/[^\s)]+)/g;
-      const buttons = [];
-      let match;
-      while ((match = linkRegex.exec(full)) !== null) {
-        buttons.push(Markup.button.url(match[1], match[2]));
-      }
+    const trimmed = full.trim();
 
-      const cleanText = full.replace(linkRegex, '$1');
-      const isMono = cleanText.startsWith('```') || cleanText.startsWith('`');
-
-      return ctx.reply(cleanText, {
-        parse_mode: isMono ? undefined : 'Markdown',
-        reply_markup: buttons.length ? Markup.inlineKeyboard(buttons.map(b => [b])).reply_markup : undefined
-      });
+    if (trimmed.startsWith('!c ')) {
+      const coinId = trimmed.slice(3).trim();
+      return handleSymbolCommand(ctx, coinId);
     }
+
+    const linkRegex = /([^]+)(https?:\/\/[^\s)]+)/g;
+    const buttons = [];
+    let match;
+    while ((match = linkRegex.exec(trimmed)) !== null) {
+      buttons.push(Markup.button.url(match[1], match[2]));
+    }
+
+    const cleanText = trimmed.replace(linkRegex, '$1');
+    const isMono = cleanText.startsWith('```') || cleanText.startsWith('`');
+
+    return ctx.reply(cleanText, {
+      parse_mode: isMono ? undefined : 'Markdown',
+      reply_markup: buttons.length ? Markup.inlineKeyboard(buttons.map(b => [b])).reply_markup : undefined
+    });
   }
 }
 
 module.exports = bot => {
-  // Aksi
   bot.action('filter_menu', async ctx => {
     await ctx.answerCbQuery();
     ctx.reply('🧰 *Kelola Filter Chat*', {
@@ -153,7 +152,6 @@ module.exports = bot => {
     ctx.reply(`Filter aktif:\n${list}`, { parse_mode: 'Markdown' });
   });
 
-  // Perintah
   bot.command('filter', async ctx => {
     const [cmd, keyword, ...resArr] = ctx.message.text.split(' ');
     const response = resArr.join(' ');
@@ -179,6 +177,5 @@ module.exports = bot => {
     ctx.reply(`Filter aktif:\n${list}`, { parse_mode: 'Markdown' });
   });
 
-  // Handler teks biasa
   bot.on('text', handleFilterMessage);
 };
