@@ -65,10 +65,10 @@ async function getCache(key) {
 
 
 async function getContractAddress(symbol, geckoDetail) {
-  let ca = {};
+  const ca = {};
 
-  // 1. Prioritaskan detail_platforms
   try {
+    // 1. Cek di detail_platforms (jika ada)
     if (geckoDetail.detail_platforms && typeof geckoDetail.detail_platforms === 'object') {
       for (const [chain, info] of Object.entries(geckoDetail.detail_platforms)) {
         const addr = info?.contract_address;
@@ -78,24 +78,20 @@ async function getContractAddress(symbol, geckoDetail) {
       }
     }
 
-    // 2. Cek di platforms
-    if (
-      Object.keys(ca).length === 0 &&
-      geckoDetail.platforms &&
-      typeof geckoDetail.platforms === 'object'
-    ) {
+    // 2. Tambahkan dari platforms jika belum ada
+    if (geckoDetail.platforms && typeof geckoDetail.platforms === 'object') {
       for (const [chain, addr] of Object.entries(geckoDetail.platforms)) {
-        if (addr && typeof addr === 'string' && addr.trim()) {
+        if (!ca[chain] && addr && typeof addr === 'string' && addr.trim()) {
           ca[chain] = addr.trim();
         }
       }
     }
 
-    // 3. Coba fallback ke asset_platform_id
+    // 3. Tambahkan dari asset_platform_id jika belum ada
     if (
-      Object.keys(ca).length === 0 &&
       geckoDetail.asset_platform_id &&
-      geckoDetail.detail_platforms?.[geckoDetail.asset_platform_id]?.contract_address
+      geckoDetail.detail_platforms?.[geckoDetail.asset_platform_id]?.contract_address &&
+      !ca[geckoDetail.asset_platform_id]
     ) {
       const fallbackAddr = geckoDetail.detail_platforms[geckoDetail.asset_platform_id].contract_address;
       if (fallbackAddr && typeof fallbackAddr === 'string') {
@@ -103,9 +99,11 @@ async function getContractAddress(symbol, geckoDetail) {
       }
     }
 
+    // Kalau ada CA, langsung return
     if (Object.keys(ca).length > 0) return ca;
+
   } catch (e) {
-    console.warn('Error ambil CA CoinGecko:', e.message);
+    console.warn('Error parsing CoinGecko:', e.message);
   }
 
   // 4. Fallback ke CoinMarketCap
@@ -134,25 +132,7 @@ async function getContractAddress(symbol, geckoDetail) {
     console.warn('Error ambil CA CoinMarketCap:', e.message);
   }
 
-  // 5. Fallback ke Binance
-  try {
-    const binanceRes = await fetch('https://api.binance.com/api/v3/exchangeInfo');
-    if (binanceRes.ok) {
-      const binanceData = await binanceRes.json();
-      const symbolUpper = symbol.toUpperCase();
-      const tokenInfo = binanceData.symbols.find(
-        (s) => s.baseAsset === symbolUpper || s.quoteAsset === symbolUpper
-      );
-      if (tokenInfo) {
-        // Binance tidak menyediakan contract address dalam exchangeInfo
-        // tapi bisa ditambahkan kalau suatu saat tersedia
-      }
-    }
-  } catch (e) {
-    console.warn('Error ambil CA Binance:', e.message);
-  }
-
-  return ca; // tetap kembalikan walau kosong
+  return ca; // Tetap return meskipun kosong
 }
 
 
