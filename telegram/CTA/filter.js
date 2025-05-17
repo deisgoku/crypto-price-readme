@@ -59,7 +59,7 @@ function generateDeleteButtons(filters) {
 // Fungsi buat generate tombol lihat filter (tanpa hapus)
 function generateViewButtons(filters) {
   return Object.keys(filters).map(k =>
-    Markup.button.callback(`🔹 ${k}`, `noop_${k}`)
+    Markup.button.callback(`🔹 ${k}`, `filter_${k}`) 
   );
 }
 
@@ -334,7 +334,7 @@ bot.action('lihat_filters', async ctx => {
 });
 
 // Action noop untuk tombol filter yang hanya tampilan
-bot.action(/^noop_/, async ctx => {
+bot.action(/filter_(.+)/, async ctx => {
   try {
     const data = ctx.callbackQuery.data;
     const keyword = data.slice(5); 
