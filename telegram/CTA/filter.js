@@ -49,6 +49,61 @@ async function listFilters(chatId) {
 }
 
 // ===================== Cache Tombol Filter =====================
+// Fungsi buat generate tombol hapus filter
+function generateDeleteButtons(filters) {
+  return Object.keys(filters).map(k =>
+    Markup.button.callback(`❌ ${k}`, `del_filter_${k}`)
+  );
+}
+
+// Fungsi buat generate tombol lihat filter (tanpa hapus)
+function generateViewButtons(filters) {
+  return Object.keys(filters).map(k =>
+    Markup.button.callback(`🔹 ${k}`, 'noop')
+  );
+}
+
+// Fungsi menampilkan daftar filter dengan tombol hapus (menu hapus)
+async function showFilterList(ctx) {
+  const chatId = ctx.chat.id;
+  const filters = await listFilters(chatId);
+  const keywords = Object.keys(filters || {});
+  const hasFilters = keywords.length > 0;
+
+  const list = hasFilters
+    ? keywords.map(k => `- \`${k}\``).join('\n')
+    : '_Belum ada filter_';
+
+  let buttons = hasFilters ? generateDeleteButtons(filters).map(b => [b]) : [];
+  buttons.push([Markup.button.callback('⬅️ Kembali', 'filter_menu')]);
+
+  await ctx.editMessageText(`🧾 *Filter Aktif:*\n${list}`, {
+    parse_mode: 'Markdown',
+    reply_markup: Markup.inlineKeyboard(buttons).reply_markup
+  });
+}
+
+// Fungsi menampilkan daftar filter hanya untuk lihat (tanpa hapus)
+async function showFilterView(ctx) {
+  const chatId = ctx.chat.id;
+  const filters = await listFilters(chatId);
+  const keywords = Object.keys(filters || {});
+  const hasFilters = keywords.length > 0;
+
+  const list = hasFilters
+    ? keywords.map(k => `- \`${k}\``).join('\n')
+    : '_Belum ada filter_';
+
+  let buttons = hasFilters ? generateViewButtons(filters).map(b => [b]) : [];
+  buttons.push([Markup.button.callback('⬅️ Kembali', 'filter_menu')]);
+
+  await ctx.editMessageText(`🧾 *Filter Aktif:*\n${list}`, {
+    parse_mode: 'Markdown',
+    reply_markup: Markup.inlineKeyboard(buttons).reply_markup
+  });
+}
+
+// Cache tombol hapus filter (dipakai di showFilterList)
 async function clearFilterButtonsCache(chatId) {
   await redis.del(getFilterButtonsCacheKey(chatId));
 }
@@ -61,16 +116,14 @@ async function getFilterButtons(chatId) {
     try {
       return JSON.parse(buttonsJSON);
     } catch {
-      // Jika gagal parse, lanjut generate fresh
+      // Kalau gagal parse, generate fresh
     }
   }
 
   const filters = await listFilters(chatId);
-  const buttons = Object.keys(filters).map(k =>
-    Markup.button.callback(`❌ ${k}`, `del_filter_${k}`)
-  );
+  const buttons = generateDeleteButtons(filters);
 
-  // Simpan cache tombol selama 5 menit
+  // Cache tombol selama 5 menit
   await redis.set(cacheKey, JSON.stringify(buttons), 'EX', 300);
 
   return buttons;
@@ -209,7 +262,7 @@ module.exports = bot => {
         [Markup.button.callback('➕ Tambah Filter', 'check_limit_before_add')],
         [Markup.button.callback('🗑️ Hapus Filter', 'filter_remove')],
         [Markup.button.callback('📃 Lihat Filter', 'lihat_filters')],
-        [Markup.button.callback('⬅️ Kembali ke Menu', 'personal_menu')]
+        [Markup.button.callback('⬅️ Kembali ke Menu', 'menu')]
       ])
     });
   });
@@ -228,79 +281,54 @@ module.exports = bot => {
     return ctx.answerCbQuery('Silakan kirim /filter <kata> <respon>', { show_alert: true });
   });
 
+// Action untuk buka menu hapus filter
+bot.action('filter_remove', async ctx => {
+  ctx.answerCbQuery('Memuat...').catch(() => {});
+  await showFilterList(ctx);
+});
 
+// Action untuk konfirmasi hapus filter
+bot.action(/confirm_del_(.+)/, async ctx => {
+  const keyword = ctx.match[1];
+  const confirmMarkup = Markup.inlineKeyboard([
+    [
+      Markup.button.callback('✅ Ya', `del_filter_${keyword}`),
+      Markup.button.callback('❌ Tidak', 'filter_remove')
+    ]
+  ]);
 
+  await ctx.editMessageText(`❓ *Yakin hapus filter:* \`${keyword}\`?`, {
+    parse_mode: 'Markdown',
+    reply_markup: confirmMarkup.reply_markup
+  });
+});
 
-
-  // Menu hapus filter
-bot.action(/filter_remove|del_filter_(.+)/, async ctx => {
-  const keyword = ctx.match?.[1];
+// Action eksekusi hapus filter
+bot.action(/del_filter_(.+)/, async ctx => {
+  const keyword = ctx.match[1];
   const chatId = ctx.chat.id;
 
-  if (keyword) {
-    await removeFilter(chatId, keyword);
-    await ctx.answerCbQuery(`Filter '${keyword}' dihapus.`);
-  } else {
-    await ctx.answerCbQuery('Memuat...');
-  }
+  await removeFilter(chatId, keyword);
+  await clearFilterButtonsCache(chatId);
+  await ctx.answerCbQuery(`Filter '${keyword}' dihapus.`);
 
-  const filters = await listFilters(chatId);
-
-  if (!filters || Object.keys(filters).length === 0) {
-    return ctx.editMessageText('Semua filter sudah dihapus.', {
-      parse_mode: 'Markdown',
-      ...Markup.inlineKeyboard([
-        [Markup.button.callback('⬅️ Kembali', 'filter_menu')]
-      ])
-    });
-  }
-
-  const buttons = Object.keys(filters).map(k =>
-    Markup.button.callback(k, `del_filter_${k}`)
-  );
-
-  await ctx.editMessageText('Pilih filter yang ingin dihapus:', {
-    parse_mode: 'Markdown',
-    ...Markup.inlineKeyboard([
-      ...buttons.map(b => [b]),
-      [Markup.button.callback('⬅️ Kembali', 'filter_menu')]
-    ])
-  });
+  // Tampilkan ulang daftar filter setelah hapus
+  await showFilterList(ctx);
 });
 
-
-
-  // Lihat daftar filter aktif
+// Action lihat filter (tanpa hapus)
 bot.action('lihat_filters', async ctx => {
   ctx.answerCbQuery('Memuat...').catch(() => {});
+  await showFilterView(ctx);
+});
 
-  const filters = await listFilters(ctx.chat.id);
-  const keywords = Object.keys(filters || {});
-  const hasFilters = keywords.length > 0;
-
-  const list = hasFilters
-    ? keywords.map(k => `- \`${k}\``).join('\n')
-    : '_Belum ada filter_';
-
-  let buttons = [];
-
-  if (hasFilters) {
-    buttons = keywords.map(k => [Markup.button.callback(`❌ ${k}`, `del_filter_${k}`)]);
-  }
-
-  // Tambahkan tombol kembali
-  buttons.push([Markup.button.callback('⬅️ Kembali', 'filter_menu')]);
-
-  await ctx.editMessageText(`🧾 *Filter Aktif:*\n${list}`, {
-    parse_mode: 'Markdown',
-    reply_markup: Markup.inlineKeyboard(buttons).reply_markup
-  });
-
-  // Perbarui cache tombol agar akurat
-  await clearFilterButtonsCache(ctx.chat.id);
+// Action noop untuk tombol filter yang hanya tampilan
+bot.action('noop', async ctx => {
+  await ctx.answerCbQuery('filter masih aktif', { show_alert: true });
 });
 
 
+// ======= command inline ======
 
   // Perintah /filter
   bot.command('filter', async ctx => {
