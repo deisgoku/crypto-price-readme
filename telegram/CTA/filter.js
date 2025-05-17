@@ -47,8 +47,6 @@ async function handleSymbolCommand(ctx, coinId) {
     }
 
     const result = json.data[0];
-    const CA = result.contract_address;
-
     const data = {
       HARGA: result.price,
       VOLUME: result.volume,
@@ -62,12 +60,12 @@ async function handleSymbolCommand(ctx, coinId) {
     const creditText = `${year} © Crypto Market Card`;
     const creditLink = `[${creditText}](https://t.me/crypto_market_card_bot/gcmc)`;
 
-    let msg = `📊 Market ${result.symbol.toUpperCase()}\n`;
+    let msg = `📊 Market ${result.symbol.toUpperCase()}\n\n`;
 
-    // Tambahkan baris CA jika ada
-    if (CA && typeof CA === 'object' && Object.keys(CA).length > 0) {
-      for (const [chain, address] of Object.entries(CA)) {
-        msg += `CA ${chain.toUpperCase()} : ${address}\n`;
+    // Tambahkan CA kalau ada
+    if (result.contract_address && typeof result.contract_address === 'object') {
+      for (const [chain, address] of Object.entries(result.contract_address)) {
+        msg += `CA ${chain.toUpperCase()} :\n\`${address}\`\n\n`;
       }
     }
 
