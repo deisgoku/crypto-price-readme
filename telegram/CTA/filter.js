@@ -228,84 +228,68 @@ module.exports = bot => {
     return ctx.answerCbQuery('Silakan kirim /filter <kata> <respon>', { show_alert: true });
   });
 
+
+
+
+
   // Menu hapus filter
-  bot.action('filter_remove', async ctx => {
-    await ctx.answerCbQuery();
-    const chatId = ctx.chat.id;
-    const filters = await listFilters(chatId);
+bot.action(/filter_remove|del_filter_(.+)/, async ctx => {
+  const keyword = ctx.match?.[1];
+  const chatId = ctx.chat.id;
 
-    if (!filters || Object.keys(filters).length === 0) {
-      return ctx.editMessageText('Belum ada filter untuk dihapus.', {
-        parse_mode: 'Markdown',
-        ...Markup.inlineKeyboard([
-          [Markup.button.callback('⬅️ Kembali', 'filter_menu')]
-        ])
-      });
-    }
-
-    const buttons = Object.keys(filters).map(k =>
-      Markup.button.callback(k, `del_filter_${k}`)
-    );
-
-    await ctx.editMessageText('Pilih filter yang ingin dihapus:', {
-      parse_mode: 'Markdown',
-      ...Markup.inlineKeyboard([
-        ...buttons.map(b => [b]),
-        [Markup.button.callback('⬅️ Kembali', 'filter_menu')]
-      ])
-    });
-  });
-
-  // Handler untuk hapus filter spesifik (dari tombol)
-  bot.action(/del_filter_(.+)/, async ctx => {
-    const keyword = ctx.match[1];
-    const chatId = ctx.chat.id;
-
+  if (keyword) {
     await removeFilter(chatId, keyword);
     await ctx.answerCbQuery(`Filter '${keyword}' dihapus.`);
+  } else {
+    await ctx.answerCbQuery('Memuat...');
+  }
 
-    const filters = await listFilters(chatId);
+  const filters = await listFilters(chatId);
 
-    if (!filters || Object.keys(filters).length === 0) {
-      return ctx.editMessageText('Semua filter sudah dihapus.', {
-        parse_mode: 'Markdown',
-        ...Markup.inlineKeyboard([
-          [Markup.button.callback('⬅️ Kembali', 'filter_menu')]
-        ])
-      });
-    }
-
-    const buttons = Object.keys(filters).map(k =>
-      Markup.button.callback(k, `del_filter_${k}`)
-    );
-
-    await ctx.editMessageText('Pilih filter yang ingin dihapus:', {
+  if (!filters || Object.keys(filters).length === 0) {
+    return ctx.editMessageText('Semua filter sudah dihapus.', {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
-        ...buttons.map(b => [b]),
         [Markup.button.callback('⬅️ Kembali', 'filter_menu')]
       ])
     });
+  }
+
+  const buttons = Object.keys(filters).map(k =>
+    Markup.button.callback(k, `del_filter_${k}`)
+  );
+
+  await ctx.editMessageText('Pilih filter yang ingin dihapus:', {
+    parse_mode: 'Markdown',
+    ...Markup.inlineKeyboard([
+      ...buttons.map(b => [b]),
+      [Markup.button.callback('⬅️ Kembali', 'filter_menu')]
+    ])
   });
+});
+
+
+
+
+
+
 
   // Lihat daftar filter aktif
-  bot.action('lihat_filters', async ctx => {
-    await ctx.answerCbQuery();
+bot.action('lihat_filters', async ctx => {
+  await ctx.answerCbQuery('Memuat...');
 
-    const chatId = ctx.chat.id;
-    const filters = await listFilters(chatId);
-    const buttons = await getFilterButtons(chatId);
+  const buttons = await getFilterButtons(ctx.chat.id);
+  const filters = await listFilters(ctx.chat.id);
+  const list = Object.keys(filters).map(k => `- \`${k}\``).join('\n') || '_Belum ada filter_';
 
-    const list = Object.keys(filters).map(k => `- \`${k}\``).join('\n') || '_Belum ada filter_';
-
-    await ctx.editMessageText(`🧾 *Filter Aktif:*\n${list}`, {
-      parse_mode: 'Markdown',
-      reply_markup: Markup.inlineKeyboard([
-        ...buttons.map(b => [b]),
-        [Markup.button.callback('⬅️ Kembali', 'filter_menu')]
-      ]).reply_markup
-    });
+  await ctx.editMessageText(`🧾 *Filter Aktif:*\n${list}`, {
+    parse_mode: 'Markdown',
+    reply_markup: Markup.inlineKeyboard([
+      ...buttons.map(b => [b]),
+      [Markup.button.callback('⬅️ Kembali', 'filter_menu')]
+    ]).reply_markup
   });
+});
 
   // Perintah /filter
   bot.command('filter', async ctx => {
