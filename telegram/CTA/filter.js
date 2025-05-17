@@ -334,14 +334,17 @@ bot.action('lihat_filters', async ctx => {
 });
 
 // Action noop untuk tombol filter yang hanya tampilan
-bot.action(/noop_(.+)/, async ctx => {
+bot.action(/^noop_/, async ctx => {
   try {
-    const keyword = ctx.match[1];
-    await ctx.answerCbQuery(`Filter '${keyword}' masih aktif`, { show_alert: true });
+    const data = ctx.callbackQuery.data;
+    const keyword = data.slice(5); 
+
+    await ctx.answerCbQuery(`Filter '${keyword}' masih aktif`, {
+      show_alert: true
+    });
   } catch (e) {
     console.error('Error di noop:', e);
-    // fallback 
-    ctx.answerCbQuery('Masih aktif');
+    await ctx.answerCbQuery('Masih aktif');
   }
 });
 
