@@ -133,11 +133,26 @@ async function getFilterButtons(chatId) {
 async function cacheGetCoinData(coinId) {
   const key = getBotFetchDataKey(coinId);
   const cached = await redis.get(key);
-  if (cached) return JSON.parse(cached);
-  return null;
+
+  if (!cached) return null;
+
+  try {
+    if (typeof cached === 'string') {
+      return JSON.parse(cached);
+    } else {
+      // Jika bukan string, kemungkinan kesalahan set cache sebelumnya
+      console.warn(`Cache bukan string untuk ${coinId}, hapus cache.`);
+      await redis.del(key);
+      return null;
+    }
+  } catch (err) {
+    console.error(`Gagal parse JSON cache untuk ${coinId}:`, err);
+    await redis.del(key); // hapus cache rusak
+    return null;
+  }
 }
 
-async function cacheSetCoinData(coinId, data, ttlSeconds = 60) {
+async function cacheSetCoinData(coinId, data, ttlSeconds = 150) {
   const key = getBotFetchDataKey(coinId);
   await redis.set(key, JSON.stringify(data), { EX: ttlSeconds });
 }
