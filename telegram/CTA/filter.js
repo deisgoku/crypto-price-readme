@@ -223,15 +223,26 @@ async function handleFilterMessage(ctx) {
   for (const keyword in filters) {
     const full = filters[keyword];
     if (typeof full !== 'string') continue;
+
+    // Cek keyword case-insensitive apakah ada di textRaw
     if (!textRaw.toLowerCase().includes(keyword.toLowerCase())) continue;
 
     const trimmed = full.trim();
 
     if (trimmed.startsWith('!c ')) {
+      // Ambil coinId setelah '!c '
       const coinId = trimmed.slice(3).trim();
-      return handleSymbolCommand(ctx, coinId);
+
+      // Pastikan coinId ada, baru panggil handleSymbolCommand
+      if (coinId) {
+        return handleSymbolCommand(ctx, coinId);
+      } else {
+        // Kalau coinId kosong, reply error atau skip
+        return ctx.reply('Format filter command !c tidak valid.');
+      }
     }
 
+    // Kalau bukan !c, proses tombol dan markdown biasa
     const linkRegex = /([^]+)(https?:\/\/[^\s)]+)/g;
     const buttons = [];
     let match;
@@ -239,6 +250,7 @@ async function handleFilterMessage(ctx) {
       buttons.push(Markup.button.url(match[1], match[2]));
     }
 
+    // Hapus markup tombol dari text agar bersih
     const cleanText = trimmed.replace(linkRegex, '$1');
     const isMono = cleanText.startsWith('```') || cleanText.startsWith('`');
 
@@ -351,23 +363,27 @@ bot.action(/filter_(.+)/, async ctx => {
 // ======= command inline ======
 
   // Perintah /filter
-  bot.command('filter', async ctx => {
-    try {
-      const text = ctx.message?.text;
-      if (!text) return ctx.reply('Perintah tidak valid.');
+bot.command('filter', async ctx => {
+  const text = ctx.message?.text;
+  if (!text) return ctx.reply('Perintah tidak valid.');
 
-      const [cmd, keyword, ...resArr] = text.trim().split(' ');
-      const response = resArr.join(' ');
+  const [cmd, keyword, ...resArr] = text.trim().split(' ');
+  const response = resArr.join(' ');
 
-      if (!keyword || !response) return ctx.reply('Format: /filter <kata> <respon>');
+  if (!keyword || !response) return ctx.reply('Format: /filter <kata> <respon>');
 
-      await addFilter(ctx.chat.id, ctx.from.id, keyword, response);
-      ctx.reply(`Filter *${keyword}* disimpan.`, { parse_mode: 'Markdown' });
-    } catch (err) {
-      console.error('Error /filter:', err);
-      ctx.reply(`⚠️ ${err.message}`);
-    }
-  });
+  // Kirim respons dulu supaya pengguna gak nunggu lama
+  ctx.reply(`Sedang menyimpan filter *${keyword}*...`, { parse_mode: 'Markdown' });
+
+  try {
+    await addFilter(ctx.chat.id, ctx.from.id, keyword, response);
+    // Kalau perlu, update pesan sebelumnya atau beri konfirmasi lain
+    ctx.reply(`Filter *${keyword}* berhasil disimpan.`, { parse_mode: 'Markdown' });
+  } catch (err) {
+    console.error('Error saat addFilter:', err);
+    ctx.reply(`⚠️ Gagal menyimpan filter: ${err.message}`);
+  }
+});
 
   // Perintah /unfilter
   bot.command('unfilter', async ctx => {
