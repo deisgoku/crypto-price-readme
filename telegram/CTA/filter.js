@@ -349,7 +349,7 @@ bot.action('lihat_filters', async ctx => {
 bot.action(/filter_(.+)/, async ctx => {
   try {
     const data = ctx.callbackQuery.data;
-    const keyword = data.slice(5); 
+    const keyword = data.slice(7); 
 
     await ctx.answerCbQuery(`Filter '${keyword}' masih aktif`, {
       show_alert: true
