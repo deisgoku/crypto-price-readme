@@ -64,54 +64,49 @@ async function getCache(key) {
 // === FETCHERS ===
 
 
-function isValidCA(addr) {
-  return typeof addr === 'string' && addr.startsWith('0x') && addr.length === 42;
-}
-
 async function getContractAddress(symbol, geckoDetail) {
   const ca = {};
 
   try {
-    const platformId = geckoDetail.asset_platform_id;
-
-    // 1. Prioritaskan dari Ethereum
-    const ethCA = geckoDetail?.detail_platforms?.ethereum?.contract_address;
-    if (isValidCA(ethCA)) {
-      ca['ethereum'] = ethCA.trim();
-    }
-
-    // 2. Ambil dari asset_platform_id jika valid dan belum ada
-    const primaryCA = geckoDetail?.detail_platforms?.[platformId]?.contract_address;
-    if (platformId && isValidCA(primaryCA) && !ca[platformId]) {
-      ca[platformId] = primaryCA.trim();
-    }
-
-    // 3. Lengkapi dari detail_platforms
+    // 1. Cek di detail_platforms (jika ada)
     if (geckoDetail.detail_platforms && typeof geckoDetail.detail_platforms === 'object') {
       for (const [chain, info] of Object.entries(geckoDetail.detail_platforms)) {
         const addr = info?.contract_address;
-        if (isValidCA(addr) && !ca[chain.toLowerCase()]) {
-          ca[chain.toLowerCase()] = addr.trim();
+        if (addr && typeof addr === 'string' && addr.trim()) {
+          ca[chain] = addr.trim();
         }
       }
     }
 
-    // 4. Lengkapi dari platforms
+    // 2. Tambahkan dari platforms jika belum ada
     if (geckoDetail.platforms && typeof geckoDetail.platforms === 'object') {
       for (const [chain, addr] of Object.entries(geckoDetail.platforms)) {
-        if (isValidCA(addr) && !ca[chain.toLowerCase()]) {
-          ca[chain.toLowerCase()] = addr.trim();
+        if (!ca[chain] && addr && typeof addr === 'string' && addr.trim()) {
+          ca[chain] = addr.trim();
         }
       }
     }
 
+    // 3. Tambahkan dari asset_platform_id jika belum ada
+    if (
+      geckoDetail.asset_platform_id &&
+      geckoDetail.detail_platforms?.[geckoDetail.asset_platform_id]?.contract_address &&
+      !ca[geckoDetail.asset_platform_id]
+    ) {
+      const fallbackAddr = geckoDetail.detail_platforms[geckoDetail.asset_platform_id].contract_address;
+      if (fallbackAddr && typeof fallbackAddr === 'string') {
+        ca[geckoDetail.asset_platform_id] = fallbackAddr.trim();
+      }
+    }
+
+    // Kalau ada CA, langsung return
     if (Object.keys(ca).length > 0) return ca;
 
   } catch (e) {
     console.warn('Error parsing CoinGecko:', e.message);
   }
 
-  // 5. Fallback ke CoinMarketCap
+  // 4. Fallback ke CoinMarketCap
   try {
     if (!CMC_KEY) throw new Error('CMC API key tidak tersedia');
 
@@ -127,18 +122,19 @@ async function getContractAddress(symbol, geckoDetail) {
       const cmcData = json.data?.[symbol.toUpperCase()];
       if (cmcData?.platform) {
         const { name, token_address } = cmcData.platform;
-        if (name && isValidCA(token_address)) {
+        if (name && token_address) {
           ca[name.toLowerCase()] = token_address;
           return ca;
         }
       }
     }
   } catch (e) {
-    console.warn('Error ambil CA dari CoinMarketCap:', e.message);
+    console.warn('Error ambil CA CoinMarketCap:', e.message);
   }
 
-  return ca; // tetap return meskipun kosong
+  return ca; // Tetap return meskipun kosong
 }
+
 
 
 async function fetchGeckoSymbols(symbols = [], limit = 5) {
