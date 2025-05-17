@@ -68,38 +68,33 @@ async function getContractAddress(symbol, geckoDetail) {
   const ca = {};
 
   try {
-    // 1. Cek di detail_platforms (jika ada)
+    const platformId = geckoDetail.asset_platform_id;
+
+    // 1. Ambil dari asset_platform_id dulu
+    const primaryCA = geckoDetail?.detail_platforms?.[platformId]?.contract_address;
+    if (platformId && primaryCA) {
+      ca[platformId] = primaryCA.trim();
+    }
+
+    // 2. Lengkapi dari detail_platforms
     if (geckoDetail.detail_platforms && typeof geckoDetail.detail_platforms === 'object') {
       for (const [chain, info] of Object.entries(geckoDetail.detail_platforms)) {
         const addr = info?.contract_address;
         if (addr && typeof addr === 'string' && addr.trim()) {
-          ca[chain] = addr.trim();
+          if (!ca[chain]) ca[chain] = addr.trim();
         }
       }
     }
 
-    // 2. Tambahkan dari platforms jika belum ada
+    // 3. Lengkapi dari platforms
     if (geckoDetail.platforms && typeof geckoDetail.platforms === 'object') {
       for (const [chain, addr] of Object.entries(geckoDetail.platforms)) {
-        if (!ca[chain] && addr && typeof addr === 'string' && addr.trim()) {
-          ca[chain] = addr.trim();
+        if (addr && typeof addr === 'string' && addr.trim()) {
+          if (!ca[chain]) ca[chain] = addr.trim();
         }
       }
     }
 
-    // 3. Tambahkan dari asset_platform_id jika belum ada
-    if (
-      geckoDetail.asset_platform_id &&
-      geckoDetail.detail_platforms?.[geckoDetail.asset_platform_id]?.contract_address &&
-      !ca[geckoDetail.asset_platform_id]
-    ) {
-      const fallbackAddr = geckoDetail.detail_platforms[geckoDetail.asset_platform_id].contract_address;
-      if (fallbackAddr && typeof fallbackAddr === 'string') {
-        ca[geckoDetail.asset_platform_id] = fallbackAddr.trim();
-      }
-    }
-
-    // Kalau ada CA, langsung return
     if (Object.keys(ca).length > 0) return ca;
 
   } catch (e) {
@@ -134,7 +129,6 @@ async function getContractAddress(symbol, geckoDetail) {
 
   return ca; // Tetap return meskipun kosong
 }
-
 
 
 async function fetchGeckoSymbols(symbols = [], limit = 5) {
