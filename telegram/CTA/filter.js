@@ -52,7 +52,7 @@ async function listFilters(chatId) {
 // Fungsi buat generate tombol hapus filter
 function generateDeleteButtons(filters) {
   return Object.keys(filters).map(k =>
-    Markup.button.callback(`❌ ${k}`, `del_filter_${k}`)
+    Markup.button.callback(`❌ ${k}`, `confirm_del_${k}`)
   );
 }
 
@@ -334,8 +334,9 @@ bot.action('lihat_filters', async ctx => {
 });
 
 // Action noop untuk tombol filter yang hanya tampilan
-bot.action('noop', async ctx => {
-  await ctx.answerCbQuery('filter masih aktif', { show_alert: true });
+bot.action(/noop_(.+)/, async ctx => {
+  const keyword = ctx.match[1];
+  await ctx.answerCbQuery(`Filter '${keyword}' masih aktif`, { show_alert: true });
 });
 
 
