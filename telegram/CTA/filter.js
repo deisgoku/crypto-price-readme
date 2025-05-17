@@ -7,6 +7,14 @@ function getFilterKey(chatId) {
   return `filter:${chatId}`;
 }
 
+function getBotFetchDataKey(coinId) {
+  return `filter:botfetchdata:${coinId.toLowerCase()}`;
+}
+
+function getFilterButtonsCacheKey(chatId) {
+  return `cache:filter_buttons:${chatId}`;
+}
+
 async function isPremium(userId) {
   return await redis.get(`tg:premium:${userId}`);
 }
@@ -28,31 +36,77 @@ async function addFilter(chatId, userId, keyword, responseText) {
   }
 
   await redis.hset(key, { [keyword.toLowerCase()]: responseText });
+  await clearFilterButtonsCache(chatId);
 }
 
 async function removeFilter(chatId, keyword) {
   await redis.hdel(getFilterKey(chatId), keyword.toLowerCase());
+  await clearFilterButtonsCache(chatId);
 }
 
 async function listFilters(chatId) {
   return await redis.hgetall(getFilterKey(chatId)) || {};
 }
 
+// ===================== Cache Tombol Filter =====================
+async function clearFilterButtonsCache(chatId) {
+  await redis.del(getFilterButtonsCacheKey(chatId));
+}
+
+async function getFilterButtons(chatId) {
+  const cacheKey = getFilterButtonsCacheKey(chatId);
+  let buttonsJSON = await redis.get(cacheKey);
+
+  if (buttonsJSON) {
+    try {
+      return JSON.parse(buttonsJSON);
+    } catch {
+      // Jika gagal parse, lanjut generate fresh
+    }
+  }
+
+  const filters = await listFilters(chatId);
+  const buttons = Object.keys(filters).map(k =>
+    Markup.button.callback(`❌ ${k}`, `del_filter_${k}`)
+  );
+
+  // Simpan cache tombol selama 5 menit
+  await redis.set(cacheKey, JSON.stringify(buttons), 'EX', 300);
+
+  return buttons;
+}
+
+// ===================== Cache Data Coin (optional caching example) =====================
+async function cacheGetCoinData(coinId) {
+  const key = getBotFetchDataKey(coinId);
+  const cached = await redis.get(key);
+  if (cached) return JSON.parse(cached);
+  return null;
+}
+
+async function cacheSetCoinData(coinId, data, ttlSeconds = 60) {
+  const key = getBotFetchDataKey(coinId);
+  await redis.set(key, JSON.stringify(data), { EX: ttlSeconds });
+}
+
 // ===================== Handler Command Coin =====================
-
-
-
 async function handleSymbolCommand(ctx, coinId) {
   try {
-    const url = `https://crypto-price-on.vercel.app/api/data?coin=${coinId}`;
-    const res = await fetch(url);
-    const json = await res.json();
+    // Coba ambil dari cache dulu
+    let dataCached = await cacheGetCoinData(coinId);
+    if (!dataCached) {
+      const url = `https://crypto-price-on.vercel.app/api/data?coin=${coinId}`;
+      const res = await fetch(url);
+      const json = await res.json();
 
-    if (!json.data || !json.data.length) {
-      return ctx.reply(`☹️ Data ${coinId} tidak ditemukan.\n\nCoba cek lagi ID-nya pakai /c ${coinId}, kali typo.`);
+      if (!json.data || !json.data.length) {
+        return ctx.reply(`☹️ Data ${coinId} tidak ditemukan.\n\nCoba cek lagi ID-nya pakai /c ${coinId}, kali typo.`);
+      }
+      dataCached = json.data[0];
+      await cacheSetCoinData(coinId, dataCached, 60); // cache 60 detik
     }
 
-    const result = json.data[0];
+    const result = dataCached;
     const data = {
       HARGA: result.price,
       VOLUME: result.volume,
@@ -73,7 +127,6 @@ async function handleSymbolCommand(ctx, coinId) {
 
     let msg = `📊 Market ${result.symbol.toUpperCase()}\n\n`;
 
-    // Perbaikan: encode address supaya URL aman
     if (result.contract_address && typeof result.contract_address === 'object') {
       const [chain, address] = Object.entries(result.contract_address)[0] || [];
       if (chain && address && explorers[chain]) {
@@ -83,7 +136,6 @@ async function handleSymbolCommand(ctx, coinId) {
       }
     }
 
-    // Hitung format teks
     const labelMax = Math.max(...Object.keys(data).map(k => k.length));
     const valueMax = Math.max(...Object.values(data).map(v => v.length));
     const totalLen = Math.max(30, labelMax + 3 + valueMax);
@@ -91,7 +143,6 @@ async function handleSymbolCommand(ctx, coinId) {
     const creditText = `${year} © Crypto Market Card`;
     const creditLink = `[${creditText}](https://t.me/crypto_market_card_bot/gcmc)`;
 
-    // Format info market
     msg += '```\n' + '━'.repeat(totalLen) + '\n';
     for (const [label, value] of Object.entries(data)) {
       msg += `${label.padEnd(labelMax)} : ${value.padStart(valueMax)}\n\n`;
@@ -128,7 +179,6 @@ async function handleFilterMessage(ctx) {
       return handleSymbolCommand(ctx, coinId);
     }
 
-    // Parsing tombol tautan khusus
     const linkRegex = /([^]+)(https?:\/\/[^\s)]+)/g;
     const buttons = [];
     let match;
@@ -150,7 +200,8 @@ async function handleFilterMessage(ctx) {
 
 // ===================== Register ke Bot =====================
 module.exports = bot => {
-  // Menu Utama Filter
+
+  // Menu utama filter
   bot.action('filter_menu', async ctx => {
     await ctx.editMessageText('🧰 *Kelola Filter Chat*', {
       parse_mode: 'Markdown',
@@ -163,7 +214,7 @@ module.exports = bot => {
     });
   });
 
-  // Cek Limit Sebelum Tambah
+  // Cek limit filter sebelum menambahkan
   bot.action('check_limit_before_add', async ctx => {
     const userId = ctx.from.id;
     const chatId = ctx.chat.id;
@@ -174,35 +225,95 @@ module.exports = bot => {
       return ctx.answerCbQuery('Batas 5 filter tercapai.', { show_alert: true });
     }
 
-    ctx.answerCbQuery('Silakan kirim /filter <kata> <respon>', { show_alert: true });
+    return ctx.answerCbQuery('Silakan kirim /filter <kata> <respon>', { show_alert: true });
   });
 
-  // Hapus Filter
-  bot.action('filter_remove', ctx => {
-    ctx.answerCbQuery();
-    ctx.reply('Contoh: /unfilter doge');
+  // Menu hapus filter
+  bot.action('filter_remove', async ctx => {
+    await ctx.answerCbQuery();
+    const chatId = ctx.chat.id;
+    const filters = await listFilters(chatId);
+
+    if (!filters || Object.keys(filters).length === 0) {
+      return ctx.editMessageText('Belum ada filter untuk dihapus.', {
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard([
+          [Markup.button.callback('⬅️ Kembali', 'filter_menu')]
+        ])
+      });
+    }
+
+    const buttons = Object.keys(filters).map(k =>
+      Markup.button.callback(k, `del_filter_${k}`)
+    );
+
+    await ctx.editMessageText('Pilih filter yang ingin dihapus:', {
+      parse_mode: 'Markdown',
+      ...Markup.inlineKeyboard([
+        ...buttons.map(b => [b]),
+        [Markup.button.callback('⬅️ Kembali', 'filter_menu')]
+      ])
+    });
   });
 
-  // Lihat Daftar Filter
+  // Handler untuk hapus filter spesifik (dari tombol)
+  bot.action(/del_filter_(.+)/, async ctx => {
+    const keyword = ctx.match[1];
+    const chatId = ctx.chat.id;
+
+    await removeFilter(chatId, keyword);
+    await ctx.answerCbQuery(`Filter '${keyword}' dihapus.`);
+
+    const filters = await listFilters(chatId);
+
+    if (!filters || Object.keys(filters).length === 0) {
+      return ctx.editMessageText('Semua filter sudah dihapus.', {
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard([
+          [Markup.button.callback('⬅️ Kembali', 'filter_menu')]
+        ])
+      });
+    }
+
+    const buttons = Object.keys(filters).map(k =>
+      Markup.button.callback(k, `del_filter_${k}`)
+    );
+
+    await ctx.editMessageText('Pilih filter yang ingin dihapus:', {
+      parse_mode: 'Markdown',
+      ...Markup.inlineKeyboard([
+        ...buttons.map(b => [b]),
+        [Markup.button.callback('⬅️ Kembali', 'filter_menu')]
+      ])
+    });
+  });
+
+  // Lihat daftar filter aktif
   bot.action('lihat_filters', async ctx => {
     await ctx.answerCbQuery();
-    const filters = await listFilters(ctx.chat.id);
+
+    const chatId = ctx.chat.id;
+    const filters = await listFilters(chatId);
+    const buttons = await getFilterButtons(chatId);
+
     const list = Object.keys(filters).map(k => `- \`${k}\``).join('\n') || '_Belum ada filter_';
 
     await ctx.editMessageText(`🧾 *Filter Aktif:*\n${list}`, {
       parse_mode: 'Markdown',
       reply_markup: Markup.inlineKeyboard([
+        ...buttons.map(b => [b]),
         [Markup.button.callback('⬅️ Kembali', 'filter_menu')]
       ]).reply_markup
     });
   });
 
-  // Command Tambah Filter
+  // Perintah /filter
   bot.command('filter', async ctx => {
     try {
-      if (!ctx.message || !ctx.message.text) return ctx.reply('Perintah tidak valid.');
+      const text = ctx.message?.text;
+      if (!text) return ctx.reply('Perintah tidak valid.');
 
-      const [cmd, keyword, ...resArr] = ctx.message.text.split(' ');
+      const [cmd, keyword, ...resArr] = text.trim().split(' ');
       const response = resArr.join(' ');
 
       if (!keyword || !response) return ctx.reply('Format: /filter <kata> <respon>');
@@ -215,7 +326,7 @@ module.exports = bot => {
     }
   });
 
-  // Command Hapus Filter
+  // Perintah /unfilter
   bot.command('unfilter', async ctx => {
     const keyword = ctx.message.text.split(' ')[1];
     if (!keyword) return ctx.reply('Gunakan: /unfilter <kata>');
@@ -223,6 +334,6 @@ module.exports = bot => {
     ctx.reply(`Filter *${keyword}* dihapus.`, { parse_mode: 'Markdown' });
   });
 
-  // Hook Teks Masuk
+  // Handler teks biasa
   bot.on('text', handleFilterMessage);
 };
