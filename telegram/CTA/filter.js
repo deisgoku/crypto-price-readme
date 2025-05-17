@@ -270,26 +270,37 @@ bot.action(/filter_remove|del_filter_(.+)/, async ctx => {
 
 
 
-
-
-
-
   // Lihat daftar filter aktif
 bot.action('lihat_filters', async ctx => {
-  await ctx.answerCbQuery('Memuat...');
+  ctx.answerCbQuery('Memuat...').catch(() => {});
 
-  const buttons = await getFilterButtons(ctx.chat.id);
   const filters = await listFilters(ctx.chat.id);
-  const list = Object.keys(filters).map(k => `- \`${k}\``).join('\n') || '_Belum ada filter_';
+  const keywords = Object.keys(filters || {});
+  const hasFilters = keywords.length > 0;
+
+  const list = hasFilters
+    ? keywords.map(k => `- \`${k}\``).join('\n')
+    : '_Belum ada filter_';
+
+  let buttons = [];
+
+  if (hasFilters) {
+    buttons = keywords.map(k => [Markup.button.callback(`❌ ${k}`, `del_filter_${k}`)]);
+  }
+
+  // Tambahkan tombol kembali
+  buttons.push([Markup.button.callback('⬅️ Kembali', 'filter_menu')]);
 
   await ctx.editMessageText(`🧾 *Filter Aktif:*\n${list}`, {
     parse_mode: 'Markdown',
-    reply_markup: Markup.inlineKeyboard([
-      ...buttons.map(b => [b]),
-      [Markup.button.callback('⬅️ Kembali', 'filter_menu')]
-    ]).reply_markup
+    reply_markup: Markup.inlineKeyboard(buttons).reply_markup
   });
+
+  // Perbarui cache tombol agar akurat
+  await clearFilterButtonsCache(ctx.chat.id);
 });
+
+
 
   // Perintah /filter
   bot.command('filter', async ctx => {
