@@ -281,14 +281,21 @@ module.exports = bot => {
     return ctx.answerCbQuery('Silakan kirim /filter <kata> <respon>', { show_alert: true });
   });
 
+
+
+
+
 // Action untuk buka menu hapus filter
 bot.action('filter_remove', async ctx => {
   ctx.answerCbQuery('Memuat...').catch(() => {});
   await showFilterList(ctx);
 });
 
+
 // Action untuk konfirmasi hapus filter
 bot.action(/confirm_del_(.+)/, async ctx => {
+  ctx.answerCbQuery().catch(() => {}); 
+
   const keyword = ctx.match[1];
   const confirmMarkup = Markup.inlineKeyboard([
     [
@@ -303,6 +310,7 @@ bot.action(/confirm_del_(.+)/, async ctx => {
   });
 });
 
+
 // Action eksekusi hapus filter
 bot.action(/del_filter_(.+)/, async ctx => {
   const keyword = ctx.match[1];
@@ -315,6 +323,9 @@ bot.action(/del_filter_(.+)/, async ctx => {
   // Tampilkan ulang daftar filter setelah hapus
   await showFilterList(ctx);
 });
+
+
+
 
 // Action lihat filter (tanpa hapus)
 bot.action('lihat_filters', async ctx => {
