@@ -39,6 +39,9 @@ async function listFilters(chatId) {
 }
 
 // ===================== Handler Command Coin =====================
+
+
+
 async function handleSymbolCommand(ctx, coinId) {
   try {
     const url = `https://crypto-price-on.vercel.app/api/data?coin=${coinId}`;
@@ -70,11 +73,12 @@ async function handleSymbolCommand(ctx, coinId) {
 
     let msg = `📊 Market ${result.symbol.toUpperCase()}\n\n`;
 
-    // Tambahkan CA jika ada
+    // Perbaikan: encode address supaya URL aman
     if (result.contract_address && typeof result.contract_address === 'object') {
       const [chain, address] = Object.entries(result.contract_address)[0] || [];
       if (chain && address && explorers[chain]) {
-        const link = explorers[chain] + address;
+        const encodedAddress = encodeURIComponent(address);
+        const link = explorers[chain] + encodedAddress;
         msg += `[CA di ${chain.toUpperCase()}](${link})\n\n`;
       }
     }
