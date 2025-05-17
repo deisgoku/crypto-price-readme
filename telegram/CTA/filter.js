@@ -47,6 +47,8 @@ async function handleSymbolCommand(ctx, coinId) {
     }
 
     const result = json.data[0];
+    const CA = result.contract_address;
+
     const data = {
       HARGA: result.price,
       VOLUME: result.volume,
@@ -62,10 +64,9 @@ async function handleSymbolCommand(ctx, coinId) {
 
     let msg = `📊 Market ${result.symbol.toUpperCase()}\n`;
 
-    // Tampilkan CA hanya jika ada isinya
-    const ca = result.contract_address;
-    if (ca && typeof ca === 'object' && Object.keys(ca).length > 0) {
-      for (const [chain, address] of Object.entries(ca)) {
+    // Tambahkan baris CA jika ada
+    if (CA && typeof CA === 'object' && Object.keys(CA).length > 0) {
+      for (const [chain, address] of Object.entries(CA)) {
         msg += `CA ${chain.toUpperCase()} : ${address}\n`;
       }
     }
