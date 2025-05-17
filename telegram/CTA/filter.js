@@ -55,12 +55,21 @@ async function handleSymbolCommand(ctx, coinId) {
 
     const labelMax = Math.max(...Object.keys(data).map(k => k.length));
     const valueMax = Math.max(...Object.values(data).map(v => v.length));
-    const totalLen = labelMax + 3 + valueMax;
+    const totalLen = Math.max(30, labelMax + 3 + valueMax);
     const year = new Date().getFullYear();
     const creditText = `${year} © Crypto Market Card`;
     const creditLink = `[${creditText}](https://t.me/crypto_market_card_bot/gcmc)`;
 
     let msg = `📊 Market ${result.symbol.toUpperCase()}\n`;
+
+    // Tampilkan CA hanya jika ada isinya
+    const ca = result.contract_address;
+    if (ca && typeof ca === 'object' && Object.keys(ca).length > 0) {
+      for (const [chain, address] of Object.entries(ca)) {
+        msg += `CA ${chain.toUpperCase()} : ${address}\n`;
+      }
+    }
+
     msg += '```\n' + '━'.repeat(totalLen) + '\n';
     for (const [label, value] of Object.entries(data)) {
       msg += `${label.padEnd(labelMax)} : ${value.padStart(valueMax)}\n\n`;
