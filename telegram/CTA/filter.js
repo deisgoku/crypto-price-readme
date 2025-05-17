@@ -2,6 +2,7 @@ const fetch = require('node-fetch');
 const { redis } = require('../../lib/redis');
 const { Markup } = require('telegraf');
 
+// ===================== Utilitas =====================
 function getFilterKey(chatId) {
   return `filter:${chatId}`;
 }
@@ -10,6 +11,13 @@ async function isPremium(userId) {
   return await redis.get(`tg:premium:${userId}`);
 }
 
+function centerText(text, width) {
+  const spacer = '\u2007';
+  const pad = Math.max(0, Math.floor((width - text.length) / 2));
+  return spacer.repeat(pad) + text;
+}
+
+// ===================== Fungsi Filter =====================
 async function addFilter(chatId, userId, keyword, responseText) {
   const key = getFilterKey(chatId);
   const existing = await redis.hgetall(key) || {};
@@ -30,12 +38,7 @@ async function listFilters(chatId) {
   return await redis.hgetall(getFilterKey(chatId)) || {};
 }
 
-function centerText(text, width) {
-  const spacer = '\u2007';
-  const pad = Math.max(0, Math.floor((width - text.length) / 2));
-  return spacer.repeat(pad) + text;
-}
-
+// ===================== Handler Command Coin =====================
 async function handleSymbolCommand(ctx, coinId) {
   try {
     const url = `https://crypto-price-on.vercel.app/api/data?coin=${coinId}`;
@@ -62,13 +65,15 @@ async function handleSymbolCommand(ctx, coinId) {
 
     let msg = `📊 Market ${result.symbol.toUpperCase()}\n\n`;
 
-    // Tambahkan CA kalau ada (dibungkus dengan backtick agar aman dari parser Markdown)
+    // Tambahkan CA jika ada
     if (result.contract_address && typeof result.contract_address === 'object') {
       for (const [chain, address] of Object.entries(result.contract_address)) {
-        msg += `CA ${chain.toUpperCase()} :\n\`${address}\`\n\n`;
+        msg += `*CA ${chain.toUpperCase()}*: \`${address}\`\n`;
       }
+      msg += '\n';
     }
 
+    // Format info market
     msg += '```\n' + '━'.repeat(totalLen) + '\n';
     for (const [label, value] of Object.entries(data)) {
       msg += `${label.padEnd(labelMax)} : ${value.padStart(valueMax)}\n\n`;
@@ -86,6 +91,7 @@ async function handleSymbolCommand(ctx, coinId) {
   }
 }
 
+// ===================== Handler Filter Message =====================
 async function handleFilterMessage(ctx) {
   const textRaw = ctx.message?.text;
   if (!textRaw || textRaw.startsWith('/')) return;
@@ -94,7 +100,6 @@ async function handleFilterMessage(ctx) {
 
   for (const keyword in filters) {
     const full = filters[keyword];
-
     if (typeof full !== 'string') continue;
     if (!textRaw.toLowerCase().includes(keyword.toLowerCase())) continue;
 
@@ -105,6 +110,7 @@ async function handleFilterMessage(ctx) {
       return handleSymbolCommand(ctx, coinId);
     }
 
+    // Parsing tombol tautan khusus
     const linkRegex = /([^]+)(https?:\/\/[^\s)]+)/g;
     const buttons = [];
     let match;
@@ -124,7 +130,9 @@ async function handleFilterMessage(ctx) {
   }
 }
 
+// ===================== Register ke Bot =====================
 module.exports = bot => {
+  // Menu Utama Filter
   bot.action('filter_menu', async ctx => {
     await ctx.editMessageText('🧰 *Kelola Filter Chat*', {
       parse_mode: 'Markdown',
@@ -137,6 +145,7 @@ module.exports = bot => {
     });
   });
 
+  // Cek Limit Sebelum Tambah
   bot.action('check_limit_before_add', async ctx => {
     const userId = ctx.from.id;
     const chatId = ctx.chat.id;
@@ -146,14 +155,17 @@ module.exports = bot => {
     if (!premium && Object.keys(existing).length >= 5) {
       return ctx.answerCbQuery('Batas 5 filter tercapai.', { show_alert: true });
     }
+
     ctx.answerCbQuery('Silakan kirim /filter <kata> <respon>', { show_alert: true });
   });
 
+  // Hapus Filter
   bot.action('filter_remove', ctx => {
     ctx.answerCbQuery();
     ctx.reply('Contoh: /unfilter doge');
   });
 
+  // Lihat Daftar Filter
   bot.action('lihat_filters', async ctx => {
     await ctx.answerCbQuery();
     const filters = await listFilters(ctx.chat.id);
@@ -167,18 +179,15 @@ module.exports = bot => {
     });
   });
 
+  // Command Tambah Filter
   bot.command('filter', async ctx => {
     try {
-      if (!ctx.message || !ctx.message.text) {
-        return ctx.reply('Perintah tidak valid.');
-      }
+      if (!ctx.message || !ctx.message.text) return ctx.reply('Perintah tidak valid.');
 
       const [cmd, keyword, ...resArr] = ctx.message.text.split(' ');
       const response = resArr.join(' ');
 
-      if (!keyword || !response) {
-        return ctx.reply('Format: /filter <kata> <respon>');
-      }
+      if (!keyword || !response) return ctx.reply('Format: /filter <kata> <respon>');
 
       await addFilter(ctx.chat.id, ctx.from.id, keyword, response);
       ctx.reply(`Filter *${keyword}* disimpan.`, { parse_mode: 'Markdown' });
@@ -188,6 +197,7 @@ module.exports = bot => {
     }
   });
 
+  // Command Hapus Filter
   bot.command('unfilter', async ctx => {
     const keyword = ctx.message.text.split(' ')[1];
     if (!keyword) return ctx.reply('Gunakan: /unfilter <kata>');
@@ -195,5 +205,6 @@ module.exports = bot => {
     ctx.reply(`Filter *${keyword}* dihapus.`, { parse_mode: 'Markdown' });
   });
 
+  // Hook Teks Masuk
   bot.on('text', handleFilterMessage);
 };
