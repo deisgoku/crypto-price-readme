@@ -62,7 +62,7 @@ async function handleSymbolCommand(ctx, coinId) {
 
     let msg = `📊 Market ${result.symbol.toUpperCase()}\n\n`;
 
-    // Tambahkan CA kalau ada
+    // Tambahkan CA kalau ada (dibungkus dengan backtick agar aman dari parser Markdown)
     if (result.contract_address && typeof result.contract_address === 'object') {
       for (const [chain, address] of Object.entries(result.contract_address)) {
         msg += `CA ${chain.toUpperCase()} :\n\`${address}\`\n\n`;
