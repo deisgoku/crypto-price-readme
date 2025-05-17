@@ -77,7 +77,7 @@ async function showFilterList(ctx) {
   let buttons = hasFilters ? generateDeleteButtons(filters).map(b => [b]) : [];
   buttons.push([Markup.button.callback('⬅️ Kembali', 'filter_menu')]);
 
-  await ctx.editMessageText(`🧾 *Filter Aktif:*\n${list}`, {
+  await ctx.editMessageText(`🧾 *Pilih filter yang ingin di hapus:*\n${list}`, {
     parse_mode: 'Markdown',
     reply_markup: Markup.inlineKeyboard(buttons).reply_markup
   });
@@ -335,10 +335,15 @@ bot.action('lihat_filters', async ctx => {
 
 // Action noop untuk tombol filter yang hanya tampilan
 bot.action(/noop_(.+)/, async ctx => {
-  const keyword = ctx.match[1];
-  await ctx.answerCbQuery(`Filter '${keyword}' masih aktif`, { show_alert: true });
+  try {
+    const keyword = ctx.match[1];
+    await ctx.answerCbQuery(`Filter '${keyword}' masih aktif`, { show_alert: true });
+  } catch (e) {
+    console.error('Error di noop:', e);
+    // fallback 
+    ctx.answerCbQuery('Masih aktif');
+  }
 });
-
 
 // ======= command inline ======
 
