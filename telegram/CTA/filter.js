@@ -56,22 +56,36 @@ async function handleSymbolCommand(ctx, coinId) {
       TREND: result.trend,
     };
 
+    // Explorer mapping
+    const explorers = {
+      ethereum: "https://etherscan.io/token/",
+      "binance-smart-chain": "https://bscscan.com/token/",
+      solana: "https://solscan.io/token/",
+      sui: "https://suiexplorer.com/object/",
+      base: "https://basescan.org/token/",
+      avalanche: "https://snowtrace.io/token/",
+      polygon: "https://polygonscan.com/token/",
+      optimism: "https://optimistic.etherscan.io/token/"
+    };
+
+    let msg = `📊 Market ${result.symbol.toUpperCase()}\n\n`;
+
+    // Tambahkan CA jika ada
+    if (result.contract_address && typeof result.contract_address === 'object') {
+      const [chain, address] = Object.entries(result.contract_address)[0] || [];
+      if (chain && address && explorers[chain]) {
+        const link = explorers[chain] + address;
+        msg += `[CA di ${chain.toUpperCase()}](${link})\n\n`;
+      }
+    }
+
+    // Hitung format teks
     const labelMax = Math.max(...Object.keys(data).map(k => k.length));
     const valueMax = Math.max(...Object.values(data).map(v => v.length));
     const totalLen = Math.max(30, labelMax + 3 + valueMax);
     const year = new Date().getFullYear();
     const creditText = `${year} © Crypto Market Card`;
     const creditLink = `[${creditText}](https://t.me/crypto_market_card_bot/gcmc)`;
-
-    let msg = `📊 Market ${result.symbol.toUpperCase()}\n\n`;
-
-    // Tambahkan CA jika ada
-    if (result.contract_address && typeof result.contract_address === 'object') {
-      for (const [chain, address] of Object.entries(result.contract_address)) {
-        msg += `*CA ${chain.toUpperCase()}*: \`${address}\`\n`;
-      }
-      msg += '\n';
-    }
 
     // Format info market
     msg += '```\n' + '━'.repeat(totalLen) + '\n';
