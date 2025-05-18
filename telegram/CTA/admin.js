@@ -1,6 +1,3 @@
-// telegram/CTA/admin.js
-
-
 const { Markup } = require('telegraf');
 const { redis } = require('../../lib/redis');
 
@@ -94,16 +91,37 @@ function requestAdminInput(ctx, key, promptText) {
 
 async function showRemoveAdminUI(ctx) {
   const admins = await redis.hkeys(ADMIN_KEY);
-  if (!admins.length) return ctx.reply('Tidak ada admin saat ini.');
+  if (!admins.length) {
+    return ctx.reply('Tidak ada admin saat ini.');
+  }
 
-  const buttons = admins.map(id => [{
-    text: `Hapus Admin ${id}`,
-    callback_data: `confirm_remove_admin:${id}`
-  }]);
+  const buttons = [];
 
-  return ctx.reply('Pilih admin yang ingin dihapus:', {
-    reply_markup: { inline_keyboard: buttons }
-  });
+  for (const id of admins) {
+    let label = `ID ${id}`;
+    try {
+      const user = await ctx.telegram.getChat(id);
+      if (user.username) {
+        label = `@${user.username} (${id})`;
+      } else if (user.first_name || user.last_name) {
+        const name = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+        label = `${name} (${id})`;
+      }
+    } catch (err) {
+      // Jika gagal ambil data user, pakai ID saja
+    }
+
+    buttons.push([
+      Markup.button.callback(`Hapus Admin: ${label}`, `confirm_remove_admin:${id}`)
+    ]);
+  }
+
+  // Tombol kembali
+  buttons.push([
+    Markup.button.callback('⬅️ Kembali', 'admin_menu')
+  ]);
+
+  return ctx.reply('Pilih admin yang ingin dihapus:', Markup.inlineKeyboard(buttons));
 }
 
 
@@ -135,16 +153,36 @@ async function listAdmins(bot) {
 
 async function showRemovePremiumUI(ctx) {
   const premiums = await redis.hkeys(PREMIUM_KEY);
-  if (!premiums.length) return ctx.reply('Tidak ada user premium saat ini.');
+  if (!premiums.length) {
+    return ctx.reply('Tidak ada user premium saat ini.');
+  }
 
-  const buttons = premiums.map(id => [{
-    text: `Hapus Premium ${id}`,
-    callback_data: `confirm_remove_premium:${id}`
-  }]);
+  const buttons = [];
 
-  return ctx.reply('Pilih user premium yang ingin dihapus:', {
-    reply_markup: { inline_keyboard: buttons }
-  });
+  for (const id of premiums) {
+    let label = `ID ${id}`;
+    try {
+      const user = await ctx.telegram.getChat(id);
+      if (user.username) {
+        label = `@${user.username}`;
+      } else if (user.first_name || user.last_name) {
+        label = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+      }
+    } catch (err) {
+      // Kalau gagal ambil info user, tetap pakai ID
+    }
+
+    buttons.push([
+      Markup.button.callback(`Hapus Premium: ${label}`, `confirm_remove_premium:${id}`)
+    ]);
+  }
+
+  // Tambahkan tombol kembali
+  buttons.push([
+    Markup.button.callback('⬅️ Kembali', 'admin_menu')
+  ]);
+
+  return ctx.reply('Pilih user premium yang ingin dihapus:', Markup.inlineKeyboard(buttons));
 }
 
 async function listPremiums(bot) {
