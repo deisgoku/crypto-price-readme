@@ -60,9 +60,11 @@ module.exports = bot => {
   });
 
   bot.action('admin_menu', async ctx => {
-    await ctx.editMessageText('🧰 *Kelola Admin*', {
+  await ctx.editMessageText(
+    '🧰 *Kelola Admin*',
+    {
       parse_mode: 'Markdown',
-      reply_markup: Markup.inlineKeyboard([
+      ...Markup.inlineKeyboard([
         [Markup.button.callback('➕ Add Admin', 'add_admin')],
         [Markup.button.callback('➖ Remove Admin', 'remove_admin')],
         [Markup.button.callback('💎 Add Premium', 'add_premium')],
@@ -72,8 +74,9 @@ module.exports = bot => {
         [Markup.button.callback('📢 Broadcast', 'broadcast')],
         [Markup.button.callback('⬅️ Kembali', 'menu')],
       ])
-    });
-  });
+    }
+  );
+});
 
   bot.action('add_admin', async ctx => {
     const id = ctx.from.id.toString();
