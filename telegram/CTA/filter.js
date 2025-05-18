@@ -10,18 +10,6 @@ const {
 
 
 
-const CEO_IDs = (process.env.CEO_ID || '')
-  .split(',')
-  .map(id => id.trim())
-  .filter(Boolean);
-
-async function ensureCeoPremium() {
-  for (const id of CEO_IDs) {
-    await redis.hset('tg:premium', id, JSON.stringify({ plan: 'admin', expires: 0 }));
-    await redis.hset('tg:admin', id, 1);
-  }
-}
-
 
 
 // ===================== Utilitas =====================
@@ -427,6 +415,3 @@ bot.command('filter', async ctx => {
   bot.on('text', handleFilterMessage);
 };
 
-ensureCeoPremium()
-  .then(() => console.log('[FILTER] CEO premium ensured:', CEO_IDs))
-  .catch(err => console.error('Gagal ensure CEO premium:', err));
