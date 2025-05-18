@@ -8,7 +8,7 @@ const { createCanvas, registerFont } = require('canvas');
 const bcrypt = require('bcrypt');
 const fs = require('fs');
 const path = require('path');
-const { ensureCeoPremium } = require('./CTA/filter');
+
 
 
 const { BOT_TOKEN, BASE_URL } = require('./config');
@@ -32,6 +32,25 @@ const tempSession = new Map();
 
 const fontDir = path.join(__dirname, '../lib/data/fonts');
 const fontsCache = new Map();
+
+
+async function setCEOasAdminPremium() {
+  const ceoId = process.env.CEO_ID;
+  if (!ceoId) {
+    console.error('CEO_ID environment variable not set!');
+    return;
+  }
+
+  // Simpan CEO_ID ke key tg:admin dan tg:premium
+  await redis.sadd('tg:admin', ceoId);
+  await redis.sadd('tg:premium', ceoId);
+
+  console.log(`Set CEO_ID ${ceoId} as admin and premium`);
+}
+
+setCEOasAdminPremium().catch(console.error);
+  
+
 
 async function loadFonts() {
   const fonts = [
@@ -70,9 +89,7 @@ joinHandler(bot);
 require('./CTA/handlercoin')(bot);
 require('./CTA/menu')(bot);
 require('./CTA/filter')(bot);
-ensureCeoPremium()
-  .then(() => console.log('[FILTER] CEO premium ensured:', CEO_IDs))
-  .catch(err => console.error('Gagal ensure CEO premium:', err));
+
 
 
 
