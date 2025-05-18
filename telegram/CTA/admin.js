@@ -239,7 +239,7 @@ module.exports = bot => {
 });
 
   // === Handler Input Admin ===
-  bot.command('admininput', async ctx => {
+  bot.command('admin', async ctx => {
   const fromId = ctx.from.id.toString();
   const args = ctx.message.text.split(' ').slice(1);
   const input = args.join(' ').trim();
@@ -264,23 +264,22 @@ module.exports = bot => {
 });
 
   // === Hapus Admin ===
-  bot.action(/^confirm_remove_admin:(.+)/, async ctx => {
-    await ctx.answerCbQuery();
-    const id = ctx.from.id.toString();
-    if (!(await isAdmin(id))) return ctx.reply('Kamu bukan admin.');
+bot.action(/^confirm_remove_admin:(.+)/, async ctx => {
+  await ctx.answerCbQuery();
+  const id = ctx.from.id.toString();
+  if (!(await isAdmin(id))) return ctx.reply('Kamu bukan admin.');
 
-    const userId = ctx.match[1];
-    return ctx.reply(`Yakin ingin menghapus admin ${userId}?`, {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: 'Ya', callback_data: `delete_admin_yes:${userId}` },
-            { text: 'Tidak', callback_data: 'delete_admin_no' }
-          ]
-        ]
-      }
-    });
+  const userId = ctx.match[1];
+  return ctx.reply(`⚠️ Yakin ingin menghapus admin \`${userId}\`?`, {
+    parse_mode: 'Markdown',
+    ...Markup.inlineKeyboard([
+      [
+        Markup.button.callback('✅ Ya', `delete_admin_yes:${userId}`),
+        Markup.button.callback('❌ Tidak', 'delete_admin_no')
+      ]
+    ])
   });
+});
 
   bot.action(/^delete_admin_yes:(.+)/, async ctx => {
     await ctx.answerCbQuery();
@@ -324,7 +323,7 @@ module.exports = bot => {
 
     await ctx.editMessageText('🧑‍💼 *Daftar Admin Aktif:*', {
       parse_mode: 'Markdown',
-      reply_markup: Markup.inlineKeyboard(rows)
+      ...Markup.inlineKeyboard(rows)
     });
   });
 
@@ -348,49 +347,44 @@ module.exports = bot => {
   return requestAdminInput(ctx, 'add_premium', 'Masukkan User ID atau @username yang ingin dijadikan premium:\nContoh: /premiuminput @user atau /premiuminput 12345678');
 });
 
+// premiuminput command langsung eksekusi
 bot.command('premiuminput', async ctx => {
   const fromId = ctx.from.id.toString();
   const args = ctx.message.text.split(' ').slice(1);
   const input = args.join(' ').trim();
 
-  if (!input) return ctx.reply('Input tidak boleh kosong.');
-
-  const pending = pendingAdminInput.get(fromId);
-  if (pending !== 'add_premium') return ctx.reply('Tidak ada permintaan aktif.');
+  if (!input) return ctx.reply('Masukkan User ID atau @username');
 
   if (!(await isAdmin(fromId)))
-    return ctx.reply('Hanya Admin yang bisa melakukan ini.');
+    return ctx.reply('Hanya admin yang dapat memberikan akses premium.');
 
   try {
     const userId = await resolveUserIdOrThrow(ctx, input);
     await addPremium(userId);
-    await ctx.reply(`Berhasil menambahkan premium: ${userId}`);
+    return ctx.reply(`Berhasil menambahkan premium: ${userId}`);
   } catch (err) {
-    await ctx.reply(`Gagal menambahkan premium: ${err.message}`);
-  } finally {
-    pendingAdminInput.delete(fromId);
+    return ctx.reply(`Gagal menambahkan premium: ${err.message}`);
   }
 });
 
 
-  // === Hapus Premium ===
-  bot.action(/^confirm_remove_premium:(.+)/, async ctx => {
-    await ctx.answerCbQuery();
-    const id = ctx.from.id.toString();
-    if (!(await isAdmin(id))) return ctx.reply('Kamu bukan admin.');
+// === Hapus Premium ===
+bot.action(/^confirm_remove_premium:(.+)/, async ctx => {
+  await ctx.answerCbQuery();
+  const id = ctx.from.id.toString();
+  if (!(await isAdmin(id))) return ctx.reply('Kamu bukan admin.');
 
-    const userId = ctx.match[1];
-    return ctx.reply(`Yakin ingin menghapus premium dari ${userId}?`, {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: 'Ya', callback_data: `delete_premium_yes:${userId}` },
-            { text: 'Tidak', callback_data: 'delete_premium_no' }
-          ]
-        ]
-      }
-    });
+  const userId = ctx.match[1];
+  return ctx.reply(`⚠️ Yakin ingin menghapus akses premium dari \`${userId}\`?`, {
+    parse_mode: 'Markdown',
+    ...Markup.inlineKeyboard([
+      [
+        Markup.button.callback('✅ Ya', `delete_premium_yes:${userId}`),
+        Markup.button.callback('❌ Tidak', 'delete_premium_no')
+      ]
+    ])
   });
+});
 
   bot.action(/^delete_premium_yes:(.+)/, async ctx => {
     await ctx.answerCbQuery();
@@ -423,7 +417,7 @@ bot.command('premiuminput', async ctx => {
     if (!ids.length) {
       return ctx.editMessageText('💎 *Daftar User Premium:*\n(Tidak ada user premium)', {
         parse_mode: 'Markdown',
-        reply_markup: Markup.inlineKeyboard([
+        ...Markup.inlineKeyboard([
           [Markup.button.callback('⬅️ Kembali', 'admin_menu')]
         ])
       });
@@ -443,7 +437,7 @@ bot.command('premiuminput', async ctx => {
 
     await ctx.editMessageText('💎 *Daftar User Premium:*', {
       parse_mode: 'Markdown',
-      reply_markup: Markup.inlineKeyboard(rows)
+      ...Markup.inlineKeyboard(rows)
     });
   } catch (err) {
     console.error('Error list_premiums:', err);
@@ -474,11 +468,57 @@ bot.command('premiuminput', async ctx => {
   });
 
   // === Broadcast ke semua user ===
-  bot.action('broadcast', async ctx => {
-    await ctx.answerCbQuery();
-    const id = ctx.from.id.toString();
-    if (!(await isAdmin(id))) return ctx.reply('Kamu bukan admin.');
-    return requestAdminInput(ctx, 'broadcast', 'Tulis isi broadcast yang ingin dikirim ke semua user:');
+  // === Trigger Broadcast (pakai tombol) ===
+// Trigger broadcast via tombol
+bot.action('broadcast', async ctx => {
+  const id = ctx.from.id.toString();
+  if (!(await isAdmin(id))) return ctx.reply('❌ Kamu bukan admin.');
+  pendingAdminInput.set(id, 'broadcast');
+  return ctx.reply('📢 *Tulis pesan broadcast yang ingin dikirim ke semua pengguna:*\n(Ketik /cancel untuk membatalkan)', {
+    parse_mode: 'Markdown'
   });
+});
+
+// Handler admininput khusus broadcast
+bot.command('admininput', async ctx => {
+  const id = ctx.from.id.toString();
+  const text = ctx.message.text.split(' ').slice(1).join(' ').trim();
+
+  if (!text) return ctx.reply('❗ Pesan tidak boleh kosong.');
+  if (!(await isAdmin(id))) return ctx.reply('❌ Kamu bukan admin.');
+
+  const pending = pendingAdminInput.get(id);
+  if (pending !== 'broadcast') return ctx.reply('⚠️ Tidak ada permintaan broadcast yang aktif.');
+
+  pendingAdminInput.delete(id);
+
+  const allUsers = await redis.smembers('users'); // pastikan set ini ada
+  let sent = 0, failed = 0;
+
+  for (const userId of allUsers) {
+    try {
+      await ctx.telegram.sendMessage(userId, text);
+      sent++;
+    } catch {
+      failed++;
+    }
+  }
+
+  return ctx.reply(`✅ *Broadcast selesai.*\n\nTerkirim: ${sent} pengguna\nGagal: ${failed}`, {
+    parse_mode: 'Markdown'
+  });
+});
+
+// Command cancel untuk membatalkan input
+bot.command('cancel', async ctx => {
+  const id = ctx.from.id.toString();
+
+  if (!pendingAdminInput.has(id)) {
+    return ctx.reply('⚠️ Tidak ada input yang sedang aktif.');
+  }
+
+  pendingAdminInput.delete(id);
+  return ctx.reply('❎ Input dibatalkan.');
+});
 
 };
