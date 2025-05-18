@@ -251,7 +251,7 @@ async function handleSymbolCommand(ctx, coinId) {
 }
 
 // ===================== Handler Filter Message =====================
-async function handleFilterMessage(ctx, options = {}) {
+async function handleFilterMessage(ctx) {
   const textRaw = ctx.message?.text;
   if (!textRaw || textRaw.startsWith('/')) return;
 
@@ -261,40 +261,42 @@ async function handleFilterMessage(ctx, options = {}) {
     const full = filters[keyword];
     if (typeof full !== 'string') continue;
 
-    // Cek keyword case-insensitive
+    // Cek keyword case-insensitive apakah ada di textRaw
     if (!textRaw.toLowerCase().includes(keyword.toLowerCase())) continue;
 
     const trimmed = full.trim();
 
-    // Handle !c command khusus
     if (trimmed.startsWith('!c ')) {
+      // Ambil coinId setelah '!c '
       const coinId = trimmed.slice(3).trim();
-      if (coinId) return handleSymbolCommand(ctx, coinId);
-      return ctx.reply('Format filter command !c tidak valid.');
+
+      // Pastikan coinId ada, baru panggil handleSymbolCommand
+      if (coinId) {
+        return handleSymbolCommand(ctx, coinId);
+      } else {
+        // Kalau coinId kosong, reply error atau skip
+        return ctx.reply('Format filter command !c tidak valid.');
+      }
     }
 
-    // Ambil quote jika ada reply
-    const quote = getQuote(ctx);
-    
-    // Ganti placeholder
-    const finalText = replacePlaceholders(trimmed, ctx, options);
+    // Kalau bukan !c, proses tombol dan markdown biasa
+    const linkRegex = /([^]+)(https?:\/\/[^\s)]+)/g;
+    const buttons = [];
+    let match;
+    while ((match = linkRegex.exec(trimmed)) !== null) {
+      buttons.push(Markup.button.url(match[1], match[2]));
+    }
 
-    // Bersihkan markup dari tombol
-    const textOnly = removeButtonMarkup(finalText);
+    // Hapus markup tombol dari text agar bersih
+    const cleanText = trimmed.replace(linkRegex, '$1');
+    const isMono = cleanText.startsWith('```') || cleanText.startsWith('`');
 
-    // Cek apakah pakai format monospace
-    const isMono = textOnly.startsWith('```') || textOnly.startsWith('`');
-
-    // Ambil tombol jika ada
-    const reply_markup = parseInlineButtons(finalText);
-
-    return ctx.reply(
-      [quote, textOnly].filter(Boolean).join('\n\n'),
-      {
-        parse_mode: isMono ? undefined : 'Markdown',
-        reply_markup
-      }
-    );
+    return ctx.reply(cleanText, {
+      parse_mode: isMono ? undefined : 'Markdown',
+      reply_markup: buttons.length
+        ? Markup.inlineKeyboard(buttons.map(b => [b])).reply_markup
+        : undefined
+    });
   }
 }
 
