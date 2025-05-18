@@ -201,14 +201,50 @@ module.exports = bot => {
     await showAdminMenu(ctx);
   });
 
-  bot.action('add_admin', async ctx => {
-    await ctx.answerCbQuery();
-    const id = ctx.from.id.toString();
-    if (!(await isCEO(id))) return ctx.reply('Hanya CEO yang bisa menambah admin.');
-    return requestAdminInput(ctx, 'add_admin', 'Masukkan User ID yang ingin dijadikan admin:');
-  });
+// ===============
 
+  bot.action('add_admin', async (ctx) => {
+  await ctx.answerCbQuery();
+  const id = ctx.from.id.toString();
 
+  if (!(await isCEO(id) || await isAdmin(id)))
+    return ctx.reply('Hanya CEO atau Admin yang bisa menambah admin.');
+
+  // Simpan status untuk user ini
+  pendingAdminInput.set(id, 'addAdmin');
+
+  return ctx.reply(
+    '*Masukkan User ID yang ingin dijadikan admin:*\nKetik: /admininput <user_id>',
+    { parse_mode: 'Markdown' }
+  );
+});
+
+  // === Handler input dari /admininput <isi> ===
+  bot.command('admininput', async (ctx) => {
+  const fromId = ctx.from.id.toString();
+  const args = ctx.message.text.split(' ').slice(1);
+  const input = args.join(' ').trim();
+
+  if (!input) return ctx.reply('Input tidak boleh kosong.');
+
+  const pending = pendingAdminInput.get(fromId);
+  if (pending !== 'addAdmin') {
+    return ctx.reply('Tidak ada permintaan aktif untuk menambahkan admin.');
+  }
+
+  if (!(await isCEO(fromId) || await isAdmin(fromId))) {
+    return ctx.reply('Hanya CEO atau Admin yang bisa melakukan ini.');
+  }
+
+  try {
+    await addAdmin(input);
+    await ctx.reply(`Berhasil menambahkan admin: ${input}`);
+  } catch (err) {
+    await ctx.reply(`Gagal menambahkan admin: ${err.message}`);
+  } finally {
+    pendingAdminInput.delete(fromId);
+  }
+});
 
 // ========={{{ Area UI remove Admin =======
 bot.action(/^confirm_remove_admin:(.+)/, async ctx => {
@@ -409,19 +445,7 @@ bot.action('delete_premium_no', async ctx => {
     return requestAdminInput(ctx, 'broadcast', 'Tulis isi broadcast yang ingin dikirim ke semua user:');
   });
 
-  // === Handler input dari /admininput <isi> ===
-  bot.command('admininput', async ctx => {
-    const id = ctx.from.id.toString();
-    if (!pendingAdminInput.has(id)) return;
 
-    const { type } = pendingAdminInput.get(id);
-    const input = ctx.message.text.replace(/^\/admininput(@\w+)?\s*/, '').trim();
-    pendingAdminInput.delete(id);
-
-    if (!input) return ctx.reply('Input tidak boleh kosong.');
-    if (['add_admin', 'remove_admin', 'add_premium', 'remove_premium'].includes(type)) {
-      if (!/^\d+$/.test(input)) return ctx.reply('User ID harus berupa angka.');
-    }
 
     switch (type) {
       case 'add_admin':
