@@ -26,7 +26,9 @@ function getFilterButtonsCacheKey(chatId) {
 }
 
 async function isPremium(userId) {
-  return await redis.get(`tg:premium:${userId}`);
+  const isPremium = await redis.hget('tg:premium', userId);
+  const isAdmin = await redis.hget('tg:admin', userId);
+  return Boolean(isPremium || isAdmin);
 }
 
 function centerText(text, width) {
