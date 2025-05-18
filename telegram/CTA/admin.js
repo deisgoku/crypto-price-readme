@@ -1,18 +1,15 @@
 // telegram/CTA/admin.js
 
-
 const { Markup } = require('telegraf');
 const { redis } = require('../../lib/redis');
 const pendingAdminInput = new Map();
 
-// === Konstanta Key ===
+// === Redis Key ===
 const ADMIN_KEY = 'tg:admin';
 const PREMIUM_KEY = 'tg:premium';
-const CEO_KEY = 'tg:ceo'; 
+const CEO_KEY = 'tg:ceo';
 
-
-
-// === Fungsi ADMIN ===
+// === Fungsi Admin & Premium ===
 async function isAdmin(userId) {
   return await redis.hexists(ADMIN_KEY, userId) === 1;
 }
@@ -30,7 +27,6 @@ async function listAdmins() {
   return Object.keys(all || {});
 }
 
-// === Fungsi PREMIUM ===
 async function isPremium(userId) {
   return await redis.hexists(PREMIUM_KEY, userId) === 1;
 }
@@ -48,7 +44,6 @@ async function listPremiums() {
   return Object.keys(all || {});
 }
 
-// === Fungsi CEO (opsional) ===
 async function isCEO(userId) {
   return await redis.hexists(CEO_KEY, userId) === 1;
 }
@@ -57,7 +52,7 @@ async function setCEO(userId) {
   await redis.hset(CEO_KEY, userId, '1');
 }
 
-// === UI Admin Menu ===
+// === UI Menu ===
 function getAdminMenu() {
   return [
     [Markup.button.callback('➕ Add Admin', 'add_admin')],
@@ -71,7 +66,7 @@ function getAdminMenu() {
   ];
 }
 
-// === Command Register (contoh CEO setter) ===
+// === Command Register ===
 function registerAdminCommands(bot) {
   bot.command('setceo', async (ctx) => {
     await setCEO(ctx.from.id.toString());
@@ -79,7 +74,7 @@ function registerAdminCommands(bot) {
   });
 }
 
-// === Aksi Tombol Admin ===
+// === Aksi Tombol ===
 function registerAdminActions(bot) {
   bot.action('add_admin', async (ctx) => {
     const id = ctx.from.id.toString();
@@ -113,14 +108,16 @@ function registerAdminActions(bot) {
     const id = ctx.from.id.toString();
     if (!(await isAdmin(id))) return ctx.answerCbQuery('Kamu bukan admin.', { show_alert: true });
     const list = await listAdmins();
-    ctx.reply(list.length ? `Daftar Admin:\n${list.map(id => `- ${id}`).join('\n')}` : 'Belum ada admin.');
+    await ctx.answerCbQuery();
+    await ctx.reply(list.length ? `Daftar Admin:\n${list.map(i => `- ${i}`).join('\n')}` : 'Belum ada admin.');
   });
 
   bot.action('list_premiums', async (ctx) => {
     const id = ctx.from.id.toString();
     if (!(await isAdmin(id))) return ctx.answerCbQuery('Kamu bukan admin.', { show_alert: true });
     const list = await listPremiums();
-    ctx.reply(list.length ? `Daftar Premium:\n${list.map(id => `- ${id}`).join('\n')}` : 'Belum ada user premium.');
+    await ctx.answerCbQuery();
+    await ctx.reply(list.length ? `Daftar Premium:\n${list.map(i => `- ${i}`).join('\n')}` : 'Belum ada user premium.');
   });
 
   bot.action('broadcast', async (ctx) => {
@@ -130,15 +127,34 @@ function registerAdminActions(bot) {
     await ctx.editMessageText('Ketik pesan *broadcast* yang ingin dikirim ke semua user:', { parse_mode: 'Markdown' });
   });
 
+  // === Handler Input Text ===
   bot.on('text', async (ctx) => {
     const id = ctx.from.id.toString();
     if (!pendingAdminInput.has(id)) return;
 
+    const isAuthorized = await isAdmin(id) || await isCEO(id);
+    if (!isAuthorized) return ctx.reply('Kamu tidak punya akses.');
+
     const { type } = pendingAdminInput.get(id);
     const input = ctx.message.text.trim();
-    pendingAdminInput.delete(id);
 
+    // === Broadcast (tanpa validasi angka)
+    if (type === 'broadcast') {
+      pendingAdminInput.delete(id);
+      const userIds = await redis.smembers('tg:users');
+      let sent = 0;
+      for (const uid of userIds) {
+        try {
+          await ctx.telegram.sendMessage(uid, input);
+          sent++;
+        } catch {}
+      }
+      return ctx.reply(`Broadcast terkirim ke ${sent} user.`);
+    }
+
+    // === Validasi angka untuk selain broadcast
     if (!/^\d+$/.test(input)) return ctx.reply('User ID harus berupa angka.');
+    pendingAdminInput.delete(id);
 
     switch (type) {
       case 'add_admin':
@@ -153,16 +169,6 @@ function registerAdminActions(bot) {
       case 'remove_premium':
         await removePremium(input);
         return ctx.reply('Premium user dihapus.');
-      case 'broadcast':
-        const userIds = await redis.smembers('tg:users');
-        let sent = 0;
-        for (const uid of userIds) {
-          try {
-            await ctx.telegram.sendMessage(uid, input);
-            sent++;
-          } catch (e) {}
-        }
-        return ctx.reply(`Broadcast terkirim ke ${sent} user.`);
     }
   });
 }
