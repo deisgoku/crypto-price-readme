@@ -1,11 +1,8 @@
-// telegram/CTA/admin.js
-
 const { Markup } = require('telegraf');
 const { redis } = require('../../lib/redis');
 
 const pendingAdminInput = new Map();
 
-// === Konstanta Key ===
 const ADMIN_KEY = 'tg:admin';
 const PREMIUM_KEY = 'tg:premium';
 const CEO_KEY = 'tg:ceo';
@@ -48,15 +45,20 @@ async function setCEO(userId) {
   await redis.hset(CEO_KEY, userId, '1');
 }
 
+// === Util Input Manual ===
+function requestAdminInput(ctx, type, prompt) {
+  const id = ctx.from.id.toString();
+  pendingAdminInput.set(id, { type });
+  return ctx.reply(`*${prompt}*\nKetik sekarang lalu kirim pakai perintah: /admininput <input>`, { parse_mode: 'Markdown' });
+}
+
 module.exports = bot => {
 
-  // === Command Set CEO ===
-  bot.command('setceo', async (ctx) => {
+  bot.command('setceo', async ctx => {
     await setCEO(ctx.from.id.toString());
     ctx.reply('Akses CEO berhasil diset.');
   });
 
-  // === UI Admin Menu ===
   bot.action('admin_menu', async ctx => {
     await ctx.editMessageText('🧰 *Kelola Admin*', {
       parse_mode: 'Markdown',
@@ -73,33 +75,28 @@ module.exports = bot => {
     });
   });
 
-  // === Aksi Tombol Admin ===
   bot.action('add_admin', async ctx => {
     const id = ctx.from.id.toString();
     if (!(await isCEO(id))) return ctx.answerCbQuery('Hanya CEO.', { show_alert: true });
-    pendingAdminInput.set(id, { type: 'add_admin' });
-    await ctx.editMessageText('Kirim *User ID* yang ingin dijadikan admin:', { parse_mode: 'Markdown' });
+    return requestAdminInput(ctx, 'add_admin', 'Masukkan User ID untuk dijadikan admin:');
   });
 
   bot.action('remove_admin', async ctx => {
     const id = ctx.from.id.toString();
     if (!(await isAdmin(id))) return ctx.answerCbQuery('Kamu bukan admin.', { show_alert: true });
-    pendingAdminInput.set(id, { type: 'remove_admin' });
-    await ctx.editMessageText('Kirim *User ID* yang ingin dihapus dari admin:', { parse_mode: 'Markdown' });
+    return requestAdminInput(ctx, 'remove_admin', 'Masukkan User ID untuk dihapus dari admin:');
   });
 
   bot.action('add_premium', async ctx => {
     const id = ctx.from.id.toString();
     if (!(await isAdmin(id))) return ctx.answerCbQuery('Kamu bukan admin.', { show_alert: true });
-    pendingAdminInput.set(id, { type: 'add_premium' });
-    await ctx.editMessageText('Kirim *User ID* yang ingin dijadikan premium:', { parse_mode: 'Markdown' });
+    return requestAdminInput(ctx, 'add_premium', 'Masukkan User ID yang ingin dijadikan premium:');
   });
 
   bot.action('remove_premium', async ctx => {
     const id = ctx.from.id.toString();
     if (!(await isAdmin(id))) return ctx.answerCbQuery('Kamu bukan admin.', { show_alert: true });
-    pendingAdminInput.set(id, { type: 'remove_premium' });
-    await ctx.editMessageText('Kirim *User ID* yang ingin dihapus dari premium:', { parse_mode: 'Markdown' });
+    return requestAdminInput(ctx, 'remove_premium', 'Masukkan User ID yang ingin dihapus dari premium:');
   });
 
   bot.action('list_admins', async ctx => {
@@ -119,18 +116,19 @@ module.exports = bot => {
   bot.action('broadcast', async ctx => {
     const id = ctx.from.id.toString();
     if (!(await isAdmin(id))) return ctx.answerCbQuery('Kamu bukan admin.', { show_alert: true });
-    pendingAdminInput.set(id, { type: 'broadcast' });
-    await ctx.editMessageText('Ketik pesan *broadcast* yang ingin dikirim ke semua user:', { parse_mode: 'Markdown' });
+    return requestAdminInput(ctx, 'broadcast', 'Tulis isi broadcast yang ingin dikirim ke semua user:');
   });
 
-  // === Handler Input Teks ===
-  bot.on('text', async ctx => {
+  // === Input final manual pakai /admininput <isi> ===
+  bot.command('admininput', async ctx => {
     const id = ctx.from.id.toString();
     if (!pendingAdminInput.has(id)) return;
 
     const { type } = pendingAdminInput.get(id);
-    const input = ctx.message.text.trim();
+    const input = ctx.message.text.replace(/^\/admininput(@\w+)?\s*/, '').trim();
     pendingAdminInput.delete(id);
+
+    if (!input) return ctx.reply('Input tidak boleh kosong.');
 
     if (['add_admin', 'remove_admin', 'add_premium', 'remove_premium'].includes(type)) {
       if (!/^\d+$/.test(input)) return ctx.reply('User ID harus berupa angka.');
@@ -156,9 +154,10 @@ module.exports = bot => {
           try {
             await ctx.telegram.sendMessage(uid, input);
             sent++;
-          } catch (e) {}
+          } catch {}
         }
         return ctx.reply(`Broadcast terkirim ke ${sent} user.`);
     }
   });
+
 };
