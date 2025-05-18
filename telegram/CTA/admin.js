@@ -7,7 +7,7 @@ const ADMIN_KEY = 'tg:admin';
 const PREMIUM_KEY = 'tg:premium';
 const CEO_KEY = 'tg:ceo';
 
-// === Fungsi ADMIN ===
+// === Fungsi Admin ===
 async function isAdmin(userId) {
   return await redis.hexists(ADMIN_KEY, userId) === 1;
 }
@@ -22,7 +22,7 @@ async function listAdmins() {
   return Object.keys(all || {});
 }
 
-// === Fungsi PREMIUM ===
+// === Fungsi Premium ===
 async function isPremium(userId) {
   return await redis.hexists(PREMIUM_KEY, userId) === 1;
 }
@@ -45,13 +45,51 @@ async function setCEO(userId) {
   await redis.hset(CEO_KEY, userId, '1');
 }
 
-// === Util Input Manual ===
+// === Prompt input manual ===
 function requestAdminInput(ctx, type, prompt) {
   const id = ctx.from.id.toString();
   pendingAdminInput.set(id, { type });
-  return ctx.reply(`*${prompt}*\nKetik sekarang lalu kirim pakai perintah: /admininput <input>`, { parse_mode: 'Markdown' });
+  return ctx.reply(`*${prompt}*\nKetik lalu kirim: /admininput <input>`, {
+    parse_mode: 'Markdown'
+  });
 }
 
+// === Menu Admin ===
+async function showAdminMenu(ctx) {
+  const text = '🧰 *Kelola Admin*';
+  const keyboard = Markup.inlineKeyboard([
+    [
+      Markup.button.callback('➕ Add Admin', 'add_admin'),
+      Markup.button.callback('➖ Remove Admin', 'remove_admin')
+    ],
+    [
+      Markup.button.callback('💎 Add Premium', 'add_premium'),
+      Markup.button.callback('🧹 Remove Premium', 'remove_premium')
+    ],
+    [
+      Markup.button.callback('👤 Daftar Admin', 'list_admins'),
+      Markup.button.callback('💎 Daftar Premium', 'list_premiums')
+    ],
+    [
+      Markup.button.callback('📢 Broadcast', 'broadcast')
+    ],
+     [ Markup.button.callback('⬅️ Kembali', 'menu')
+    ]
+  ]);
+
+  try {
+    await ctx.editMessageText(text, {
+      parse_mode: 'Markdown',
+      ...keyboard
+    });
+  } catch {
+    await ctx.reply(text, {
+      parse_mode: 'Markdown',
+      ...keyboard
+    });
+  }
+}
+// === Ekspor ke bot ===
 module.exports = bot => {
 
   bot.command('setceo', async ctx => {
@@ -60,69 +98,62 @@ module.exports = bot => {
   });
 
   bot.action('admin_menu', async ctx => {
-  await ctx.editMessageText(
-    '🧰 *Kelola Admin*',
-    {
-      parse_mode: 'Markdown',
-      ...Markup.inlineKeyboard([
-        [Markup.button.callback('➕ Add Admin', 'add_admin')],
-        [Markup.button.callback('➖ Remove Admin', 'remove_admin')],
-        [Markup.button.callback('💎 Add Premium', 'add_premium')],
-        [Markup.button.callback('🧹 Remove Premium', 'remove_premium')],
-        [Markup.button.callback('👤 Daftar Admin', 'list_admins')],
-        [Markup.button.callback('💎 Daftar Premium', 'list_premiums')],
-        [Markup.button.callback('📢 Broadcast', 'broadcast')],
-        [Markup.button.callback('⬅️ Kembali', 'menu')],
-      ])
-    }
-  );
-});
+    await ctx.answerCbQuery();
+    await showAdminMenu(ctx);
+  });
 
   bot.action('add_admin', async ctx => {
+    await ctx.answerCbQuery();
     const id = ctx.from.id.toString();
-    if (!(await isCEO(id))) return ctx.answerCbQuery('Hanya CEO.', { show_alert: true });
-    return requestAdminInput(ctx, 'add_admin', 'Masukkan User ID untuk dijadikan admin:');
+    if (!(await isCEO(id))) return ctx.reply('Hanya CEO yang bisa menambah admin.');
+    return requestAdminInput(ctx, 'add_admin', 'Masukkan User ID yang ingin dijadikan admin:');
   });
 
   bot.action('remove_admin', async ctx => {
+    await ctx.answerCbQuery();
     const id = ctx.from.id.toString();
-    if (!(await isAdmin(id))) return ctx.answerCbQuery('Kamu bukan admin.', { show_alert: true });
-    return requestAdminInput(ctx, 'remove_admin', 'Masukkan User ID untuk dihapus dari admin:');
+    if (!(await isAdmin(id))) return ctx.reply('Kamu bukan admin.');
+    return requestAdminInput(ctx, 'remove_admin', 'Masukkan User ID yang ingin dihapus dari admin:');
   });
 
   bot.action('add_premium', async ctx => {
+    await ctx.answerCbQuery();
     const id = ctx.from.id.toString();
-    if (!(await isAdmin(id))) return ctx.answerCbQuery('Kamu bukan admin.', { show_alert: true });
+    if (!(await isAdmin(id))) return ctx.reply('Kamu bukan admin.');
     return requestAdminInput(ctx, 'add_premium', 'Masukkan User ID yang ingin dijadikan premium:');
   });
 
   bot.action('remove_premium', async ctx => {
+    await ctx.answerCbQuery();
     const id = ctx.from.id.toString();
-    if (!(await isAdmin(id))) return ctx.answerCbQuery('Kamu bukan admin.', { show_alert: true });
+    if (!(await isAdmin(id))) return ctx.reply('Kamu bukan admin.');
     return requestAdminInput(ctx, 'remove_premium', 'Masukkan User ID yang ingin dihapus dari premium:');
   });
 
   bot.action('list_admins', async ctx => {
+    await ctx.answerCbQuery();
     const id = ctx.from.id.toString();
-    if (!(await isAdmin(id))) return ctx.answerCbQuery('Kamu bukan admin.', { show_alert: true });
+    if (!(await isAdmin(id))) return ctx.reply('Kamu bukan admin.');
     const list = await listAdmins();
-    ctx.reply(list.length ? `Daftar Admin:\n${list.map(id => `- ${id}`).join('\n')}` : 'Belum ada admin.');
+    ctx.reply(list.length ? `Daftar Admin:\n${list.map(uid => `- ${uid}`).join('\n')}` : 'Belum ada admin.');
   });
 
   bot.action('list_premiums', async ctx => {
+    await ctx.answerCbQuery();
     const id = ctx.from.id.toString();
-    if (!(await isAdmin(id))) return ctx.answerCbQuery('Kamu bukan admin.', { show_alert: true });
+    if (!(await isAdmin(id))) return ctx.reply('Kamu bukan admin.');
     const list = await listPremiums();
-    ctx.reply(list.length ? `Daftar Premium:\n${list.map(id => `- ${id}`).join('\n')}` : 'Belum ada user premium.');
+    ctx.reply(list.length ? `Daftar Premium:\n${list.map(uid => `- ${uid}`).join('\n')}` : 'Belum ada user premium.');
   });
 
   bot.action('broadcast', async ctx => {
+    await ctx.answerCbQuery();
     const id = ctx.from.id.toString();
-    if (!(await isAdmin(id))) return ctx.answerCbQuery('Kamu bukan admin.', { show_alert: true });
+    if (!(await isAdmin(id))) return ctx.reply('Kamu bukan admin.');
     return requestAdminInput(ctx, 'broadcast', 'Tulis isi broadcast yang ingin dikirim ke semua user:');
   });
 
-  // === Input final manual pakai /admininput <isi> ===
+  // === Handler input dari /admininput <isi> ===
   bot.command('admininput', async ctx => {
     const id = ctx.from.id.toString();
     if (!pendingAdminInput.has(id)) return;
@@ -132,7 +163,6 @@ module.exports = bot => {
     pendingAdminInput.delete(id);
 
     if (!input) return ctx.reply('Input tidak boleh kosong.');
-
     if (['add_admin', 'remove_admin', 'add_premium', 'remove_premium'].includes(type)) {
       if (!/^\d+$/.test(input)) return ctx.reply('User ID harus berupa angka.');
     }
