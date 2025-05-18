@@ -5,12 +5,12 @@ const {
   getFAQContent,
   registerHelpActions,
 } = require('./help');
-const { getAdminMenu, registerAdminActions } = require('./admin');
+//const { getAdminMenu, registerAdminActions } = require('./admin');
 const { getSponsorContent, registerSupportActions } = require('./support');
 
 module.exports = function setupMenu(bot) {
   // Daftarkan semua action modular
-  registerAdminActions(bot);
+  //registerAdminActions(bot);
   registerSupportActions(bot);
   registerHelpActions(bot);
 
