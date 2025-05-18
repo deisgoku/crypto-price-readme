@@ -16,7 +16,7 @@ const { getCategoryMarkdownList } = require('./gecko');
 const { themeNames } = require('../lib/settings/model/theme');
 const renderers = require('../lib/settings/model/list');
 const { redis } = require('../lib/redis');
-const { registerAdminCommands } = require('./CTA/admin');
+//const { registerAdminCommands } = require('./CTA/admin');
 const joinHandler = require('./CTA/join');
 
 
@@ -92,7 +92,8 @@ async function loadFonts() {
 }
 
 // Register all handlers
-registerAdminCommands(bot);
+//registerAdminCommands(bot);
+require('./CTA/admin')(bot);
 require('./CTA/auth')(bot);
 joinHandler(bot);
 require('./CTA/handlercoin')(bot);
