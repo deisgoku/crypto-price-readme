@@ -8,6 +8,8 @@ const { createCanvas, registerFont } = require('canvas');
 const bcrypt = require('bcrypt');
 const fs = require('fs');
 const path = require('path');
+const { ensureCeoPremium } = require('./CTA/filter');
+
 
 const { BOT_TOKEN, BASE_URL } = require('./config');
 const { getCategoryMarkdownList } = require('./gecko');
@@ -68,6 +70,10 @@ joinHandler(bot);
 require('./CTA/handlercoin')(bot);
 require('./CTA/menu')(bot);
 require('./CTA/filter')(bot);
+ensureCeoPremium()
+  .then(() => console.log('[FILTER] CEO premium ensured:', CEO_IDs))
+  .catch(err => console.error('Gagal ensure CEO premium:', err));
+
 
 
 bot.start(ctx => {
