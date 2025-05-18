@@ -1,7 +1,7 @@
 // telegram/CTA/admin.js
 
 const { Markup } = require('telegraf');
-const { redis } = require('../lib/redis');
+const { redis } = require('../../lib/redis');
 const bcrypt = require('bcrypt');
 
 const ADMIN_SET = 'tg:admins';
