@@ -542,7 +542,7 @@ bot.action(/^confirm_remove_premium:(.+)/, async ctx => {
 bot.action('broadcast', async ctx => {
   await ctx.answerCbQuery();
   const id = ctx.from.id.toString();
-  if (!(await isAdmin(id))) return ctx.reply('❌ Kamu bukan admin.');
+  if (!(await isAdmin(id))) return ctx.answerCbQuery('⚠️ Kamu bukan admin.', { show_alert: true });
   pendingAdminInput.set(id, 'broadcast');
   return ctx.reply('📢 *Tulis pesan broadcast yang ingin dikirim ke semua pengguna:*\n(Ketik /cancel untuk membatalkan)', {
     parse_mode: 'Markdown'
@@ -550,19 +550,21 @@ bot.action('broadcast', async ctx => {
 });
 
 // Handler admininput khusus broadcast
-bot.command('admininput', async ctx => {
+// Handler untuk input broadcast
+bot.on('message', async ctx => {
   const id = ctx.from.id.toString();
-  const text = ctx.message.text.split(' ').slice(1).join(' ').trim();
 
-  if (!text) return ctx.reply('❗ Pesan tidak boleh kosong.');
+  if (pendingAdminInput.get(id) !== 'broadcast') return; // bukan mode broadcast
+
+  const text = ctx.message?.text?.trim();
+  if (!text || text.startsWith('/')) return; // abaikan command atau kosong
+
+  // pastikan admin
   if (!(await isAdmin(id))) return ctx.reply('❌ Kamu bukan admin.');
-
-  const pending = pendingAdminInput.get(id);
-  if (pending !== 'broadcast') return ctx.reply('⚠️ Tidak ada permintaan broadcast yang aktif.');
 
   pendingAdminInput.delete(id);
 
-  const allUsers = await redis.smembers('users'); // pastikan set ini ada
+  const allUsers = await redis.smembers('tg:users');
   let sent = 0, failed = 0;
 
   for (const userId of allUsers) {
