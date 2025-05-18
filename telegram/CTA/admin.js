@@ -542,7 +542,7 @@ bot.action(/^confirm_remove_premium:(.+)/, async ctx => {
 bot.action('broadcast', async ctx => {
   await ctx.answerCbQuery();
   const id = ctx.from.id.toString();
-  if (!(await isAdmin(id))) return ctx.answerCbQuery('⚠️ Kamu bukan admin.', { show_alert: true });
+  if (!(await isAdmin(id))) return ctx.reply('❌ Kamu bukan admin.');
   pendingAdminInput.set(id, 'broadcast');
   return ctx.reply('📢 *Tulis pesan broadcast yang ingin dikirim ke semua pengguna:*\n(Ketik /cancel untuk membatalkan)', {
     parse_mode: 'Markdown'
@@ -551,15 +551,17 @@ bot.action('broadcast', async ctx => {
 
 // Handler admininput khusus broadcast
 // Handler untuk input broadcast
-bot.on('message', async ctx => {
+bot.hears(/.*/, async ctx => {
   const id = ctx.from.id.toString();
-
-  if (pendingAdminInput.get(id) !== 'broadcast') return; // bukan mode broadcast
-
   const text = ctx.message?.text?.trim();
-  if (!text || text.startsWith('/')) return; // abaikan command atau kosong
 
-  // pastikan admin
+  // Hanya lanjut kalau status pending adalah broadcast
+  if (pendingAdminInput.get(id) !== 'broadcast') return;
+
+  // Kalau command, abaikan
+  if (!text || text.startsWith('/')) return;
+
+  // Pastikan admin
   if (!(await isAdmin(id))) return ctx.reply('❌ Kamu bukan admin.');
 
   pendingAdminInput.delete(id);
