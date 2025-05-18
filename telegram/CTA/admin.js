@@ -7,42 +7,125 @@ const ADMIN_KEY = 'tg:admin';
 const PREMIUM_KEY = 'tg:premium';
 const CEO_KEY = 'tg:ceo';
 
+// === Validasi userId ===
+function validateUserId(userId) {
+  const strId = userId.toString();
+  if (!/^\d{6,15}$/.test(strId)) {
+    throw new Error(`Invalid userId: ${userId}`);
+  }
+  return strId;
+}
+
 // === Fungsi Admin ===
 async function isAdmin(userId) {
-  return await redis.hexists(ADMIN_KEY, userId) === 1;
+  const id = validateUserId(userId);
+  return await redis.hexists(ADMIN_KEY, id) === 1;
 }
 async function addAdmin(userId) {
-  await redis.hset(ADMIN_KEY, userId, '1');
+  const id = validateUserId(userId);
+  await redis.hset(ADMIN_KEY, id, '1');
 }
+
+// =====================
+// fungsi remove admin
 async function removeAdmin(userId) {
-  await redis.hdel(ADMIN_KEY, userId);
+  const id = validateUserId(userId);
+  await redis.hdel(ADMIN_KEY, id);
 }
-async function listAdmins() {
+
+async function showRemoveAdminUI(ctx) {
+  const admins = await redis.hkeys(ADMIN_KEY);
+  if (!admins.length) return ctx.reply('Tidak ada admin saat ini.');
+
+  const buttons = admins.map(id => [{
+    text: `Hapus Admin ${id}`,
+    callback_data: `confirm_remove_admin:${id}`
+  }]);
+
+  return ctx.reply('Pilih admin yang ingin dihapus:', {
+    reply_markup: { inline_keyboard: buttons }
+  });
+}
+
+
+// =====================
+// Fungsi listAdmins
+async function listAdmins(bot) {
   const all = await redis.hgetall(ADMIN_KEY);
-  return Object.keys(all || {});
+  const ids = Object.keys(all || {});
+  const results = await Promise.all(ids.map(async (id) => {
+    try {
+      const user = await bot.telegram.getChat(id);
+      const name = user.username
+        ? `@${user.username}`
+        : user.first_name
+          ? user.first_name
+          : 'Tanpa Nama';
+      return `- ${name} (${id})`;
+    } catch {
+      return `- (Tidak Dikenal) ${id}`;
+    }
+  }));
+  return results.join('\n');
 }
+
 
 // === Fungsi Premium ===
 async function isPremium(userId) {
-  return await redis.hexists(PREMIUM_KEY, userId) === 1;
+  const id = validateUserId(userId);
+  return await redis.hexists(PREMIUM_KEY, id) === 1;
 }
 async function addPremium(userId) {
-  await redis.hset(PREMIUM_KEY, userId, '1');
+  const id = validateUserId(userId);
+  await redis.hset(PREMIUM_KEY, id, '1');
 }
 async function removePremium(userId) {
-  await redis.hdel(PREMIUM_KEY, userId);
+  const id = validateUserId(userId);
+  await redis.hdel(PREMIUM_KEY, id);
 }
-async function listPremiums() {
+// ================
+
+async function showRemovePremiumUI(ctx) {
+  const premiums = await redis.hkeys(PREMIUM_KEY);
+  if (!premiums.length) return ctx.reply('Tidak ada user premium saat ini.');
+
+  const buttons = premiums.map(id => [{
+    text: `Hapus Premium ${id}`,
+    callback_data: `confirm_remove_premium:${id}`
+  }]);
+
+  return ctx.reply('Pilih user premium yang ingin dihapus:', {
+    reply_markup: { inline_keyboard: buttons }
+  });
+}
+
+async function listPremiums(bot) {
   const all = await redis.hgetall(PREMIUM_KEY);
-  return Object.keys(all || {});
+  const ids = Object.keys(all || {});
+  const results = await Promise.all(ids.map(async (id) => {
+    try {
+      const user = await bot.telegram.getChat(id);
+      const name = user.username
+        ? `@${user.username}`
+        : user.first_name
+          ? user.first_name
+          : 'Tanpa Nama';
+      return `- ${name} (${id})`;
+    } catch {
+      return `- (Tidak Dikenal) ${id}`;
+    }
+  }));
+  return results.join('\n');
 }
 
 // === Fungsi CEO ===
 async function isCEO(userId) {
-  return await redis.hexists(CEO_KEY, userId) === 1;
+  const id = validateUserId(userId);
+  return await redis.hexists(CEO_KEY, id) === 1;
 }
 async function setCEO(userId) {
-  await redis.hset(CEO_KEY, userId, '1');
+  const id = validateUserId(userId);
+  await redis.hset(CEO_KEY, id, '1');
 }
 
 // === Prompt input manual ===
@@ -109,12 +192,101 @@ module.exports = bot => {
     return requestAdminInput(ctx, 'add_admin', 'Masukkan User ID yang ingin dijadikan admin:');
   });
 
-  bot.action('remove_admin', async ctx => {
-    await ctx.answerCbQuery();
-    const id = ctx.from.id.toString();
-    if (!(await isAdmin(id))) return ctx.reply('Kamu bukan admin.');
-    return requestAdminInput(ctx, 'remove_admin', 'Masukkan User ID yang ingin dihapus dari admin:');
+
+
+// ========={{{ Area UI remove Admin =======
+bot.action(/^confirm_remove_admin:(.+)/, async ctx => {
+  await ctx.answerCbQuery();
+  const id = ctx.from.id.toString();
+  if (!(await isAdmin(id))) return ctx.reply('Kamu bukan admin.');
+
+  const userId = ctx.match[1];
+  return ctx.reply(`Yakin ingin menghapus admin ${userId}?`, {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: 'Ya', callback_data: `delete_admin_yes:${userId}` },
+          { text: 'Tidak', callback_data: 'delete_admin_no' }
+        ]
+      ]
+    }
   });
+});
+
+
+bot.action(/^delete_admin_yes:(.+)/, async ctx => {
+  await ctx.answerCbQuery();
+  const id = ctx.from.id.toString();
+  if (!(await isAdmin(id))) return ctx.reply('Kamu bukan admin.');
+
+  const userId = ctx.match[1];
+  await removeAdmin(userId);
+  return ctx.reply(`Admin ${userId} berhasil dihapus.`);
+});
+
+bot.action('delete_admin_no', async ctx => {
+  await ctx.answerCbQuery('Dibatalkan');
+});
+
+  bot.action('remove_admin', async ctx => {
+  await ctx.answerCbQuery();
+  const id = ctx.from.id.toString();
+  if (!(await isAdmin(id))) return ctx.reply('Kamu bukan admin.');
+  return showRemoveAdminUI(ctx);
+});
+
+
+// =========Aeea view List Admin =====
+  bot.action('list_admins', async ctx => {
+  const all = await redis.hgetall(ADMIN_KEY);
+  const ids = Object.keys(all || {});
+
+  if (!ids.length) {
+    return ctx.answerCbQuery('Tidak ada user admin tersedia', { show_alert: true });
+  }
+
+  const rows = [];
+
+  for (const id of ids) {
+    try {
+      const user = await ctx.telegram.getChat(id);
+      const label = user.username
+        ? `@${user.username}`
+        : user.first_name || 'Tanpa Nama';
+
+      rows.push([Markup.button.callback(label, `view_admin_${id}`)]);
+    } catch {
+      rows.push([Markup.button.callback(`(Tidak dikenal)`, `view_admin_${id}`)]);
+    }
+  }
+
+  rows.push([Markup.button.callback('⬅️ Kembali', 'admin_menu')]);
+
+  await ctx.editMessageText('🧑‍💼 *Daftar Admin Aktif:*', {
+    parse_mode: 'Markdown',
+    reply_markup: Markup.inlineKeyboard(rows)
+  });
+});
+
+
+  bot.action(/view_admin_(\d+)/, async ctx => {
+  const id = ctx.match[1];
+  try {
+    const user = await ctx.telegram.getChat(id);
+    const username = user.username ? `@${user.username}` : user.first_name || 'Tanpa Nama';
+    await ctx.answerCbQuery(`${username} | ${id} aktif`, { show_alert: true });
+  } catch {
+    await ctx.answerCbQuery(`(Tidak dikenal) | ${id} aktif`, { show_alert: true });
+  }
+});
+
+
+
+
+
+
+// ======{ Area Pfemium ======
+
 
   bot.action('add_premium', async ctx => {
     await ctx.answerCbQuery();
@@ -123,28 +295,96 @@ module.exports = bot => {
     return requestAdminInput(ctx, 'add_premium', 'Masukkan User ID yang ingin dijadikan premium:');
   });
 
+bot.action(/^confirm_remove_premium:(.+)/, async ctx => {
+  await ctx.answerCbQuery();
+  const id = ctx.from.id.toString();
+  if (!(await isAdmin(id))) return ctx.reply('Kamu bukan admin.');
+
+  const userId = ctx.match[1];
+  return ctx.reply(`Yakin ingin menghapus premium dari ${userId}?`, {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: 'Ya', callback_data: `delete_premium_yes:${userId}` },
+          { text: 'Tidak', callback_data: 'delete_premium_no' }
+        ]
+      ]
+    }
+  });
+});
+
+
+bot.action(/^delete_premium_yes:(.+)/, async ctx => {
+  await ctx.answerCbQuery();
+  const id = ctx.from.id.toString();
+  if (!(await isAdmin(id))) return ctx.reply('Kamu bukan admin.');
+
+  const userId = ctx.match[1];
+  await removePremium(userId);
+  return ctx.reply(`Premium untuk ${userId} berhasil dihapus.`);
+});
+
+bot.action('delete_premium_no', async ctx => {
+  await ctx.answerCbQuery('Dibatalkan');
+});
+
+
   bot.action('remove_premium', async ctx => {
-    await ctx.answerCbQuery();
-    const id = ctx.from.id.toString();
-    if (!(await isAdmin(id))) return ctx.reply('Kamu bukan admin.');
-    return requestAdminInput(ctx, 'remove_premium', 'Masukkan User ID yang ingin dihapus dari premium:');
-  });
-
-  bot.action('list_admins', async ctx => {
-    await ctx.answerCbQuery();
-    const id = ctx.from.id.toString();
-    if (!(await isAdmin(id))) return ctx.reply('Kamu bukan admin.');
-    const list = await listAdmins();
-    ctx.reply(list.length ? `Daftar Admin:\n${list.map(uid => `- ${uid}`).join('\n')}` : 'Belum ada admin.');
-  });
-
+  await ctx.answerCbQuery();
+  const id = ctx.from.id.toString();
+  if (!(await isAdmin(id))) return ctx.reply('Kamu bukan admin.');
+  return showRemovePremiumUI(ctx);
+});
+  
   bot.action('list_premiums', async ctx => {
-    await ctx.answerCbQuery();
-    const id = ctx.from.id.toString();
-    if (!(await isAdmin(id))) return ctx.reply('Kamu bukan admin.');
-    const list = await listPremiums();
-    ctx.reply(list.length ? `Daftar Premium:\n${list.map(uid => `- ${uid}`).join('\n')}` : 'Belum ada user premium.');
+    const all = await redis.hgetall(PREMIUM_KEY);
+    const ids = Object.keys(all || {});
+
+    if (!ids.length) {
+      return ctx.answerCbQuery('Tidak ada user premium tersedia', { show_alert: true });
+    }
+
+    const rows = await Promise.all(ids.map(async id => {
+      try {
+        const user = await ctx.telegram.getChat(id);
+        const label = user.username
+          ? `@${user.username}`
+          : user.first_name || 'Tanpa Nama';
+        return [Markup.button.callback(label, `view_premium_${id}`)];
+      } catch {
+        return [Markup.button.callback(`(Tidak dikenal) ${id}`, `view_premium_${id}`)];
+      }
+    }));
+
+    rows.push([Markup.button.callback('⬅️ Kembali', 'admin_menu')]);
+
+    await ctx.editMessageText('💎 *Daftar User Premium:*', {
+      parse_mode: 'Markdown',
+      reply_markup: Markup.inlineKeyboard(rows)
+    });
   });
+
+  bot.action(/view_premium_(\d+)/, async ctx => {
+    const id = ctx.match[1];
+    try {
+      const user = await ctx.telegram.getChat(id);
+      const username = user.username ? `@${user.username}` : user.first_name || 'Tanpa Nama';
+      await ctx.answerCbQuery(`${username} | ${id} premium`, { show_alert: true });
+    } catch {
+      await ctx.answerCbQuery(`(Tidak dikenal) | ${id} premium`, { show_alert: true });
+    }
+  });
+
+//======= Area Command  Premium ========
+  bot.command('listpremiums', async (ctx) => {
+  await ctx.answerCbQuery();
+  const list = await listPremiums(bot);
+  if (list.length) {
+    ctx.reply(`🌟 *Daftar Premium:*\n${list}`, { parse_mode: 'Markdown' });
+  } else {
+    ctx.reply('Belum ada user premium.');
+  }
+});
 
   bot.action('broadcast', async ctx => {
     await ctx.answerCbQuery();
