@@ -7,6 +7,8 @@ const ADMIN_KEY = 'tg:admin';
 const PREMIUM_KEY = 'tg:premium';
 const CEO_KEY = 'tg:ceo';
 
+
+// === Helper ====
 // === Validasi userId ===
 function validateUserId(userId) {
   const strId = userId.toString();
@@ -15,6 +17,20 @@ function validateUserId(userId) {
   }
   return strId;
 }
+
+// === Konversi @username atau ID jadi userId valid ===
+async function resolveUserIdOrThrow(ctx, input) {
+  let userId;
+  if (input.startsWith('@')) {
+    const user = await ctx.telegram.getChat(input);
+    userId = user.id.toString();
+  } else {
+    userId = input.toString();
+  }
+  return validateUserId(userId); 
+}
+
+
 
 // === Data Ceo =====
 // === Fungsi CEO ===
@@ -66,6 +82,13 @@ async function removePremium(userId) {
 
 // === Fungsi Admin ===
 // =================
+function requestAdminInput(ctx, key, promptText) {
+  const id = ctx.from.id.toString();
+  pendingAdminInput.set(id, key);
+  return ctx.reply(promptText);
+}
+
+
 async function showRemoveAdminUI(ctx) {
   const admins = await redis.hkeys(ADMIN_KEY);
   if (!admins.length) return ctx.reply('Tidak ada admin saat ini.');
@@ -105,6 +128,7 @@ async function listAdmins(bot) {
 
 // === Fungsi Premium ===
 // ================
+
 
 async function showRemovePremiumUI(ctx) {
   const premiums = await redis.hkeys(PREMIUM_KEY);
@@ -202,41 +226,42 @@ module.exports = bot => {
 
   // === Tambah Admin ===
   bot.action('add_admin', async ctx => {
-    await ctx.answerCbQuery();
-    const id = ctx.from.id.toString();
-    if (!(await isCEO(id) || await isAdmin(id)))
-      return ctx.reply('Hanya CEO atau Admin yang bisa menambah admin.');
+  await ctx.answerCbQuery();
+  const id = ctx.from.id.toString();
+  if (!(await isCEO(id) || await isAdmin(id)))
+    return ctx.reply('Hanya CEO atau Admin yang bisa menambah admin.');
 
-    pendingAdminInput.set(id, 'addAdmin');
-    return ctx.reply(
-      '*Masukkan User ID yang ingin dijadikan admin:*\nKetik: /admininput <user_id>',
-      { parse_mode: 'Markdown' }
-    );
-  });
+  pendingAdminInput.set(id, 'addAdmin');
+  return ctx.reply(
+    '*Masukkan User ID atau @username yang ingin dijadikan admin:*\nKetik: /admininput 12345678 atau /admininput @username',
+    { parse_mode: 'Markdown' }
+  );
+});
 
   // === Handler Input Admin ===
   bot.command('admininput', async ctx => {
-    const fromId = ctx.from.id.toString();
-    const args = ctx.message.text.split(' ').slice(1);
-    const input = args.join(' ').trim();
+  const fromId = ctx.from.id.toString();
+  const args = ctx.message.text.split(' ').slice(1);
+  const input = args.join(' ').trim();
 
-    if (!input) return ctx.reply('Input tidak boleh kosong.');
+  if (!input) return ctx.reply('Input tidak boleh kosong.');
 
-    const pending = pendingAdminInput.get(fromId);
-    if (pending !== 'addAdmin') return ctx.reply('Tidak ada permintaan aktif.');
+  const pending = pendingAdminInput.get(fromId);
+  if (pending !== 'addAdmin') return ctx.reply('Tidak ada permintaan aktif.');
 
-    if (!(await isCEO(fromId) || await isAdmin(fromId)))
-      return ctx.reply('Hanya CEO atau Admin yang bisa melakukan ini.');
+  if (!(await isCEO(fromId) || await isAdmin(fromId)))
+    return ctx.reply('Hanya CEO atau Admin yang bisa melakukan ini.');
 
-    try {
-      await addAdmin(input);
-      await ctx.reply(`Berhasil menambahkan admin: ${input}`);
-    } catch (err) {
-      await ctx.reply(`Gagal menambahkan admin: ${err.message}`);
-    } finally {
-      pendingAdminInput.delete(fromId);
-    }
-  });
+  try {
+    const userId = await resolveUserIdOrThrow(ctx, input); // ini kunci
+    await addAdmin(userId);
+    await ctx.reply(`Berhasil menambahkan admin: ${userId}`);
+  } catch (err) {
+    await ctx.reply(`Gagal menambahkan admin: ${err.message}`);
+  } finally {
+    pendingAdminInput.delete(fromId);
+  }
+});
 
   // === Hapus Admin ===
   bot.action(/^confirm_remove_admin:(.+)/, async ctx => {
@@ -314,13 +339,39 @@ module.exports = bot => {
     }
   });
 
+
   // === Tambah Premium ===
   bot.action('add_premium', async ctx => {
-    await ctx.answerCbQuery();
-    const id = ctx.from.id.toString();
-    if (!(await isAdmin(id))) return ctx.reply('Kamu bukan admin.');
-    return requestAdminInput(ctx, 'add_premium', 'Masukkan User ID yang ingin dijadikan premium:');
-  });
+  await ctx.answerCbQuery();
+  const id = ctx.from.id.toString();
+  if (!(await isAdmin(id))) return ctx.reply('Kamu bukan admin.');
+  return requestAdminInput(ctx, 'add_premium', 'Masukkan User ID atau @username yang ingin dijadikan premium:\nContoh: /premiuminput @user atau /premiuminput 12345678');
+});
+
+bot.command('premiuminput', async ctx => {
+  const fromId = ctx.from.id.toString();
+  const args = ctx.message.text.split(' ').slice(1);
+  const input = args.join(' ').trim();
+
+  if (!input) return ctx.reply('Input tidak boleh kosong.');
+
+  const pending = pendingAdminInput.get(fromId);
+  if (pending !== 'add_premium') return ctx.reply('Tidak ada permintaan aktif.');
+
+  if (!(await isAdmin(fromId)))
+    return ctx.reply('Hanya Admin yang bisa melakukan ini.');
+
+  try {
+    const userId = await resolveUserIdOrThrow(ctx, input);
+    await addPremium(userId);
+    await ctx.reply(`Berhasil menambahkan premium: ${userId}`);
+  } catch (err) {
+    await ctx.reply(`Gagal menambahkan premium: ${err.message}`);
+  } finally {
+    pendingAdminInput.delete(fromId);
+  }
+});
+
 
   // === Hapus Premium ===
   bot.action(/^confirm_remove_premium:(.+)/, async ctx => {
@@ -364,9 +415,19 @@ module.exports = bot => {
 
   // === Lihat Daftar Premium ===
   bot.action('list_premiums', async ctx => {
+  try {
+    await ctx.answerCbQuery(); // Penting! langsung respons query duluan
+
     const all = await redis.hgetall(PREMIUM_KEY);
     const ids = Object.keys(all || {});
-    if (!ids.length) return ctx.answerCbQuery('Tidak ada user premium.', { show_alert: true });
+    if (!ids.length) {
+      return ctx.editMessageText('💎 *Daftar User Premium:*\n(Tidak ada user premium)', {
+        parse_mode: 'Markdown',
+        reply_markup: Markup.inlineKeyboard([
+          [Markup.button.callback('⬅️ Kembali', 'admin_menu')]
+        ])
+      });
+    }
 
     const rows = await Promise.all(ids.map(async id => {
       try {
@@ -384,18 +445,23 @@ module.exports = bot => {
       parse_mode: 'Markdown',
       reply_markup: Markup.inlineKeyboard(rows)
     });
-  });
+  } catch (err) {
+    console.error('Error list_premiums:', err);
+    await ctx.answerCbQuery('Terjadi kesalahan.', { show_alert: true });
+  }
+});
 
   bot.action(/view_premium_(\d+)/, async ctx => {
-    const id = ctx.match[1];
-    try {
-      const user = await ctx.telegram.getChat(id);
-      const name = user.username ? `@${user.username}` : user.first_name || 'Tanpa Nama';
-      await ctx.answerCbQuery(`${name} | ${id} premium`, { show_alert: true });
-    } catch {
-      await ctx.answerCbQuery(`(Tidak dikenal) | ${id} premium`, { show_alert: true });
-    }
-  });
+  const id = ctx.match[1];
+  try {
+    await ctx.answerCbQuery(); // <<< WAJIB cepat
+    const user = await ctx.telegram.getChat(id);
+    const name = user.username ? `@${user.username}` : user.first_name || 'Tanpa Nama';
+    await ctx.reply(`${name} (${id}) adalah user premium.`);
+  } catch {
+    await ctx.answerCbQuery('Data user tidak ditemukan.', { show_alert: true });
+  }
+});
 
   // === Command list Premiums ===
   bot.command('listpremiums', async ctx => {
