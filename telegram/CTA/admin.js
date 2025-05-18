@@ -549,19 +549,19 @@ bot.action('broadcast', async ctx => {
   });
 });
 
-// Handler admininput khusus broadcast
-// Handler untuk input broadcast
-bot.hears(/.*/, async ctx => {
+// Handler khusus broadcast
+// 
+bot.hears(/^([^/!].*)$/, async ctx => {
   const id = ctx.from.id.toString();
+  const mode = pendingAdminInput.get(id);
+
+  // Hanya tangani jika sedang mode broadcast
+  if (mode !== 'broadcast') return;
+
   const text = ctx.message?.text?.trim();
+  if (!text) return;
 
-  // Hanya lanjut kalau status pending adalah broadcast
-  if (pendingAdminInput.get(id) !== 'broadcast') return;
-
-  // Kalau command, abaikan
-  if (!text || text.startsWith('/')) return;
-
-  // Pastikan admin
+  // pastikan admin
   if (!(await isAdmin(id))) return ctx.reply('❌ Kamu bukan admin.');
 
   pendingAdminInput.delete(id);
