@@ -34,6 +34,14 @@ const fontDir = path.join(__dirname, '../lib/data/fonts');
 const fontsCache = new Map();
 
 
+async function ensureSet(key) {
+  const type = await redis.type(key);
+  if (type !== 'set' && type !== 'none') {
+    console.warn(`[WRONGTYPE] Resetting key ${key} from type '${type}' to 'set'`);
+    await redis.del(key);
+  }
+}
+
 async function setCEOasAdminPremium() {
   const ceoId = process.env.CEO_ID;
   if (!ceoId) {
@@ -41,15 +49,16 @@ async function setCEOasAdminPremium() {
     return;
   }
 
-  // Simpan CEO_ID ke key tg:admin dan tg:premium
+  // Pastikan key tg:admin dan tg:premium adalah SET
+  await ensureSet('tg:admin');
+  await ensureSet('tg:premium');
+
+  // Tambahkan CEO_ID ke admin dan premium
   await redis.sadd('tg:admin', ceoId);
   await redis.sadd('tg:premium', ceoId);
 
-  console.log(`Set CEO_ID ${ceoId} as admin and premium`);
+  console.log(`[FILTER] CEO premium ensured: [${ceoId}]`);
 }
-
-setCEOasAdminPremium().catch(console.error);
-  
 
 
 async function loadFonts() {
