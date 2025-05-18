@@ -261,42 +261,35 @@ async function handleFilterMessage(ctx) {
     const full = filters[keyword];
     if (typeof full !== 'string') continue;
 
-    // Cek keyword case-insensitive apakah ada di textRaw
     if (!textRaw.toLowerCase().includes(keyword.toLowerCase())) continue;
 
     const trimmed = full.trim();
 
     if (trimmed.startsWith('!c ')) {
-      // Ambil coinId setelah '!c '
       const coinId = trimmed.slice(3).trim();
-
-      // Pastikan coinId ada, baru panggil handleSymbolCommand
       if (coinId) {
         return handleSymbolCommand(ctx, coinId);
       } else {
-        // Kalau coinId kosong, reply error atau skip
         return ctx.reply('Format filter command !c tidak valid.');
       }
     }
 
-    // Kalau bukan !c, proses tombol dan markdown biasa
-    const linkRegex = /([^]+)(https?:\/\/[^\s)]+)/g;
-    const buttons = [];
-    let match;
-    while ((match = linkRegex.exec(trimmed)) !== null) {
-      buttons.push(Markup.button.url(match[1], match[2]));
-    }
+    const isPremium = true;
+    const isAdmin = false;
+    const finalText = replacePlaceholders(trimmed, ctx, { isPremium, isAdmin });
+    const reply_markup = parseInlineButtons(finalText);
+    const textOnly = removeButtonMarkup(finalText);
+    const quote = getQuote(ctx);
+    const isMono = textOnly.startsWith('```') || textOnly.startsWith('`');
 
-    // Hapus markup tombol dari text agar bersih
-    const cleanText = trimmed.replace(linkRegex, '$1');
-    const isMono = cleanText.startsWith('```') || cleanText.startsWith('`');
-
-    return ctx.reply(cleanText, {
-      parse_mode: isMono ? undefined : 'Markdown',
-      reply_markup: buttons.length
-        ? Markup.inlineKeyboard(buttons.map(b => [b])).reply_markup
-        : undefined
-    });
+    return ctx.reply(
+      [quote, textOnly].filter(Boolean).join('\n\n'),
+      {
+        parse_mode: isMono ? undefined : 'Markdown',
+        reply_markup,
+        reply_to_message_id: ctx.message.message_id
+      }
+    );
   }
 }
 
