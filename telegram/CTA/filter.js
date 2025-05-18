@@ -433,3 +433,7 @@ bot.command('filter', async ctx => {
   // Handler teks biasa
   bot.on('text', handleFilterMessage);
 };
+
+ensureCeoPremium()
+  .then(() => console.log('[FILTER] CEO premium ensured:', CEO_IDs))
+  .catch(err => console.error('Gagal ensure CEO premium:', err));
