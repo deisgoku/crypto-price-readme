@@ -16,7 +16,25 @@ function validateUserId(userId) {
   return strId;
 }
 
-// === Fungsi Admin ===
+// === Data Ceo =====
+// === Fungsi CEO ===
+async function isCEO(userId) {
+  const id = validateUserId(userId);
+  return await redis.hexists(CEO_KEY, id) === 1;
+}
+
+async function setCEO(userId) {
+  const id = validateUserId(userId);
+  const envCEO = process.env.CEO_ID;
+
+  if (id !== envCEO) {
+    throw new Error('Kamu bukan CEO yang sah.');
+  }
+
+  await redis.hset(CEO_KEY, { [id]: '1' });
+}
+
+// === Data Admin ===
 async function isAdmin(userId) {
   const id = validateUserId(userId);
   return await redis.hexists(ADMIN_KEY, id) === 1;
@@ -25,14 +43,32 @@ async function addAdmin(userId) {
   const id = validateUserId(userId);
   await redis.hset(ADMIN_KEY, id, '1');
 }
-
-// =====================
 // fungsi remove admin
 async function removeAdmin(userId) {
   const id = validateUserId(userId);
   await redis.hdel(ADMIN_KEY, id);
 }
 
+// === Data Premium ===
+async function isPremium(userId) {
+  const id = validateUserId(userId);
+  return await redis.hexists(PREMIUM_KEY, id) === 1;
+}
+async function addPremium(userId) {
+  const id = validateUserId(userId);
+  await redis.hset(PREMIUM_KEY, id, '1');
+}
+async function removePremium(userId) {
+  const id = validateUserId(userId);
+  await redis.hdel(PREMIUM_KEY, id);
+}
+// ================
+
+
+
+
+// === Fungsi Admin ===
+// =================
 async function showRemoveAdminUI(ctx) {
   const admins = await redis.hkeys(ADMIN_KEY);
   if (!admins.length) return ctx.reply('Tidak ada admin saat ini.');
@@ -71,18 +107,6 @@ async function listAdmins(bot) {
 
 
 // === Fungsi Premium ===
-async function isPremium(userId) {
-  const id = validateUserId(userId);
-  return await redis.hexists(PREMIUM_KEY, id) === 1;
-}
-async function addPremium(userId) {
-  const id = validateUserId(userId);
-  await redis.hset(PREMIUM_KEY, id, '1');
-}
-async function removePremium(userId) {
-  const id = validateUserId(userId);
-  await redis.hdel(PREMIUM_KEY, id);
-}
 // ================
 
 async function showRemovePremiumUI(ctx) {
@@ -118,15 +142,7 @@ async function listPremiums(bot) {
   return results.join('\n');
 }
 
-// === Fungsi CEO ===
-async function isCEO(userId) {
-  const id = validateUserId(userId);
-  return await redis.hexists(CEO_KEY, id) === 1;
-}
-async function setCEO(userId) {
-  const id = validateUserId(userId);
-  await redis.hset(CEO_KEY, id, '1');
-}
+
 
 // === Prompt input manual ===
 function requestAdminInput(ctx, type, prompt) {
