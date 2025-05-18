@@ -1,11 +1,16 @@
+// telegram/CTA/admin.js
+
+
 const { Markup } = require('telegraf');
 const { redis } = require('../../lib/redis');
-
+const pendingAdminInput = new Map();
 
 // === Konstanta Key ===
 const ADMIN_KEY = 'tg:admin';
 const PREMIUM_KEY = 'tg:premium';
-const CEO_KEY = 'tg:ceo'; // kalau pakai sistem CEO hash juga
+const CEO_KEY = 'tg:ceo'; 
+
+
 
 // === Fungsi ADMIN ===
 async function isAdmin(userId) {
