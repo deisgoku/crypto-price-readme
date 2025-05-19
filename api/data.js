@@ -28,10 +28,17 @@ function escapeXml(unsafe) {
 }
 
 function formatPrice(value) {
-  if (value >= 0.01) {
-    const str = value.toFixed(8);
-    return { price: parseFloat(str).toString(), micin: false };
+  if (value >= 1000) {
+    return { price: value.toFixed(2), micin: false };
   }
+  if (value >= 1) {
+    return { price: value.toFixed(4), micin: false };
+  }
+  if (value >= 0.01) {
+    return { price: value.toFixed(6), micin: false };
+  }
+
+  // micin style untuk harga di bawah 0.01
   const str = value.toFixed(18);
   const match = str.match(/^0\.0+(?=\d)/);
   const zeroCount = match ? match[0].length - 2 : 0;
