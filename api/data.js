@@ -222,8 +222,23 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
     const coinMarket = marketData.find((c) => c.symbol.toLowerCase() === symbol);
     if (!coinMarket) throw new Error(`Coin ${symbol} tidak ditemukan dalam kategori ${categorySlug}`);
 
+    // Format harga, volume, tren seperti fungsi aslinya
     const { price, micin } = formatPrice(coinMarket.current_price || 0);
-    const contract_address = await getContractAddress(detail.symbol, detail);
+    const volume = formatVolume(coinMarket.total_volume || 0);
+    const trend = formatTrend(coinMarket.price_change_percentage_24h || 0);
+
+    // Ambil contract address per platform dari detail_platforms
+    const contractAddress = {};
+    if (detail.detail_platforms) {
+      for (const [platform, info] of Object.entries(detail.detail_platforms)) {
+        if (info.contract_address) contractAddress[platform] = info.contract_address;
+      }
+    }
+
+    // Ambil blockchain sites (array)
+    const blockchainSites = detail.links?.blockchain_site || [];
+
+    // Ambil social links (asumsi ada fungsi extractSocialLinks)
     const social = extractSocialLinks(detail.links);
 
     results.push({
@@ -231,10 +246,11 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
       symbol: coinMarket.symbol.toUpperCase(),
       price,
       micin,
-      volume: formatVolume(coinMarket.total_volume || 0),
-      trend: formatTrend(coinMarket.price_change_percentage_24h || 0),
+      volume,
+      trend,
       sparkline: [],
-      contract_address,
+      contract_address: contractAddress,
+      blockchain_sites: blockchainSites,
       social,
     });
   }
