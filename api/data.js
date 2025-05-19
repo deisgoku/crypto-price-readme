@@ -143,11 +143,8 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
   const matchedIds = symbols
     .map((sym) => {
       const lowerSym = sym.toLowerCase();
-      const candidates = coinList.filter(
-        (c) => c.symbol.toLowerCase() === lowerSym
-      );
-      const bestMatch =
-        candidates.find((c) => c.id.includes(lowerSym)) || candidates[0];
+      const candidates = coinList.filter((c) => c.symbol.toLowerCase() === lowerSym);
+      const bestMatch = candidates.find((c) => c.id.includes(lowerSym)) || candidates[0];
       return bestMatch ? bestMatch.id : null;
     })
     .filter(Boolean)
@@ -155,73 +152,58 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
 
   if (!matchedIds.length) throw new Error('Symbol tidak ditemukan di CoinGecko');
 
-  const detailPromises = matchedIds.map((id) =>
-    fetch(`${COINGECKO_API}/coins/${id}`).then((res) => res.json())
+  const detailData = await Promise.all(
+    matchedIds.map((id) =>
+      fetch(`${COINGECKO_API}/coins/${id}`).then((r) => r.json())
+    )
   );
-  const detailData = await Promise.all(detailPromises);
 
   const results = [];
 
   for (let i = 0; i < matchedIds.length; i++) {
-    const id = matchedIds[i];
     const detail = detailData[i];
+    const id = matchedIds[i];
+    const symbol = detail.symbol.toLowerCase();
 
-    let categorySlug = null;
-    if (detail.categories && detail.categories.length > 0) {
-      categorySlug = detail.categories[0].toLowerCase().replace(/\s+/g, '-');
-    }
-
-    if (!categorySlug) {
-      throw new Error(`Kategori tidak ditemukan untuk coin id ${id}`);
-    }
+    // Ambil kategori utama (untuk fetch market data)
+    const categorySlug = detail.categories?.[0]?.toLowerCase().replace(/\s+/g, '-');
+    if (!categorySlug) throw new Error(`Kategori tidak ditemukan untuk ${id}`);
 
     const marketRes = await fetch(
       `${COINGECKO_API}/coins/markets?vs_currency=usd&category=${categorySlug}&order=market_cap_desc&per_page=250&page=1&sparkline=false`
     );
-    if (!marketRes.ok) {
-      throw new Error(`Gagal fetch market data kategori ${categorySlug}`);
-    }
+    if (!marketRes.ok) throw new Error(`Gagal fetch market data kategori ${categorySlug}`);
     const marketData = await marketRes.json();
 
-    const coinSymbol = detail.symbol.toLowerCase();
-    const coinMarketData = marketData.find(
-      (c) => c.symbol.toLowerCase() === coinSymbol
-    );
+    const coinMarket = marketData.find((c) => c.symbol.toLowerCase() === symbol);
+    if (!coinMarket) throw new Error(`Coin ${symbol} tidak ditemukan dalam kategori ${categorySlug}`);
 
-    if (!coinMarketData) {
-      throw new Error(
-        `Coin ${coinSymbol} tidak ditemukan dalam kategori ${categorySlug}`
-      );
-    }
-
-    const { price, micin } = formatPrice(coinMarketData.current_price || 0);
-
+    const { price, micin } = formatPrice(coinMarket.current_price || 0);
     const contract_address = await getContractAddress(detail.symbol, detail);
 
+    const links = detail.links || {};
     const social = {
-      twitter: detail.links?.twitter_screen_name
-        ? `https://twitter.com/${detail.links.twitter_screen_name}`
+      twitter: links.twitter_screen_name ? `https://twitter.com/${links.twitter_screen_name}` : null,
+      facebook: links.facebook_username ? `https://facebook.com/${links.facebook_username}` : null,
+      reddit: links.subreddit_url || null,
+      telegram: links.telegram_channel_identifier
+        ? `https://t.me/${links.telegram_channel_identifier}`
         : null,
-      facebook: detail.links?.facebook_username
-        ? `https://facebook.com/${detail.links.facebook_username}`
+      discord: Array.isArray(links.chat_url)
+        ? links.chat_url.find((u) => u.includes('discord'))
         : null,
-      reddit: detail.links?.subreddit_url || null,
-      telegram: detail.links?.telegram_channel_identifier
-        ? `https://t.me/${detail.links.telegram_channel_identifier}`
-        : null,
-      discord: detail.links?.chat_url?.find((url) => url.includes('discord')) || null,
-      github: Array.isArray(detail.links?.repos_url?.github)
-        ? detail.links.repos_url.github[0]
+      github: Array.isArray(links.repos_url?.github)
+        ? links.repos_url.github[0]
         : null,
     };
 
     results.push({
       name: detail.name,
-      symbol: coinMarketData.symbol.toUpperCase(),
+      symbol: coinMarket.symbol.toUpperCase(),
       price,
       micin,
-      volume: formatVolume(coinMarketData.total_volume || 0),
-      trend: formatTrend(coinMarketData.price_change_percentage_24h || 0),
+      volume: formatVolume(coinMarket.total_volume || 0),
+      trend: formatTrend(coinMarket.price_change_percentage_24h || 0),
       sparkline: [],
       contract_address,
       social,
