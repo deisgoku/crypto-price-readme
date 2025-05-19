@@ -11,12 +11,13 @@ const CMC_KEY = process.env.CMC_API_KEY;
 // === UTILS ===
 
 async function fetchWithUA(url, options = {}) {
+  const ua = randomUseragent();
   const headers = {
-    'User-Agent': randomUseragent.get(),
-    ...(options.headers || {}),
+    ...options.headers,
+    'User-Agent': ua || 'Mozilla/5.0',
   };
-
   const res = await fetch(url, { ...options, headers });
+  if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
   return res;
 }
 
