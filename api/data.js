@@ -11,7 +11,7 @@ const CMC_KEY = process.env.CMC_API_KEY;
 // === UTILS ===
 
 async function fetchWithUA(url, options = {}) {
-  const ua = randomUseragent();
+  const ua = randomUseragent.getRandom();
   const headers = {
     ...options.headers,
     'User-Agent': ua || 'Mozilla/5.0',
