@@ -130,64 +130,83 @@ async function getCache(key) {
 
 // ===  METADATA ( CA , BLOCKCHAIN SITE , LINK SOSMED )===
 
-async function getContractAddress(symbol, geckoDetail) {
-  const cacheKey = `crypto:metadata:ca:${symbol.toLowerCase()}`;
-  // coba ambil dari cache dulu
-  const cached = await redis.get(cacheKey);
-  if (cached) {
+// contract address
+async function getContractAddress(geckoDetail, symbol) {
+  // Jika geckoDetail ada dan valid, coba ambil dari cache & parsing detailnya dulu
+  if (geckoDetail && geckoDetail.id) {
+    const geckoId = geckoDetail.id.toLowerCase();
+    const cacheKey = `crypto:metadata:ca:${geckoId}`;
+
+    // Coba dari cache dulu
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch {
+        // lanjut ke bawah kalau error parse
+      }
+    }
+
+    const ca = {};
+
     try {
-      return JSON.parse(cached);
-    } catch {
-      // kalau parse error, lanjut fetch ulang
-    }
-  }
-
-  const ca = {};
-
-  try {
-    if (geckoDetail.detail_platforms && typeof geckoDetail.detail_platforms === 'object') {
-      for (const [chain, info] of Object.entries(geckoDetail.detail_platforms)) {
+      const detailPlatforms = geckoDetail.detail_platforms || {};
+      for (const [chain, info] of Object.entries(detailPlatforms)) {
         const addr = info?.contract_address;
-        if (addr && typeof addr === 'string' && addr.trim()) {
-          ca[chain] = addr.trim();
+        if (typeof addr === 'string' && addr.trim()) {
+          ca[chain.toLowerCase()] = addr.trim();
         }
       }
-    }
 
-    if (geckoDetail.platforms && typeof geckoDetail.platforms === 'object') {
-      for (const [chain, addr] of Object.entries(geckoDetail.platforms)) {
-        if (!ca[chain] && addr && typeof addr === 'string' && addr.trim()) {
-          ca[chain] = addr.trim();
+      const platforms = geckoDetail.platforms || {};
+      for (const [chain, addr] of Object.entries(platforms)) {
+        const key = chain.toLowerCase();
+        if (!ca[key] && typeof addr === 'string' && addr.trim()) {
+          ca[key] = addr.trim();
         }
       }
-    }
 
-    if (
-      geckoDetail.asset_platform_id &&
-      geckoDetail.detail_platforms?.[geckoDetail.asset_platform_id]?.contract_address &&
-      !ca[geckoDetail.asset_platform_id]
-    ) {
-      const fallbackAddr = geckoDetail.detail_platforms[geckoDetail.asset_platform_id].contract_address;
-      if (fallbackAddr && typeof fallbackAddr === 'string') {
-        ca[geckoDetail.asset_platform_id] = fallbackAddr.trim();
+      // Fallback tambahan jika ada asset_platform_id yang belum tertangkap
+      const assetChain = geckoDetail.asset_platform_id;
+      const fallbackAddr = geckoDetail.detail_platforms?.[assetChain]?.contract_address;
+      if (assetChain && fallbackAddr && typeof fallbackAddr === 'string') {
+        const key = assetChain.toLowerCase();
+        if (!ca[key]) {
+          ca[key] = fallbackAddr.trim();
+        }
       }
-    }
 
-    if (Object.keys(ca).length > 0) {
-      // simpan cache 7 hari (atau permanen)
-      await redis.set(cacheKey, JSON.stringify(ca), { ex: 7 * 24 * 3600 });
-      return ca;
+      if (Object.keys(ca).length > 0) {
+        await redis.set(cacheKey, JSON.stringify(ca), { ex: 7 * 24 * 3600 });
+        return ca;
+      }
+    } catch (e) {
+      console.warn('Error parsing CoinGecko CA:', e.message);
     }
-  } catch (e) {
-    console.warn('Error parsing CoinGecko:', e.message);
   }
 
-  // fallback CoinMarketCap tetap seperti biasa, tapi cache juga kalau dapat
+  // Kalau geckoDetail kosong atau gagal ambil contract address, pakai fallback dari symbol (CMC)
+  if (!symbol) return {};
+
+  const cacheKeyFallback = `crypto:metadata:ca:symbol:${symbol.toLowerCase()}`;
+
+  // Coba cache fallback dulu
+  const cachedFallback = await redis.get(cacheKeyFallback);
+  if (cachedFallback) {
+    try {
+      return JSON.parse(cachedFallback);
+    } catch {
+      // lanjut ke bawah kalau error parse
+    }
+  }
+
   try {
     if (!CMC_KEY) throw new Error('CMC API key tidak tersedia');
 
+    const upperSymbol = symbol.toUpperCase();
+
     const res = await fetchWithUA(
-      `https://pro-api.coinmarketcap.com/v1/cryptocurrency/info?symbol=${symbol.toUpperCase()}`,
+      `https://pro-api.coinmarketcap.com/v1/cryptocurrency/info?symbol=${upperSymbol}`,
       {
         headers: { 'X-CMC_PRO_API_KEY': CMC_KEY },
       }
@@ -195,91 +214,208 @@ async function getContractAddress(symbol, geckoDetail) {
 
     if (res.ok) {
       const json = await res.json();
-      const cmcData = json.data?.[symbol.toUpperCase()];
-      if (cmcData?.platform) {
-        const { name, token_address } = cmcData.platform;
-        if (name && token_address) {
-          const cmcCa = { [name.toLowerCase()]: token_address };
-          await redis.set(cacheKey, JSON.stringify(cmcCa), { ex: 7 * 24 * 3600 });
-          return cmcCa;
-        }
+      const cmcData = json.data?.[upperSymbol];
+      const name = cmcData?.platform?.name;
+      const token_address = cmcData?.platform?.token_address;
+
+      if (name && token_address) {
+        const cmcCa = { [name.toLowerCase()]: token_address };
+        await redis.set(cacheKeyFallback, JSON.stringify(cmcCa), { ex: 7 * 24 * 3600 });
+        return cmcCa;
       }
     }
   } catch (e) {
-    console.warn('Error ambil CA CoinMarketCap:', e.message);
+    console.warn('Error ambil CA dari CoinMarketCap (fallback symbol):', e.message);
   }
 
-  // kalau tetap kosong, cache juga supaya gak coba terus
-  await redis.set(cacheKey, JSON.stringify({}), { ex: 24 * 3600 }); // cache kosong 1 hari
+  // Kalau tetap kosong, cache kosong biar gak dicoba terus
+  await redis.set(cacheKeyFallback, JSON.stringify({}), { ex: 24 * 3600 });
   return {};
 }
 
-async function getBlockchainSites(symbol, geckoDetail) {
-  const cacheKey = `crypto:metadata:blockchain_sites:${symbol.toLowerCase()}`;
-  const cached = await redis.get(cacheKey);
-  if (cached) {
-    try {
-      return JSON.parse(cached);
-    } catch {}
+// blockchain_site
+async function getBlockchainSites(geckoDetail, symbol) {
+  // Kalau ada geckoDetail dan valid, coba ambil dari cache & parsing
+  if (geckoDetail && geckoDetail.id) {
+    const geckoId = geckoDetail.id.toLowerCase();
+    const cacheKey = `crypto:metadata:blockchain_sites:${geckoId}`;
+
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch {
+        // lanjut ke bawah kalau gagal parse
+      }
+    }
+
+    const sites = Array.isArray(geckoDetail.links?.blockchain_site)
+      ? geckoDetail.links.blockchain_site.filter(site => typeof site === 'string' && site.startsWith('http'))
+      : [];
+
+    if (sites.length > 0) {
+      await redis.set(cacheKey, JSON.stringify(sites), { ex: 7 * 24 * 3600 });
+      return sites;
+    }
   }
 
-  const sites = Array.isArray(geckoDetail.links?.blockchain_site)
-    ? geckoDetail.links.blockchain_site.filter(site => site && site.startsWith('http'))
-    : [];
+  // Fallback ke CoinMarketCap pakai symbol jika geckoDetail tidak valid
+  if (!symbol) return [];
 
-  await redis.set(cacheKey, JSON.stringify(sites), { ex: 7 * 24 * 3600 });
-  return sites;
+  const cacheKeyFallback = `crypto:metadata:blockchain_sites:symbol:${symbol.toLowerCase()}`;
+
+  const cachedFallback = await redis.get(cacheKeyFallback);
+  if (cachedFallback) {
+    try {
+      return JSON.parse(cachedFallback);
+    } catch {
+      // lanjut ke bawah kalau gagal parse
+    }
+  }
+
+  try {
+    if (!CMC_KEY) throw new Error('CMC API key tidak tersedia');
+
+    const upperSymbol = symbol.toUpperCase();
+
+    const res = await fetchWithUA(
+      `https://pro-api.coinmarketcap.com/v1/cryptocurrency/info?symbol=${upperSymbol}`,
+      {
+        headers: { 'X-CMC_PRO_API_KEY': CMC_KEY },
+      }
+    );
+
+    if (res.ok) {
+      const json = await res.json();
+      const cmcData = json.data?.[upperSymbol];
+      const urls = cmcData?.urls?.blockchain_site;
+
+      const filteredSites = Array.isArray(urls)
+        ? urls.filter(site => typeof site === 'string' && site.startsWith('http'))
+        : [];
+
+      if (filteredSites.length > 0) {
+        await redis.set(cacheKeyFallback, JSON.stringify(filteredSites), { ex: 7 * 24 * 3600 });
+        return filteredSites;
+      }
+    }
+  } catch (e) {
+    console.warn('Error ambil blockchain sites dari CoinMarketCap (fallback symbol):', e.message);
+  }
+
+  // Cache empty array supaya gak terus coba
+  await redis.set(cacheKeyFallback, JSON.stringify([]), { ex: 24 * 3600 });
+  return [];
 }
 
-async function getSocialLinks(symbol, geckoDetail) {
-  const cacheKey = `crypto:metadata:social_links:${symbol.toLowerCase()}`;
-  const cached = await redis.get(cacheKey);
-  if (cached) {
+// sosmed links
+async function getSocialLinks(geckoDetail, symbol) {
+  if (geckoDetail && geckoDetail.id) {
+    const geckoId = geckoDetail.id.toLowerCase();
+    const cacheKey = `crypto:metadata:social_links:${geckoId}`;
+
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch {
+        // lanjut ke bawah kalau parsing gagal
+      }
+    }
+
+    const social = {};
+    const links = geckoDetail.links || {};
+
+    if (typeof links.twitter_screen_name === 'string' && links.twitter_screen_name.trim()) {
+      social.twitter = `https://twitter.com/${links.twitter_screen_name.trim()}`;
+    }
+
+    if (typeof links.facebook_username === 'string' && links.facebook_username.trim()) {
+      social.facebook = `https://facebook.com/${links.facebook_username.trim()}`;
+    }
+
+    if (typeof links.subreddit_url === 'string' && links.subreddit_url.startsWith('http')) {
+      social.reddit = links.subreddit_url;
+    }
+
+    if (typeof links.telegram_channel_identifier === 'string' && links.telegram_channel_identifier.trim()) {
+      social.telegram = `https://t.me/${links.telegram_channel_identifier.trim()}`;
+    }
+
+    if (Array.isArray(links.chat_url)) {
+      const discord = links.chat_url.find(url => typeof url === 'string' && url.includes('discord'));
+      if (discord) social.discord = discord;
+    }
+
+    if (Array.isArray(links.repos_url?.github)) {
+      const github = links.repos_url.github.find(url => typeof url === 'string' && url.includes('github.com'));
+      if (github) social.github = github;
+    }
+
+    await redis.set(cacheKey, JSON.stringify(social), { ex: 7 * 24 * 3600 });
+    return social;
+  }
+
+  // fallback ke symbol via CMC
+  if (!symbol) return {};
+
+  const cacheKeyFallback = `crypto:metadata:social_links:symbol:${symbol.toLowerCase()}`;
+
+  const cachedFallback = await redis.get(cacheKeyFallback);
+  if (cachedFallback) {
     try {
-      return JSON.parse(cached);
+      return JSON.parse(cachedFallback);
     } catch {
-      // parse error, lanjut fetch ulang
+      // lanjut ke bawah kalau parsing gagal
     }
   }
 
-  const social = {};
+  try {
+    if (!CMC_KEY) throw new Error('CMC API key tidak tersedia');
+    const upperSymbol = symbol.toUpperCase();
 
-  const links = geckoDetail.links || {};
+    const res = await fetchWithUA(
+      `https://pro-api.coinmarketcap.com/v1/cryptocurrency/info?symbol=${upperSymbol}`,
+      { headers: { 'X-CMC_PRO_API_KEY': CMC_KEY } }
+    );
 
-  if (typeof links.twitter_screen_name === 'string' && links.twitter_screen_name.trim()) {
-    social.twitter = `https://twitter.com/${links.twitter_screen_name}`;
-  }
+    if (res.ok) {
+      const json = await res.json();
+      const cmcData = json.data?.[upperSymbol];
+      const urls = cmcData?.urls || {};
 
-  if (typeof links.facebook_username === 'string' && links.facebook_username.trim()) {
-    social.facebook = `https://facebook.com/${links.facebook_username}`;
-  }
+      const social = {};
 
-  if (typeof links.subreddit_url === 'string' && links.subreddit_url.startsWith('http')) {
-    social.reddit = links.subreddit_url;
-  }
+      if (Array.isArray(urls.twitter) && urls.twitter.length > 0) {
+        social.twitter = urls.twitter[0];
+      }
+      if (Array.isArray(urls.facebook) && urls.facebook.length > 0) {
+        social.facebook = urls.facebook[0];
+      }
+      if (Array.isArray(urls.reddit) && urls.reddit.length > 0) {
+        social.reddit = urls.reddit[0];
+      }
+      if (Array.isArray(urls.telegram) && urls.telegram.length > 0) {
+        social.telegram = urls.telegram[0];
+      }
+      if (Array.isArray(urls.discord) && urls.discord.length > 0) {
+        social.discord = urls.discord[0];
+      }
+      if (Array.isArray(urls.github) && urls.github.length > 0) {
+        social.github = urls.github[0];
+      }
 
-  if (typeof links.telegram_channel_identifier === 'string' && links.telegram_channel_identifier.trim()) {
-    social.telegram = `https://t.me/${links.telegram_channel_identifier}`;
-  }
-
-  if (Array.isArray(links.chat_url)) {
-    const discord = links.chat_url.find(url => typeof url === 'string' && url.includes('discord'));
-    if (discord) {
-      social.discord = discord;
+      if (Object.keys(social).length > 0) {
+        await redis.set(cacheKeyFallback, JSON.stringify(social), { ex: 7 * 24 * 3600 });
+        return social;
+      }
     }
+  } catch (e) {
+    console.warn('Error ambil social links dari CoinMarketCap (fallback symbol):', e.message);
   }
 
-  if (Array.isArray(links.repos_url?.github)) {
-    const github = links.repos_url.github.find(url => typeof url === 'string' && url.includes('github.com'));
-    if (github) {
-      social.github = github;
-    }
-  }
-
-  // Simpan cache selama 7 hari
-  await redis.set(cacheKey, JSON.stringify(social), { ex: 7 * 24 * 3600 });
-
-  return social;
+  await redis.set(cacheKeyFallback, JSON.stringify({}), { ex: 24 * 3600 });
+  return {};
 }
 
 // ============={==FETCHER =======
@@ -306,6 +442,10 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
 
   for (let i = 0; i < matchedIds.length; i++) {
     const detail = detailData[i];
+    if (!detail) {
+      console.warn(`Detail coin untuk ID ${matchedIds[i]} kosong`);
+      continue;
+    }
     const id = matchedIds[i];
     const symbol = detail.symbol.toLowerCase();
 
@@ -328,9 +468,10 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
     const volume = formatVolume(coinMarket.total_volume || 0);
     const trend = formatTrend(coinMarket.price_change_percentage_24h || 0);
 
-    const contractAddress = await getContractAddress(symbol, detail);
-    const blockchainSites = await getBlockchainSites(symbol, detail);
-    const social = await getSocialLinks(symbol, detail);
+    // panggil fungsi dengan argumen (geckoDetail, symbol)
+    const contractAddress = await getContractAddress(detail, symbol);
+    const blockchainSites = await getBlockchainSites(detail, symbol);
+    const social = await getSocialLinks(detail, symbol);
 
     results.push({
       name: detail.name,
@@ -339,7 +480,7 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
       micin,
       volume,
       trend,
-      sparkline: [],
+      sparkline: coinMarket.sparkline_in_7d?.price || [],
       contract_address: contractAddress,
       blockchain_sites: blockchainSites,
       social,
