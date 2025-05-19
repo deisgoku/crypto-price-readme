@@ -60,7 +60,8 @@
     "react-select": "^5.7.3",
     "react-turnstile": "^1.0.7",
     "telegraf": "^4.12.2",
-    "xmldom": "^0.6.0"
+    "xmldom": "^0.6.0",
+    "random-useragent": "^0.4.0"
   },
   "devDependencies": {
     "eslint": "^9.1.0",
