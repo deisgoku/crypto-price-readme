@@ -1,5 +1,7 @@
 const fetch = require('node-fetch');
+const randomUseragent = require('random-useragent');
 const { redis } = require('../lib/redis');
+
 
 const COINGECKO_API = 'https://api.coingecko.com/api/v3';
 const CMC_API = 'https://pro-api.coinmarketcap.com/v1';
@@ -7,6 +9,18 @@ const BINANCE_API = 'https://api.binance.com/api/v3/ticker/24hr';
 const CMC_KEY = process.env.CMC_API_KEY;
 
 // === UTILS ===
+
+async function fetchWithUA(url, options = {}) {
+  const headers = {
+    'User-Agent': randomUseragent.get(),
+    ...(options.headers || {}),
+  };
+
+  const res = await fetch(url, { ...options, headers });
+  return res;
+}
+
+// ==== Format Volume M ,B ,K =====
 function formatVolume(value) {
   if (value >= 1e9) return (value / 1e9).toFixed(1) + 'B';
   if (value >= 1e6) return (value / 1e6).toFixed(1) + 'M';
@@ -14,6 +28,7 @@ function formatVolume(value) {
   return value.toFixed(0);
 }
 
+// ===== Format Trend / 24h ========
 function formatTrend(value) {
   const trend = parseFloat((value || 0).toFixed(2));
   return (trend >= 0 ? '+' : '') + trend + '%';
@@ -27,6 +42,7 @@ function escapeXml(unsafe) {
   }[c]));
 }
 
+// ====== Smart Decimal Price ======
 function formatPrice(value) {
   if (value >= 1000) {
     return { price: value.toFixed(2), micin: false };
@@ -116,7 +132,7 @@ async function getContractAddress(symbol, geckoDetail) {
   try {
     if (!CMC_KEY) throw new Error('CMC API key tidak tersedia');
 
-    const res = await fetch(
+    const res = await fetchWithUA(
       `https://pro-api.coinmarketcap.com/v1/cryptocurrency/info?symbol=${symbol.toUpperCase()}`,
       {
         headers: { 'X-CMC_PRO_API_KEY': CMC_KEY },
@@ -182,7 +198,7 @@ function extractSocialLinks(links = {}) {
 // Masukkan ini ke atas atau di luar fungsi fetchGeckoSymbols.
 
 async function fetchGeckoSymbols(symbols = [], limit = 5) {
-  const coinListRes = await fetch(`${COINGECKO_API}/coins/list`);
+  const coinListRes = await fetchWithUA(`${COINGECKO_API}/coins/list`);
   const coinList = await coinListRes.json();
 
   const matchedIds = symbols
@@ -199,7 +215,7 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
 
   const detailData = await Promise.all(
     matchedIds.map((id) =>
-      fetch(`${COINGECKO_API}/coins/${id}`).then((r) => r.json())
+      fetchWithUA(`${COINGECKO_API}/coins/${id}`).then((r) => r.json())
     )
   );
 
@@ -213,7 +229,7 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
     const categorySlug = detail.categories?.[0]?.toLowerCase().replace(/\s+/g, '-');
     if (!categorySlug) throw new Error(`Kategori tidak ditemukan untuk ${id}`);
 
-    const marketRes = await fetch(
+    const marketRes = await fetchWithUA(
       `${COINGECKO_API}/coins/markets?vs_currency=usd&category=${categorySlug}&order=market_cap_desc&per_page=250&page=1&sparkline=false`
     );
     if (!marketRes.ok) throw new Error(`Gagal fetch market data kategori ${categorySlug}`);
@@ -222,12 +238,10 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
     const coinMarket = marketData.find((c) => c.symbol.toLowerCase() === symbol);
     if (!coinMarket) throw new Error(`Coin ${symbol} tidak ditemukan dalam kategori ${categorySlug}`);
 
-    // Format harga, volume, tren seperti fungsi aslinya
     const { price, micin } = formatPrice(coinMarket.current_price || 0);
     const volume = formatVolume(coinMarket.total_volume || 0);
     const trend = formatTrend(coinMarket.price_change_percentage_24h || 0);
 
-    // Ambil contract address per platform dari detail_platforms
     const contractAddress = {};
     if (detail.detail_platforms) {
       for (const [platform, info] of Object.entries(detail.detail_platforms)) {
@@ -235,10 +249,7 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
       }
     }
 
-    // Ambil blockchain sites (array)
     const blockchainSites = detail.links?.blockchain_site || [];
-
-    // Ambil social links (asumsi ada fungsi extractSocialLinks)
     const social = extractSocialLinks(detail.links);
 
     results.push({
@@ -260,13 +271,16 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
 
 
 
-
 // Area Category
 async function fetchGeckoCategory(category, limit) {
   const url = `${COINGECKO_API}/coins/markets?vs_currency=usd&category=${encodeURIComponent(category)}&order=market_cap_desc&per_page=${limit}&page=1&sparkline=false`;
-  const res = await fetch(url);
+  const res = await fetchWithUA(url);
   const data = await res.json();
-  if (!res.ok || !Array.isArray(data) || data.length === 0) throw new Error('CoinGecko category fetch failed');
+
+  if (!res.ok || !Array.isArray(data) || data.length === 0) {
+    throw new Error('CoinGecko category fetch failed');
+  }
+
   return data.map(coin => {
     const { price, micin } = formatPrice(coin.current_price);
     return {
@@ -282,17 +296,21 @@ async function fetchGeckoCategory(category, limit) {
 
 async function fetchCMC(categoryOrIds, isCategory, limit) {
   if (isCategory) {
-    const slugRes = await fetch(`${CMC_API}/cryptocurrency/category`, {
+    const slugRes = await fetchWithUA(`${CMC_API}/cryptocurrency/category`, {
       headers: { 'X-CMC_PRO_API_KEY': CMC_KEY }
     });
     const json = await slugRes.json();
+
     const match = json.data.find(c => c.name.toLowerCase().includes(categoryOrIds.toLowerCase()));
     if (!match) throw new Error('CMC category not found');
+
     const ids = match.coins.slice(0, limit).map(c => c.id).join(',');
-    const dataRes = await fetch(`${CMC_API}/cryptocurrency/quotes/latest?id=${ids}`, {
+
+    const dataRes = await fetchWithUA(`${CMC_API}/cryptocurrency/quotes/latest?id=${ids}`, {
       headers: { 'X-CMC_PRO_API_KEY': CMC_KEY }
     });
     const data = await dataRes.json();
+
     return Object.values(data.data).map(coin => {
       const { price, micin } = formatPrice(coin.quote.USD.price);
       return {
@@ -306,10 +324,11 @@ async function fetchCMC(categoryOrIds, isCategory, limit) {
     });
   } else {
     const symbols = categoryOrIds.join(',');
-    const dataRes = await fetch(`${CMC_API}/cryptocurrency/quotes/latest?symbol=${symbols}`, {
+    const dataRes = await fetchWithUA(`${CMC_API}/cryptocurrency/quotes/latest?symbol=${symbols}`, {
       headers: { 'X-CMC_PRO_API_KEY': CMC_KEY }
     });
     const data = await dataRes.json();
+
     return Object.values(data.data).map(coin => {
       const { price, micin } = formatPrice(coin.quote.USD.price);
       return {
@@ -325,7 +344,7 @@ async function fetchCMC(categoryOrIds, isCategory, limit) {
 }
 
 async function fetchBinance(limit) {
-  const res = await fetch(BINANCE_API);
+  const res = await fetchWithUA(BINANCE_API);
   const data = await res.json();
   return data
     .filter(d => d.symbol.endsWith('USDT') && d.symbol.length <= 10)
