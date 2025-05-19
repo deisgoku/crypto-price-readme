@@ -196,7 +196,7 @@ async function handleSymbolCommand(ctx, coinId) {
     // Explorer mapping
     const explorers = {
       ethereum: "https://etherscan.io/token/",
-      "binance-smart-chain": "https://bscscan.com/token/",
+      "binance smart chain": "https://bscscan.com/token/",
       solana: "https://solscan.io/token/",
       sui: "https://suiexplorer.com/object/",
       base: "https://basescan.org/token/",
@@ -207,15 +207,29 @@ async function handleSymbolCommand(ctx, coinId) {
 
     let msg = `📊 Market ${result.symbol.toUpperCase()}\n\n`;
 
+    // Tambah CA link kalau ada
     if (result.contract_address && typeof result.contract_address === 'object') {
       const [chain, address] = Object.entries(result.contract_address)[0] || [];
       if (chain && address && explorers[chain]) {
         const encodedAddress = encodeURIComponent(address);
         const link = explorers[chain] + encodedAddress;
-        msg += `[CA di ${chain.toUpperCase()}](${link})\n\n`;
+        msg += `[Contract Address di ${chain.toUpperCase()}](${link})\n\n`;
       }
     }
 
+    // Tambah link sosial media kalau ada
+    if (result.social && typeof result.social === 'object') {
+      const socialLinks = Object.values(result.social).filter(url => typeof url === 'string' && url.startsWith('http'));
+      if (socialLinks.length) {
+        msg += `🌐 Sosial Media :\n`;
+        for (const url of socialLinks) {
+          msg += `${url}\n`;
+        }
+        msg += `\n`;
+      }
+    }
+
+    // Format data harga
     const labelMax = Math.max(...Object.keys(data).map(k => k.length));
     const valueMax = Math.max(...Object.values(data).map(v => v.length));
     const totalLen = Math.max(30, labelMax + 3 + valueMax);
@@ -416,4 +430,3 @@ bot.command('filter', async ctx => {
   // Handler teks biasa
   bot.on('text', handleFilterMessage);
 };
-
