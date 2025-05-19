@@ -132,18 +132,20 @@ async function getCache(key) {
 
 // contract address
 async function getContractAddress(geckoDetail, symbol) {
-  // Jika geckoDetail ada dan valid, coba ambil dari cache & parsing detailnya dulu
+  console.log('[CA] Memulai getContractAddress:', { symbol, hasGeckoDetail: !!geckoDetail });
+
   if (geckoDetail && geckoDetail.id) {
     const geckoId = geckoDetail.id.toLowerCase();
     const cacheKey = `crypto:metadata:ca:${geckoId}`;
 
-    // Coba dari cache dulu
+    // Cek dari cache dulu
     const cached = await redis.get(cacheKey);
     if (cached) {
       try {
+        console.log('[CA] Dapat dari Redis cache:', cacheKey);
         return JSON.parse(cached);
-      } catch {
-        // lanjut ke bawah kalau error parse
+      } catch (e) {
+        console.warn('[CA] Gagal parse Redis cache:', cacheKey, e.message);
       }
     }
 
@@ -151,6 +153,8 @@ async function getContractAddress(geckoDetail, symbol) {
 
     try {
       const detailPlatforms = geckoDetail.detail_platforms || {};
+      console.log('[CA] detail_platforms:', Object.keys(detailPlatforms));
+
       for (const [chain, info] of Object.entries(detailPlatforms)) {
         const addr = info?.contract_address;
         if (typeof addr === 'string' && addr.trim()) {
@@ -159,6 +163,8 @@ async function getContractAddress(geckoDetail, symbol) {
       }
 
       const platforms = geckoDetail.platforms || {};
+      console.log('[CA] platforms:', Object.keys(platforms));
+
       for (const [chain, addr] of Object.entries(platforms)) {
         const key = chain.toLowerCase();
         if (!ca[key] && typeof addr === 'string' && addr.trim()) {
@@ -166,9 +172,10 @@ async function getContractAddress(geckoDetail, symbol) {
         }
       }
 
-      // Fallback tambahan jika ada asset_platform_id yang belum tertangkap
       const assetChain = geckoDetail.asset_platform_id;
       const fallbackAddr = geckoDetail.detail_platforms?.[assetChain]?.contract_address;
+      console.log('[CA] asset_platform_id:', assetChain, '=>', fallbackAddr);
+
       if (assetChain && fallbackAddr && typeof fallbackAddr === 'string') {
         const key = assetChain.toLowerCase();
         if (!ca[key]) {
@@ -177,32 +184,36 @@ async function getContractAddress(geckoDetail, symbol) {
       }
 
       if (Object.keys(ca).length > 0) {
+        console.log('[CA] Hasil akhir dari Gecko:', ca);
         await redis.set(cacheKey, JSON.stringify(ca), { ex: 7 * 24 * 3600 });
         return ca;
+      } else {
+        console.log('[CA] GeckoDetail tidak mengandung contract address.');
       }
+
     } catch (e) {
-      console.warn('Error parsing CoinGecko CA:', e.message);
+      console.warn('[CA] Error parsing CoinGecko CA:', e.message);
     }
+  } else {
+    console.log('[CA] geckoDetail kosong atau tidak valid:', geckoDetail);
   }
 
-  // Kalau geckoDetail kosong atau gagal ambil contract address, pakai fallback dari symbol (CMC)
+  // === Fallback ke CMC ===
   if (!symbol) return {};
 
   const cacheKeyFallback = `crypto:metadata:ca:symbol:${symbol.toLowerCase()}`;
-
-  // Coba cache fallback dulu
   const cachedFallback = await redis.get(cacheKeyFallback);
   if (cachedFallback) {
     try {
+      console.log('[CA] Fallback: Dapat dari Redis cache:', cacheKeyFallback);
       return JSON.parse(cachedFallback);
     } catch {
-      // lanjut ke bawah kalau error parse
+      console.warn('[CA] Fallback: Gagal parse Redis cache:', cacheKeyFallback);
     }
   }
 
   try {
     if (!CMC_KEY) throw new Error('CMC API key tidak tersedia');
-
     const upperSymbol = symbol.toUpperCase();
 
     const res = await fetchWithUA(
@@ -218,17 +229,21 @@ async function getContractAddress(geckoDetail, symbol) {
       const name = cmcData?.platform?.name;
       const token_address = cmcData?.platform?.token_address;
 
+      console.log('[CA] Fallback CMC result:', { name, token_address });
+
       if (name && token_address) {
         const cmcCa = { [name.toLowerCase()]: token_address };
         await redis.set(cacheKeyFallback, JSON.stringify(cmcCa), { ex: 7 * 24 * 3600 });
         return cmcCa;
       }
+    } else {
+      console.warn('[CA] Fallback CMC response error:', res.status);
     }
   } catch (e) {
-    console.warn('Error ambil CA dari CoinMarketCap (fallback symbol):', e.message);
+    console.warn('[CA] Error ambil CA dari CoinMarketCap (fallback):', e.message);
   }
 
-  // Kalau tetap kosong, cache kosong biar gak dicoba terus
+  // Cache kosong untuk hindari spam
   await redis.set(cacheKeyFallback, JSON.stringify({}), { ex: 24 * 3600 });
   return {};
 }
@@ -243,9 +258,12 @@ async function getBlockchainSites(geckoDetail, symbol) {
     const cached = await redis.get(cacheKey);
     if (cached) {
       try {
-        return JSON.parse(cached);
-      } catch {
-        // lanjut ke bawah kalau gagal parse
+        const parsed = JSON.parse(cached);
+        console.log(`Blockchain sites dari cache CoinGecko (${geckoId})`);
+        return parsed;
+      } catch (e) {
+        console.warn(`Gagal parse cache CoinGecko blockchain sites untuk ${geckoId}:`, e.message);
+        // lanjut ke bawah
       }
     }
 
@@ -255,21 +273,31 @@ async function getBlockchainSites(geckoDetail, symbol) {
 
     if (sites.length > 0) {
       await redis.set(cacheKey, JSON.stringify(sites), { ex: 7 * 24 * 3600 });
+      console.log(`Blockchain sites dari geckoDetail dan disimpan ke cache (${geckoId})`);
       return sites;
+    } else {
+      console.warn(`Blockchain sites kosong di geckoDetail untuk ${geckoId}`);
     }
+  } else {
+    console.warn('geckoDetail tidak valid atau tidak tersedia');
   }
 
   // Fallback ke CoinMarketCap pakai symbol jika geckoDetail tidak valid
-  if (!symbol) return [];
+  if (!symbol) {
+    console.warn('Symbol tidak tersedia, tidak bisa ambil blockchain sites fallback');
+    return [];
+  }
 
   const cacheKeyFallback = `crypto:metadata:blockchain_sites:symbol:${symbol.toLowerCase()}`;
 
   const cachedFallback = await redis.get(cacheKeyFallback);
   if (cachedFallback) {
     try {
-      return JSON.parse(cachedFallback);
-    } catch {
-      // lanjut ke bawah kalau gagal parse
+      const parsed = JSON.parse(cachedFallback);
+      console.log(`Blockchain sites dari cache CMC (${symbol})`);
+      return parsed;
+    } catch (e) {
+      console.warn(`Gagal parse cache fallback CMC untuk ${symbol}:`, e.message);
     }
   }
 
@@ -296,8 +324,13 @@ async function getBlockchainSites(geckoDetail, symbol) {
 
       if (filteredSites.length > 0) {
         await redis.set(cacheKeyFallback, JSON.stringify(filteredSites), { ex: 7 * 24 * 3600 });
+        console.log(`Blockchain sites dari CMC (${symbol}) berhasil diambil dan disimpan`);
         return filteredSites;
+      } else {
+        console.warn(`Blockchain sites kosong dari CMC untuk ${symbol}`);
       }
+    } else {
+      console.warn(`Request CMC gagal untuk ${symbol}:`, res.status);
     }
   } catch (e) {
     console.warn('Error ambil blockchain sites dari CoinMarketCap (fallback symbol):', e.message);
@@ -305,6 +338,7 @@ async function getBlockchainSites(geckoDetail, symbol) {
 
   // Cache empty array supaya gak terus coba
   await redis.set(cacheKeyFallback, JSON.stringify([]), { ex: 24 * 3600 });
+  console.warn(`Blockchain sites kosong dan disimpan sebagai [] di cache fallback (${symbol})`);
   return [];
 }
 
@@ -317,9 +351,11 @@ async function getSocialLinks(geckoDetail, symbol) {
     const cached = await redis.get(cacheKey);
     if (cached) {
       try {
-        return JSON.parse(cached);
-      } catch {
-        // lanjut ke bawah kalau parsing gagal
+        const parsed = JSON.parse(cached);
+        console.log(`[cache-hit] Sosial links dari cache Gecko ID: ${geckoId}`);
+        return parsed;
+      } catch (err) {
+        console.warn(`[cache-error] Gagal parsing cache Gecko ID: ${geckoId}`, err.message);
       }
     }
 
@@ -353,20 +389,26 @@ async function getSocialLinks(geckoDetail, symbol) {
     }
 
     await redis.set(cacheKey, JSON.stringify(social), { ex: 7 * 24 * 3600 });
+    console.log(`[cache-set] Sosial links disimpan untuk Gecko ID: ${geckoId}`);
     return social;
   }
 
   // fallback ke symbol via CMC
-  if (!symbol) return {};
+  if (!symbol) {
+    console.warn('[fallback-abort] Symbol tidak tersedia untuk ambil social links');
+    return {};
+  }
 
   const cacheKeyFallback = `crypto:metadata:social_links:symbol:${symbol.toLowerCase()}`;
-
   const cachedFallback = await redis.get(cacheKeyFallback);
+
   if (cachedFallback) {
     try {
-      return JSON.parse(cachedFallback);
-    } catch {
-      // lanjut ke bawah kalau parsing gagal
+      const parsed = JSON.parse(cachedFallback);
+      console.log(`[cache-hit] Sosial links dari fallback cache Symbol: ${symbol}`);
+      return parsed;
+    } catch (err) {
+      console.warn(`[cache-error] Gagal parsing fallback cache Symbol: ${symbol}`, err.message);
     }
   }
 
@@ -407,14 +449,18 @@ async function getSocialLinks(geckoDetail, symbol) {
 
       if (Object.keys(social).length > 0) {
         await redis.set(cacheKeyFallback, JSON.stringify(social), { ex: 7 * 24 * 3600 });
+        console.log(`[cache-set] Sosial links dari CMC disimpan untuk Symbol: ${symbol}`);
         return social;
       }
+    } else {
+      console.warn(`[http-error] Gagal ambil data dari CMC untuk Symbol: ${symbol}, Status: ${res.status}`);
     }
   } catch (e) {
-    console.warn('Error ambil social links dari CoinMarketCap (fallback symbol):', e.message);
+    console.warn(`[fallback-error] Error ambil social links dari CMC untuk Symbol: ${symbol}`, e.message);
   }
 
   await redis.set(cacheKeyFallback, JSON.stringify({}), { ex: 24 * 3600 });
+  console.log(`[cache-set] Kosongkan cache sosial links untuk Symbol: ${symbol}`);
   return {};
 }
 
@@ -434,9 +480,8 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
 
   if (!matchedIds.length) throw new Error('Symbol tidak ditemukan di CoinGecko');
 
-  // Ambil detail coin pakai retry & batch
   const detailUrls = matchedIds.map(id => `${COINGECKO_API}/coins/${id}`);
-  const detailData = await fetchInBatches(detailUrls, 3, 1500); // batch size bisa disesuaikan
+  const detailData = await fetchInBatches(detailUrls, 3, 1500);
 
   const results = [];
 
@@ -446,6 +491,7 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
       console.warn(`Detail coin untuk ID ${matchedIds[i]} kosong`);
       continue;
     }
+
     const id = matchedIds[i];
     const symbol = detail.symbol.toLowerCase();
 
@@ -468,13 +514,14 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
     const volume = formatVolume(coinMarket.total_volume || 0);
     const trend = formatTrend(coinMarket.price_change_percentage_24h || 0);
 
-    // panggil fungsi dengan argumen (geckoDetail, symbol)
     const contractAddress = await getContractAddress(detail, symbol);
     const blockchainSites = await getBlockchainSites(detail, symbol);
     const social = await getSocialLinks(detail, symbol);
 
+    console.log(`Nama coin: ${coinMarket.name} (Symbol: ${coinMarket.symbol})`);
+
     results.push({
-      name: detail.name,
+      name: coinMarket.name, 
       symbol: coinMarket.symbol.toUpperCase(),
       price,
       micin,
