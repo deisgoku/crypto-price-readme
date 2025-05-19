@@ -137,11 +137,9 @@ async function getContractAddress(symbol, geckoDetail) {
 
 
 async function fetchGeckoSymbols(symbols = [], limit = 5) {
-  // Ambil semua coin list dari CoinGecko
   const coinListRes = await fetch(`${COINGECKO_API}/coins/list`);
   const coinList = await coinListRes.json();
 
-  // Cocokkan symbol ke ID
   const matchedIds = symbols
     .map((sym) => {
       const lowerSym = sym.toLowerCase();
@@ -157,7 +155,6 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
 
   if (!matchedIds.length) throw new Error('Symbol tidak ditemukan di CoinGecko');
 
-  // Fetch detail coin
   const detailPromises = matchedIds.map((id) =>
     fetch(`${COINGECKO_API}/coins/${id}`).then((res) => res.json())
   );
@@ -169,24 +166,21 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
     const id = matchedIds[i];
     const detail = detailData[i];
 
-    // Ambil kategori (slug)
     let categorySlug = null;
     if (detail.categories && detail.categories.length > 0) {
-      categorySlug = detail.categories[0]
-        .toLowerCase()
-        .replace(/\s+/g, '-');
+      categorySlug = detail.categories[0].toLowerCase().replace(/\s+/g, '-');
     }
 
     if (!categorySlug) {
       throw new Error(`Kategori tidak ditemukan untuk coin id ${id}`);
     }
 
-    // Ambil market data kategori
     const marketRes = await fetch(
       `${COINGECKO_API}/coins/markets?vs_currency=usd&category=${categorySlug}&order=market_cap_desc&per_page=250&page=1&sparkline=false`
     );
-    if (!marketRes.ok)
+    if (!marketRes.ok) {
       throw new Error(`Gagal fetch market data kategori ${categorySlug}`);
+    }
     const marketData = await marketRes.json();
 
     const coinSymbol = detail.symbol.toLowerCase();
@@ -200,37 +194,34 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
       );
     }
 
-    const price = coinMarketData.current_price || 'N/A';
-    const { price: formattedPrice, micin } = formatPrice(price);
+    const { price, micin } = formatPrice(coinMarketData.current_price || 0);
 
-    // Panggil getContractAddress untuk ambil CA dengan fallback
     const contract_address = await getContractAddress(detail.symbol, detail);
 
-    // Ambil akun sosial media dari detail.links
     const social = {
-      twitter: detail.links.twitter_screen_name
+      twitter: detail.links?.twitter_screen_name
         ? `https://twitter.com/${detail.links.twitter_screen_name}`
         : null,
-      facebook: detail.links.facebook_username
+      facebook: detail.links?.facebook_username
         ? `https://facebook.com/${detail.links.facebook_username}`
         : null,
-      reddit: detail.links.subreddit_url || null,
-      telegram: detail.links.telegram_channel_identifier
+      reddit: detail.links?.subreddit_url || null,
+      telegram: detail.links?.telegram_channel_identifier
         ? `https://t.me/${detail.links.telegram_channel_identifier}`
         : null,
-      discord: detail.links.discord_url || null,
-      github: detail.links.repos_url?.github
-        ? Object.values(detail.links.repos_url.github)[0]
+      discord: detail.links?.chat_url?.find((url) => url.includes('discord')) || null,
+      github: Array.isArray(detail.links?.repos_url?.github)
+        ? detail.links.repos_url.github[0]
         : null,
     };
 
     results.push({
       name: detail.name,
       symbol: coinMarketData.symbol.toUpperCase(),
-      price: formattedPrice,
+      price,
       micin,
-      volume: formatVolume(coinMarketData.total_volume || 'N/A'),
-      trend: formatTrend(coinMarketData.price_change_percentage_24h || 'N/A'),
+      volume: formatVolume(coinMarketData.total_volume || 0),
+      trend: formatTrend(coinMarketData.price_change_percentage_24h || 0),
       sparkline: [],
       contract_address,
       social,
