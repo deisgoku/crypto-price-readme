@@ -92,13 +92,12 @@ async function loadFonts() {
 }
 
 // Register all handlers
-//registerAdminCommands(bot);
-require('./CTA/admin')(bot);
+require('./CTA/menu')(bot);
 require('./CTA/auth')(bot);
 joinHandler(bot);
 require('./CTA/handlercoin')(bot);
-require('./CTA/menu')(bot);
 require('./CTA/filter')(bot);
+require('./CTA/admin')(bot);
 
 
 
