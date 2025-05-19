@@ -136,6 +136,44 @@ async function getContractAddress(symbol, geckoDetail) {
 
 
 
+function extractSocialLinks(links = {}) {
+  const social = {};
+
+  if (typeof links.twitter_screen_name === 'string' && links.twitter_screen_name.trim()) {
+    social.twitter = `https://twitter.com/${links.twitter_screen_name}`;
+  }
+
+  if (typeof links.facebook_username === 'string' && links.facebook_username.trim()) {
+    social.facebook = `https://facebook.com/${links.facebook_username}`;
+  }
+
+  if (typeof links.subreddit_url === 'string' && links.subreddit_url.startsWith('http')) {
+    social.reddit = links.subreddit_url;
+  }
+
+  if (typeof links.telegram_channel_identifier === 'string' && links.telegram_channel_identifier.trim()) {
+    social.telegram = `https://t.me/${links.telegram_channel_identifier}`;
+  }
+
+  if (Array.isArray(links.chat_url)) {
+    const discord = links.chat_url.find(url => typeof url === 'string' && url.includes('discord'));
+    if (discord) {
+      social.discord = discord;
+    }
+  }
+
+  if (Array.isArray(links.repos_url?.github)) {
+    const github = links.repos_url.github.find(url => typeof url === 'string' && url.includes('github.com'));
+    if (github) {
+      social.github = github;
+    }
+  }
+
+  return social;
+}
+
+// Masukkan ini ke atas atau di luar fungsi fetchGeckoSymbols.
+
 async function fetchGeckoSymbols(symbols = [], limit = 5) {
   const coinListRes = await fetch(`${COINGECKO_API}/coins/list`);
   const coinList = await coinListRes.json();
@@ -165,7 +203,6 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
     const id = matchedIds[i];
     const symbol = detail.symbol.toLowerCase();
 
-    // Ambil kategori utama (untuk fetch market data)
     const categorySlug = detail.categories?.[0]?.toLowerCase().replace(/\s+/g, '-');
     if (!categorySlug) throw new Error(`Kategori tidak ditemukan untuk ${id}`);
 
@@ -180,22 +217,7 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
 
     const { price, micin } = formatPrice(coinMarket.current_price || 0);
     const contract_address = await getContractAddress(detail.symbol, detail);
-
-    const links = detail.links || {};
-    const social = {
-      twitter: links.twitter_screen_name ? `https://twitter.com/${links.twitter_screen_name}` : null,
-      facebook: links.facebook_username ? `https://facebook.com/${links.facebook_username}` : null,
-      reddit: links.subreddit_url || null,
-      telegram: links.telegram_channel_identifier
-        ? `https://t.me/${links.telegram_channel_identifier}`
-        : null,
-      discord: Array.isArray(links.chat_url)
-        ? links.chat_url.find((u) => u.includes('discord'))
-        : null,
-      github: Array.isArray(links.repos_url?.github)
-        ? links.repos_url.github[0]
-        : null,
-    };
+    const social = extractSocialLinks(detail.links);
 
     results.push({
       name: detail.name,
@@ -212,6 +234,9 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
 
   return results;
 }
+
+
+
 
 // Area Category
 async function fetchGeckoCategory(category, limit) {
