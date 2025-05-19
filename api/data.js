@@ -1,6 +1,8 @@
 const fetch = require('node-fetch');
 const randomUseragent = require('random-useragent');
+const chalk = require('chalk');
 const { redis } = require('../lib/redis');
+
 
 
 const COINGECKO_API = 'https://api.coingecko.com/api/v3';
@@ -93,22 +95,34 @@ function formatPrice(value) {
   return { price: `0.0{${zeroCount}}${rest}`, micin: true };
 }
 
-// === REDIS CACHE ===
-async function cacheData(key, data, ttl = 60) {
+// === REDIS CACHE DENGAN LOG WARNA & TIMESTAMP ===
+
+function timestamp() {
+  return chalk.gray(`[${new Date().toISOString().replace('T', ' ').slice(0, 19)}]`);
+}
+
+async function cacheData(key, data, ttl = 300) {
   try {
-    // TTL dalam detik
-    await redis.set(key, JSON.stringify(data), { ex: ttl }); 
+    const size = JSON.stringify(data).length;
+    await redis.set(key, JSON.stringify(data), { ex: ttl });
+    console.log(`${timestamp()} ${chalk.greenBright('[CACHE SET]')} Key: ${chalk.yellow(key)} | TTL: ${chalk.cyan(ttl + 's')} | Size: ${chalk.magenta(size + ' bytes')}`);
   } catch (err) {
-    console.error('Redis set error:', err);
+    console.error(`${timestamp()} ${chalk.red('[CACHE ERROR]')} Gagal set key: ${chalk.yellow(key)}`, err);
   }
 }
 
 async function getCache(key) {
   try {
     const data = await redis.get(key);
-    return data ? JSON.parse(data) : null;
+    if (data) {
+      console.log(`${timestamp()} ${chalk.blueBright('[CACHE HIT]')} Key: ${chalk.yellow(key)}`);
+      return JSON.parse(data);
+    } else {
+      console.log(`${timestamp()} ${chalk.dim('[CACHE MISS]')} Key: ${chalk.yellow(key)}`);
+      return null;
+    }
   } catch (err) {
-    console.error('Redis get error:', err);
+    console.error(`${timestamp()} ${chalk.red('[CACHE ERROR]')} Gagal get key: ${chalk.yellow(key)}`, err);
     return null;
   }
 }
