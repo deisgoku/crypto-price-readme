@@ -30,14 +30,13 @@ function escapeXml(unsafe) {
 function formatPrice(value) {
   if (value >= 0.01) {
     const str = value.toFixed(8);
-    return { price: escapeXml(parseFloat(str).toString()), micin: false };
+    return { price: parseFloat(str).toString(), micin: false };
   }
   const str = value.toFixed(18);
   const match = str.match(/^0\.0+(?=\d)/);
   const zeroCount = match ? match[0].length - 2 : 0;
   const rest = str.slice(match ? match[0].length : 2).replace(/0+$/, '').slice(0, 4);
-  const smart = `0.0{${zeroCount}}${rest}`;
-  return { price: escapeXml(smart), micin: true };
+  return { price: `0.0{${zeroCount}}${rest}`, micin: true };
 }
 
 // === REDIS CACHE ===
@@ -207,7 +206,26 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
     // Panggil getContractAddress untuk ambil CA dengan fallback
     const contract_address = await getContractAddress(detail.symbol, detail);
 
+    // Ambil akun sosial media dari detail.links
+    const social = {
+      twitter: detail.links.twitter_screen_name
+        ? `https://twitter.com/${detail.links.twitter_screen_name}`
+        : null,
+      facebook: detail.links.facebook_username
+        ? `https://facebook.com/${detail.links.facebook_username}`
+        : null,
+      reddit: detail.links.subreddit_url || null,
+      telegram: detail.links.telegram_channel_identifier
+        ? `https://t.me/${detail.links.telegram_channel_identifier}`
+        : null,
+      discord: detail.links.discord_url || null,
+      github: detail.links.repos_url?.github
+        ? Object.values(detail.links.repos_url.github)[0]
+        : null,
+    };
+
     results.push({
+      name: detail.name,
       symbol: coinMarketData.symbol.toUpperCase(),
       price: formattedPrice,
       micin,
@@ -215,12 +233,12 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
       trend: formatTrend(coinMarketData.price_change_percentage_24h || 'N/A'),
       sparkline: [],
       contract_address,
+      social,
     });
   }
 
   return results;
 }
-
 
 // Area Category
 async function fetchGeckoCategory(category, limit) {
