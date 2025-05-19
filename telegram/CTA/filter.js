@@ -172,7 +172,6 @@ async function cacheSetCoinData(coinId, data, ttlSeconds = 60) {
 // ===================== Handler Command Coin =====================
 async function handleSymbolCommand(ctx, coinId) {
   try {
-    // Coba ambil dari cache dulu
     let dataCached = await cacheGetCoinData(coinId);
     if (!dataCached) {
       const url = `https://crypto-price-on.vercel.app/api/data?coin=${coinId}`;
@@ -183,20 +182,28 @@ async function handleSymbolCommand(ctx, coinId) {
         return ctx.reply(`☹️ Data ${coinId} tidak ditemukan.\n\nCoba cek lagi ID-nya pakai /c ${coinId}, kali typo.`);
       }
       dataCached = json.data[0];
-      await cacheSetCoinData(coinId, dataCached, 60); // cache 60 detik
+      await cacheSetCoinData(coinId, dataCached, 60);
     }
 
     const result = dataCached;
+
+    // Tambahkan emoji tren
+    const trendValue = result.trend?.replace('%', '') || '0';
+    const trendNum = parseFloat(trendValue);
+    let trendEmoji = '';
+    if (!isNaN(trendNum)) {
+      trendEmoji = trendNum > 0 ? '🚀' : trendNum < 0 ? '🔻' : '➖';
+    }
+
     const data = {
       HARGA: result.price,
       VOLUME: result.volume,
-      TREND: result.trend,
+      TREND: `${trendEmoji} ${result.trend}`,
     };
 
-    // Explorer mapping
     const explorers = {
       ethereum: "https://etherscan.io/token/",
-      "binance smart chain": "https://bscscan.com/token/",
+      "binance-smart-chain": "https://bscscan.com/token/",
       solana: "https://solscan.io/token/",
       sui: "https://suiexplorer.com/object/",
       base: "https://basescan.org/token/",
@@ -205,19 +212,20 @@ async function handleSymbolCommand(ctx, coinId) {
       optimism: "https://optimistic.etherscan.io/token/"
     };
 
-    let msg = `📊 Market ${result.symbol.toUpperCase()}\n\n`;
+    // Fix bagian judul
+    let msg = `📊 Market ${result.symbol?.toUpperCase()}`;
+    if (result.name) msg += ` (${result.name})`;
+    msg += `\n\n`;
 
-    // Tambah CA link kalau ada
     if (result.contract_address && typeof result.contract_address === 'object') {
       const [chain, address] = Object.entries(result.contract_address)[0] || [];
       if (chain && address && explorers[chain]) {
         const encodedAddress = encodeURIComponent(address);
         const link = explorers[chain] + encodedAddress;
-        msg += `[Contract Address di ${chain.toUpperCase()}](${link})\n\n`;
+        msg += `[Contract Address di ${chain.toUpperCase()}](${link})\n`;
       }
     }
 
-    // Tambah link sosial media kalau ada
     if (result.social && typeof result.social === 'object') {
       const socialLinks = Object.values(result.social).filter(url => typeof url === 'string' && url.startsWith('http'));
       if (socialLinks.length) {
@@ -225,11 +233,9 @@ async function handleSymbolCommand(ctx, coinId) {
         for (const url of socialLinks) {
           msg += `${url}\n`;
         }
-        msg += `\n`;
       }
     }
 
-    // Format data harga
     const labelMax = Math.max(...Object.keys(data).map(k => k.length));
     const valueMax = Math.max(...Object.values(data).map(v => v.length));
     const totalLen = Math.max(30, labelMax + 3 + valueMax);
