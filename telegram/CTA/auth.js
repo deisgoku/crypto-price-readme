@@ -97,14 +97,22 @@ module.exports = bot => {
   });
 
   bot.command('me', async ctx => {
-    const telegramId = ctx.from.id.toString();
+  const telegramId = ctx.from.id.toString();
+
+  try {
     const linkedUsername = await redis.hget('tg:linked', telegramId);
-    ctx.reply(
-      linkedUsername
-        ? `Akun kamu terhubung ke: *${linkedUsername}*`
-        : 'Belum terhubung. Gunakan /link <username> <password>',
-      { parse_mode: 'Markdown' }
-    );
-  });
+
+    if (linkedUsername) {
+      return ctx.reply(`Akun kamu terhubung ke: *${linkedUsername}*`, {
+        parse_mode: 'Markdown',
+      });
+    } else {
+      return ctx.reply('Belum terhubung. Gunakan /link <username> <password>');
+    }
+  } catch (err) {
+    console.error('[ERROR Redis /me]:', err);
+    return ctx.reply('Terjadi kesalahan saat mengakses data. Coba lagi nanti.');
+  }
+});
 
 };
