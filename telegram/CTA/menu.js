@@ -5,12 +5,12 @@ const {
   getFAQContent,
   registerHelpActions,
 } = require('./help');
-//const { getAdminMenu, registerAdminActions } = require('./admin');
+const { getAdminMenu, registerAdminActions } = require('./admin');
 const { getSponsorContent, registerSupportActions } = require('./support');
 
 module.exports = function setupMenu(bot) {
   // Daftarkan semua action modular
-  //registerAdminActions(bot);
+
   registerSupportActions(bot);
   registerHelpActions(bot);
 
@@ -81,7 +81,7 @@ module.exports = function setupMenu(bot) {
     try {
       let cached = await redis.get(key);
       const text = 'Menu Admin:';
-      const buttons = showAdminMenu();
+      const buttons = getAdminMenu();
       if (!cached) await redis.setex(key, 600, text);
       await ctx.editMessageText(text, Markup.inlineKeyboard(buttons));
       await ctx.answerCbQuery();
