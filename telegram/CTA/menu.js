@@ -81,7 +81,7 @@ module.exports = function setupMenu(bot) {
     try {
       let cached = await redis.get(key);
       const text = 'Menu Admin:';
-      const buttons = getAdminMenu();
+      const buttons = showAdminMenu();
       if (!cached) await redis.setex(key, 600, text);
       await ctx.editMessageText(text, Markup.inlineKeyboard(buttons));
       await ctx.answerCbQuery();
