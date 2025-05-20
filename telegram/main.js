@@ -93,7 +93,7 @@ async function loadFonts() {
 
 // Register all handlers
 require('./CTA/menu')(bot);
-require('./CTA/help')(bot);
+//require('./CTA/help')(bot);
 require('./CTA/auth')(bot);
 joinHandler(bot);
 require('./CTA/handlercoin')(bot);
