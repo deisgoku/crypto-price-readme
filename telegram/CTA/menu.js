@@ -5,7 +5,7 @@ const {
   getFAQContent,
   registerHelpActions,
 } = require('./help');
-const { getAdminMenu, registerAdminActions } = require('./admin');
+
 const { getSponsorContent, registerSupportActions } = require('./support');
 
 module.exports = function setupMenu(bot) {
@@ -75,21 +75,7 @@ module.exports = function setupMenu(bot) {
     }
   });
 
-  // Menu admin
-  bot.action('admin_menu', async (ctx) => {
-    const key = `tg:${ctx.from.id}:admin_menu`;
-    try {
-      let cached = await redis.get(key);
-      const text = 'Menu Admin:';
-      const buttons = getAdminMenu();
-      if (!cached) await redis.setex(key, 600, text);
-      await ctx.editMessageText(text, Markup.inlineKeyboard(buttons));
-      await ctx.answerCbQuery();
-    } catch (err) {
-      console.error('Error di admin_menu:', err);
-      await ctx.answerCbQuery('Tidak dapat membuka menu admin.', { show_alert: true });
-    }
-  });
+
 
   // Menu personal
   bot.action('personal_menu', async (ctx) => {
@@ -213,12 +199,5 @@ module.exports = function setupMenu(bot) {
     }
   });
 
-  // Command alternatif: /admin
-  bot.command('admin', async (ctx) => {
-    try {
-      await getAdminMenu(ctx);
-    } catch (err) {
-      console.error('Error di admin command:', err);
-    }
-  });
+  
 };
