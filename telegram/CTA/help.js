@@ -54,7 +54,7 @@ function renderFAQMessage(answerText) {
     [Markup.button.callback('3. Cara jadi admin/premium?', 'faq_q3')],
     [Markup.button.callback('4. Gunanya /link dan /me?', 'faq_q4')],
     [Markup.button.callback('5. Coin tidak ditemukan?', 'faq_q5')],
-    [Markup.button.callback('🔙 Kembali ke Bantuan', 'help')]
+    [Markup.button.callback('🔙 Kembali ke Bantuan', 'menu')]
   ];
 
   const text = (answerText ? answerText + '\n\n' : '') + '*FAQ - Pilih Pertanyaan:*';
