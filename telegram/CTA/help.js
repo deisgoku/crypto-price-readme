@@ -1,5 +1,3 @@
-// telegram/CTA/help.js
-
 const { Markup } = require('telegraf');
 const { redis } = require('../../lib/redis');
 
@@ -49,6 +47,24 @@ async function sendHelp(ctx) {
   }
 }
 
+function renderFAQMessage(answerText) {
+  const faqButtons = [
+    [Markup.button.callback('1. Apa itu Coin Card?', 'faq_q1')],
+    [Markup.button.callback('2. Harga coin saya kosong?', 'faq_q2')],
+    [Markup.button.callback('3. Cara jadi admin/premium?', 'faq_q3')],
+    [Markup.button.callback('4. Gunanya /link dan /me?', 'faq_q4')],
+    [Markup.button.callback('5. Coin tidak ditemukan?', 'faq_q5')],
+    [Markup.button.callback('🔙 Kembali ke Bantuan', 'help')]
+  ];
+
+  const text = (answerText ? answerText + '\n\n' : '') + '*FAQ - Pilih Pertanyaan:*';
+
+  return {
+    text,
+    keyboard: Markup.inlineKeyboard(faqButtons)
+  };
+}
+
 function getSponsorContent() {
   return `
 *Dukung dan Gunakan Mini App Kami:*
@@ -71,52 +87,18 @@ _Afiliasi & bonus Stars akan tersedia segera._
 `;
 }
 
-function getFAQList() {
-  return {
-    text: '*FAQ - Pilih Pertanyaan:*',
-    keyboard: Markup.inlineKeyboard([
-      [Markup.button.callback('1. Apa itu Coin Card?', 'faq_q1')],
-      [Markup.button.callback('2. Harga coin saya kosong?', 'faq_q2')],
-      [Markup.button.callback('3. Cara jadi admin/premium?', 'faq_q3')],
-      [Markup.button.callback('4. Gunanya /link dan /me?', 'faq_q4')],
-      [Markup.button.callback('5. Coin tidak ditemukan?', 'faq_q5')],
-      [Markup.button.callback('🔙 Kembali ke Bantuan', 'menu')]
-    ])
-  };
-}
-
-function getFAQAnswer(id) {
-  // id bisa berupa angka 1..5 atau string 'faq_q1'..'faq_q5'
-  const faqAnswers = {
-    faq_q1: '*Apa itu Coin Card?*\n\n→ Gambar berisi info harga coin crypto.',
-    faq_q2: '*Harga coin saya kosong?*\n\n→ Gunakan simbol resmi (mis: BTC, ETH). Cek dengan /s <nama coin>.',
-    faq_q3: '*Cara jadi admin/premium?*\n\n→ Hubungi pemilik bot dan klaim token lewat /claim <token>.',
-    faq_q4: '*Gunanya /link dan /me?*\n\n→ Untuk menghubungkan ID Telegram kamu dan melihat statistik akun.',
-    faq_q5: '*Coin tidak ditemukan?*\n\n→ Gunakan /s <nama coin> untuk pencarian manual.'
-  };
-
-  if (typeof id === 'number') {
-    return faqAnswers[`faq_q${id}`] || 'Jawaban tidak ditemukan.';
-  } else if (typeof id === 'string') {
-    return faqAnswers[id] || 'Jawaban tidak ditemukan.';
-  } else {
-    return 'Jawaban tidak ditemukan.';
-  }
-}
-
 function registerHelpActions(bot) {
-  // FAQ list
   bot.action('faq', async (ctx) => {
     try {
       await ctx.answerCbQuery();
-      const { text, keyboard } = getFAQList();
+      const { text, keyboard } = renderFAQMessage('');
       await ctx.editMessageText(text, {
         parse_mode: 'Markdown',
         reply_markup: keyboard.reply_markup
       });
     } catch (err) {
       console.error('Error edit FAQ list:', err);
-      const { text, keyboard } = getFAQList();
+      const { text, keyboard } = renderFAQMessage('');
       await ctx.reply(text, {
         parse_mode: 'Markdown',
         reply_markup: keyboard.reply_markup
@@ -124,7 +106,6 @@ function registerHelpActions(bot) {
     }
   });
 
-  // FAQ answers
   const faqAnswers = {
     faq_q1: '*Apa itu Coin Card?*\n\n→ Gambar berisi info harga coin crypto.',
     faq_q2: '*Harga coin saya kosong?*\n\n→ Gunakan simbol resmi (mis: BTC, ETH). Cek dengan /s <nama coin>.',
@@ -133,29 +114,24 @@ function registerHelpActions(bot) {
     faq_q5: '*Coin tidak ditemukan?*\n\n→ Gunakan /s <nama coin> untuk pencarian manual.'
   };
 
-  for (const [action, text] of Object.entries(faqAnswers)) {
+  for (const [action, answerText] of Object.entries(faqAnswers)) {
     bot.action(action, async (ctx) => {
       try {
         await ctx.answerCbQuery();
+        const { text, keyboard } = renderFAQMessage(answerText);
         await ctx.editMessageText(text, {
           parse_mode: 'Markdown',
-          reply_markup: Markup.inlineKeyboard([
-            [Markup.button.callback('🔙 Kembali ke FAQ', 'menu')]
-          ]).reply_markup
+          reply_markup: keyboard.reply_markup
         });
       } catch (err) {
         console.error(`Error edit FAQ answer (${action}):`, err);
-        await ctx.reply(text, {
-          parse_mode: 'Markdown',
-          reply_markup: Markup.inlineKeyboard([
-            [Markup.button.callback('🔙 Kembali ke FAQ', 'menu')]
-          ]).reply_markup
+        await ctx.reply(answerText, {
+          parse_mode: 'Markdown'
         });
       }
     });
   }
 
-  // Sponsor
   bot.action('sponsor', async (ctx) => {
     try {
       await ctx.answerCbQuery();
@@ -169,9 +145,9 @@ function registerHelpActions(bot) {
 
       await ctx.editMessageText(cached, {
         parse_mode: 'Markdown',
-        disable_web_page_preview: false,
+        disable_web_page_preview: true,
         reply_markup: Markup.inlineKeyboard([
-          [Markup.button.callback('🔙 Kembali ke Bantuan', 'menu')]
+          [Markup.button.callback('🔙 Kembali ke Bantuan', 'menu)]
         ]).reply_markup
       });
     } catch (err) {
@@ -179,7 +155,7 @@ function registerHelpActions(bot) {
       const cached = getSponsorContent();
       await ctx.reply(cached, {
         parse_mode: 'Markdown',
-        disable_web_page_preview: false,
+        disable_web_page_preview: true,
         reply_markup: Markup.inlineKeyboard([
           [Markup.button.callback('🔙 Kembali ke Bantuan', 'menu')]
         ]).reply_markup
@@ -187,7 +163,6 @@ function registerHelpActions(bot) {
     }
   });
 
-  // Kembali ke menu bantuan
   bot.action('help', async (ctx) => {
     try {
       await ctx.answerCbQuery();
@@ -200,8 +175,6 @@ function registerHelpActions(bot) {
 
 module.exports = {
   sendHelp,
-  registerHelpActions,
-  getFAQList,
-  getFAQAnswer,
+  registerHelpActions
   getSponsorContent
 };
