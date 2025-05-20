@@ -113,7 +113,7 @@ module.exports = function setupMenu(bot) {
     try {
       let text = await redis.get(key);
       if (!text) {
-        text = getFAQContent();
+        text = getSponsorText();
         await redis.setex(key, 600, text);
       }
       await ctx.editMessageText(text, {
@@ -136,7 +136,7 @@ module.exports = function setupMenu(bot) {
     try {
       let text = await redis.get(key);
       if (!text) {
-        text = getHelpContent();
+        text = renderFAQMessage();
         await redis.setex(key, 600, text);
       }
       await ctx.editMessageText(text, {
