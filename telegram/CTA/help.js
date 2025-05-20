@@ -147,7 +147,7 @@ function registerHelpActions(bot) {
         parse_mode: 'Markdown',
         disable_web_page_preview: true,
         reply_markup: Markup.inlineKeyboard([
-          [Markup.button.callback('🔙 Kembali ke Bantuan', 'menu)]
+          [Markup.button.callback('🔙 Kembali ke Bantuan', 'menu')]
         ]).reply_markup
       });
     } catch (err) {
@@ -175,6 +175,6 @@ function registerHelpActions(bot) {
 
 module.exports = {
   sendHelp,
-  registerHelpActions
+  registerHelpActions,
   getSponsorContent
 };
