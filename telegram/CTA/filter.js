@@ -222,7 +222,7 @@ async function handleSymbolCommand(ctx, coinId) {
       if (chain && address && explorers[chain]) {
         const encodedAddress = encodeURIComponent(address);
         const link = explorers[chain] + encodedAddress;
-        msg += `[Contract Address di ${chain.toUpperCase()}](${link})\n`;
+        msg += `[Contract Address di ${chain.toUpperCase()}](${link})\n\n`;
       }
     }
 
@@ -231,7 +231,7 @@ async function handleSymbolCommand(ctx, coinId) {
       if (socialLinks.length) {
         msg += `🌐 Sosial Media :\n`;
         for (const url of socialLinks) {
-          msg += `${url}\n`;
+          msg += `${url}\n\n`;
         }
       }
     }
