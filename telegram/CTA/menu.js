@@ -1,6 +1,10 @@
 const { Markup } = require('telegraf');
 const { redis } = require('../../lib/redis');
-
+const {
+  getHelpContent,
+  getFAQContent,
+  registerHelpActions,
+} = require('./help');
 //const { getAdminMenu, registerAdminActions } = require('./admin');
 const { getSponsorContent, registerSupportActions } = require('./support');
 
@@ -8,7 +12,7 @@ module.exports = function setupMenu(bot) {
   // Daftarkan semua action modular
   //registerAdminActions(bot);
   registerSupportActions(bot);
-  
+  registerHelpActions(bot);
 
   // Command /start
   bot.command('start', (ctx) => {
@@ -113,7 +117,7 @@ module.exports = function setupMenu(bot) {
     try {
       let text = await redis.get(key);
       if (!text) {
-        text = getSponsorText();
+        text = getFAQContent();
         await redis.setex(key, 600, text);
       }
       await ctx.editMessageText(text, {
@@ -136,7 +140,7 @@ module.exports = function setupMenu(bot) {
     try {
       let text = await redis.get(key);
       if (!text) {
-        text = renderFAQMessage();
+        text = getHelpContent();
         await redis.setex(key, 600, text);
       }
       await ctx.editMessageText(text, {
