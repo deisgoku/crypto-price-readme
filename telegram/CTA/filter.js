@@ -220,9 +220,21 @@ async function handleSymbolCommand(ctx, coinId) {
       const links = [];
 
       for (const [chain, address] of Object.entries(result.contract_address)) {
-        const match = result.blockchain_sites.find(url => url.includes(address));
+        const match = result.blockchain_sites.find(url =>
+          url.includes(address) &&
+          (
+            url.toLowerCase().includes(chain.toLowerCase().replace(/_/g, '-')) ||
+            url.toLowerCase().includes(chain.toLowerCase().replace(/-/g, '')) ||
+            url.toLowerCase().includes(chain.toLowerCase())
+          )
+        );
+
         if (match) {
-          links.push(`• [${chain.toUpperCase()}](${match})`);
+          const chainLabel = chain
+            .replace(/[-_]/g, ' ')
+            .replace(/\b\w/g, c => c.toUpperCase());
+
+          links.push(`• [${chainLabel}](${match})`);
         }
       }
 
