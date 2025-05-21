@@ -245,9 +245,10 @@ async function handleSymbolCommand(ctx, coinId) {
 
     msg += '```\n' + '━'.repeat(totalLen) + '\n';
     for (const [label, value] of Object.entries(data)) {
-      msg += `${label.padEnd(labelMax)} : ${value.padStart(valueMax)}\n\n`;
+      msg += `${label.padEnd(labelMax)}    : ${value.padStart(valueMax)}\n\n`;
     }
-    msg += '━'.repeat(totalLen) + '\n```\n';
+    msg += '━'.repeat(totalLen) + '\n';
+    msg += '```\n\n'; 
     msg += centerText(creditText, totalLen).replace(creditText, creditLink);
 
     return ctx.reply(msg, {
