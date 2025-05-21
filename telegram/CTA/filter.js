@@ -173,6 +173,7 @@ async function cacheSetCoinData(coinId, data, ttlSeconds = 60) {
 async function handleSymbolCommand(ctx, coinId) {
   try {
     let dataCached = await cacheGetCoinData(coinId);
+
     if (!dataCached) {
       const url = `https://crypto-price-on.vercel.app/api/data?coin=${coinId}`;
       const res = await fetch(url);
@@ -181,6 +182,7 @@ async function handleSymbolCommand(ctx, coinId) {
       if (!json.data || !json.data.length) {
         return ctx.reply(`☹️ Data ${coinId} tidak ditemukan.\n\nCoba cek lagi ID-nya pakai /c ${coinId}, kali typo.`);
       }
+
       dataCached = json.data[0];
       await cacheSetCoinData(coinId, dataCached, 60);
     }
@@ -191,6 +193,7 @@ async function handleSymbolCommand(ctx, coinId) {
     const trendValue = result.trend?.replace('%', '') || '0';
     const trendNum = parseFloat(trendValue);
     let trendEmoji = '';
+
     if (!isNaN(trendNum)) {
       trendEmoji = trendNum > 0 ? '🚀' : trendNum < 0 ? '🔻' : '➖';
     }
@@ -227,12 +230,16 @@ async function handleSymbolCommand(ctx, coinId) {
     }
 
     if (result.social && typeof result.social === 'object') {
-      const socialLinks = Object.values(result.social).filter(url => typeof url === 'string' && url.startsWith('http'));
+      const socialLinks = Object.values(result.social).filter(
+        url => typeof url === 'string' && url.startsWith('http')
+      );
+
       if (socialLinks.length) {
-        msg += `🌐 Sosial Media :\n`;
+        msg += `🌐 Sosial Media:\n`;
         for (const url of socialLinks) {
-          msg += `${url}\n\n`;
+          msg += `• ${url}\n`;
         }
+        msg += `\n`;
       }
     }
 
@@ -248,13 +255,14 @@ async function handleSymbolCommand(ctx, coinId) {
       msg += `${label.padEnd(labelMax)}    : ${value.padStart(valueMax)}\n\n`;
     }
     msg += '━'.repeat(totalLen) + '\n';
-    msg += '```\n\n'; 
+    msg += '```\n\n';
     msg += centerText(creditText, totalLen).replace(creditText, creditLink);
 
     return ctx.reply(msg, {
       parse_mode: 'Markdown',
       disable_web_page_preview: true
     });
+
   } catch (e) {
     console.error(e);
     return ctx.reply(`☹️ Terjadi kesalahan saat mengambil data ${coinId}`);
