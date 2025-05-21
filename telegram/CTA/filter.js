@@ -180,7 +180,9 @@ async function handleSymbolCommand(ctx, coinId) {
       const json = await res.json();
 
       if (!json.data || !json.data.length) {
-        return ctx.reply(`☹️ Data ${coinId} tidak ditemukan.\n\nCoba cek lagi ID-nya pakai /c ${coinId}, kali typo.`);
+        return ctx.reply(
+          `☹️ Data ${coinId} tidak ditemukan.\n\nCoba cek lagi ID-nya pakai /c ${coinId}, kali typo.`
+        );
       }
 
       dataCached = json.data[0];
@@ -204,31 +206,32 @@ async function handleSymbolCommand(ctx, coinId) {
       TREND: `${trendEmoji} ${result.trend}`,
     };
 
-    const explorers = {
-      ethereum: "https://etherscan.io/token/",
-      "binance-smart-chain": "https://bscscan.com/token/",
-      solana: "https://solscan.io/token/",
-      sui: "https://suiexplorer.com/object/",
-      base: "https://basescan.org/token/",
-      avalanche: "https://snowtrace.io/token/",
-      polygon: "https://polygonscan.com/token/",
-      optimism: "https://optimistic.etherscan.io/token/"
-    };
-
     // Fix bagian judul
     let msg = `📊 Market ${result.symbol?.toUpperCase()}`;
     if (result.name) msg += ` (${result.name})`;
     msg += `\n\n`;
 
-    if (result.contract_address && typeof result.contract_address === 'object') {
-      const [chain, address] = Object.entries(result.contract_address)[0] || [];
-      if (chain && address && explorers[chain]) {
-        const encodedAddress = encodeURIComponent(address);
-        const link = explorers[chain] + encodedAddress;
-        msg += `[Contract Address di ${chain.toUpperCase()}](${link})\n\n`;
+    // Tampilkan semua contract address dari blockchain_sites
+    if (
+      result.contract_address &&
+      typeof result.contract_address === 'object' &&
+      Array.isArray(result.blockchain_sites)
+    ) {
+      const links = [];
+
+      for (const [chain, address] of Object.entries(result.contract_address)) {
+        const match = result.blockchain_sites.find(url => url.includes(address));
+        if (match) {
+          links.push(`• [${chain.toUpperCase()}](${match})`);
+        }
+      }
+
+      if (links.length) {
+        msg += `🔗 Contract Address:\n${links.join('\n')}\n\n`;
       }
     }
 
+    // Tampilkan sosial media jika ada
     if (result.social && typeof result.social === 'object') {
       const socialLinks = Object.values(result.social).filter(
         url => typeof url === 'string' && url.startsWith('http')
@@ -236,21 +239,22 @@ async function handleSymbolCommand(ctx, coinId) {
 
       if (socialLinks.length) {
         msg += `🌐 Sosial Media:\n`;
-        for (const url of socialLinks) {
+        const socialLines = socialLinks.map(url => {
           let name = 'Link';
           try {
             const u = new URL(url);
             const hostname = u.hostname.replace(/^www\./, '').split('.')[0];
             name = hostname.charAt(0).toUpperCase() + hostname.slice(1);
-          } catch (e) {
-            // do nothing, pakai default "Link"
+          } catch {
+            // pakai default "Link"
           }
-          msg += `• [${name}](${url})\n`;
-        }
-        msg += `\n`;
+          return `• [${name}](${url})`;
+        });
+        msg += socialLines.join('\n') + '\n\n';
       }
     }
 
+    // Format output dengan border dan rata kiri/kanan
     const labelMax = Math.max(...Object.keys(data).map(k => k.length));
     const valueMax = Math.max(...Object.values(data).map(v => v.length));
     const totalLen = Math.max(30, labelMax + 3 + valueMax);
@@ -264,13 +268,13 @@ async function handleSymbolCommand(ctx, coinId) {
     }
     msg += '━'.repeat(totalLen) + '\n';
     msg += '```\n\n';
+
     msg += centerText(creditText, totalLen).replace(creditText, creditLink);
 
     return ctx.reply(msg, {
       parse_mode: 'Markdown',
-      disable_web_page_preview: true
+      disable_web_page_preview: true,
     });
-
   } catch (e) {
     console.error(e);
     return ctx.reply(`☹️ Terjadi kesalahan saat mengambil data ${coinId}`);
