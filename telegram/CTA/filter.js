@@ -243,10 +243,9 @@ async function handleSymbolCommand(ctx, coinId) {
           let name = 'Link';
           try {
             const u = new URL(url);
-            const hostname = u.hostname.replace(/^www\./, '').split('.')[0];
-            name = hostname.charAt(0).toUpperCase() + hostname.slice(1);
+            name = u.hostname.replace(/^www\./, '') + u.pathname;
           } catch {
-            // pakai default "Link"
+            // fallback tetap "Link"
           }
           return `• [${name}](${url})`;
         });
@@ -275,6 +274,7 @@ async function handleSymbolCommand(ctx, coinId) {
       parse_mode: 'Markdown',
       disable_web_page_preview: true,
     });
+
   } catch (e) {
     console.error(e);
     return ctx.reply(`☹️ Terjadi kesalahan saat mengambil data ${coinId}`);
