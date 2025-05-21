@@ -206,37 +206,33 @@ async function handleSymbolCommand(ctx, coinId) {
       TREND: `${trendEmoji} ${result.trend}`,
     };
 
-    // Fix bagian judul
+    // Judul
     let msg = `📊 Market ${result.symbol?.toUpperCase()}`;
     if (result.name) msg += ` (${result.name})`;
     msg += `\n\n`;
 
-    // Tampilkan semua contract address dari blockchain_sites
-    if (
-      result.contract_address &&
-      typeof result.contract_address === 'object' &&
-      Array.isArray(result.blockchain_sites)
-    ) {
+    // Contract Address dari blockchain_sites
+    if (Array.isArray(result.blockchain_sites)) {
       const links = [];
+      const unique = new Set();
 
-      for (const [chain, address] of Object.entries(result.contract_address)) {
-        const match = result.blockchain_sites.find(url => url.includes(address));
+      for (const url of result.blockchain_sites) {
+        const cleanUrl = url.trim();
+        if (!cleanUrl || unique.has(cleanUrl)) continue;
+        unique.add(cleanUrl);
 
-        if (match) {
-          const domain = match.replace(/^https?:\/\//, '').split('/')[0];
-          let label = domain.split('.')[0];
+        const domain = cleanUrl.replace(/^https?:\/\//, '').split('/')[0];
+        let label = domain.split('.')[0];
 
-          label = label
-            .replace(/(scan|trace|explorer|explore)$/i, '')
-            .replace(/[-_]/g, ' ')
-            .replace(/\b\w/g, c => c.toUpperCase());
+        label = label
+          .replace(/[-_]/g, ' ')
+          .replace(/\b\w/g, c => c.toUpperCase());
 
-          if (label.length < 3) {
-            label = chain.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-          }
-
-          links.push(`• [${label}](${match})`);
+        if (label.length < 3 || label.toLowerCase() === 'www') {
+          label = domain.replace(/\.[^/.]+$/, '');
         }
+
+        links.push(`• [${label}](${cleanUrl})`);
       }
 
       if (links.length) {
@@ -244,7 +240,7 @@ async function handleSymbolCommand(ctx, coinId) {
       }
     }
 
-    // Tampilkan sosial media jika ada
+    // Sosial Media
     if (result.social && typeof result.social === 'object') {
       const socialLinks = Object.values(result.social).filter(
         url => typeof url === 'string' && url.startsWith('http')
@@ -252,6 +248,7 @@ async function handleSymbolCommand(ctx, coinId) {
 
       if (socialLinks.length) {
         msg += `🌐 Sosial Media:\n`;
+
         const socialLines = socialLinks.map(url => {
           let name = 'Link';
           try {
@@ -262,14 +259,16 @@ async function handleSymbolCommand(ctx, coinId) {
           }
           return `• [${name}](${url})`;
         });
+
         msg += socialLines.join('\n') + '\n\n';
       }
     }
 
-    // Format output dengan border dan rata kiri/kanan
+    // Format Tabel
     const labelMax = Math.max(...Object.keys(data).map(k => k.length));
     const valueMax = Math.max(...Object.values(data).map(v => v.length));
     const totalLen = Math.max(30, labelMax + 3 + valueMax);
+
     const year = new Date().getFullYear();
     const creditText = `${year} © Crypto Market Card`;
     const creditLink = `[${creditText}](https://t.me/crypto_market_card_bot/gcmc)`;
