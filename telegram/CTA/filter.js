@@ -237,7 +237,15 @@ async function handleSymbolCommand(ctx, coinId) {
       if (socialLinks.length) {
         msg += `🌐 Sosial Media:\n`;
         for (const url of socialLinks) {
-          msg += `• ${url}\n`;
+          let name = 'Link';
+          try {
+            const u = new URL(url);
+            const hostname = u.hostname.replace(/^www\./, '').split('.')[0];
+            name = hostname.charAt(0).toUpperCase() + hostname.slice(1);
+          } catch (e) {
+            // do nothing, pakai default "Link"
+          }
+          msg += `• [${name}](${url})\n`;
         }
         msg += `\n`;
       }
