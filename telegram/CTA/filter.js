@@ -267,7 +267,7 @@ async function handleSymbolCommand(ctx, coinId) {
     // Format Tabel
     const labelMax = Math.max(...Object.keys(data).map(k => k.length));
     const valueMax = Math.max(...Object.values(data).map(v => v.length));
-    const totalLen = Math.max(30, labelMax + 3 + valueMax);
+    const totalLen = labelMax + 3 + valueMax;
 
     const year = new Date().getFullYear();
     const creditText = `${year} © Crypto Market Card`;
