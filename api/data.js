@@ -669,7 +669,7 @@ module.exports = async (req, res) => {
       const coins = coin
         .split(',')
         .map(c => c.trim().toLowerCase())
-        .filter(Boolean)
+        .filter(Boolean);
         .
 
       const cacheKey = `crypto:symbols:${coins.join(',')}`;
