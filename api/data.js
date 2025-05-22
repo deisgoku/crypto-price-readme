@@ -474,7 +474,8 @@ async function fetchGeckoSymbols(symbols = []) {
     .map(sym => {
       const lowerSym = sym.toLowerCase();
       const candidates = coinList.filter(c => c.symbol.toLowerCase() === lowerSym);
-      return (candidates.find(c => c.id.includes(lowerSym)) || candidates[0])?.id || null;
+      // Prioritaskan ID yang mengandung simbol (lebih akurat), lalu fallback ke yang pertama
+      return (candidates.find(c => c.id === lowerSym || c.id.includes(lowerSym)) || candidates[0])?.id || null;
     })
     .filter(Boolean);
 
@@ -487,15 +488,15 @@ async function fetchGeckoSymbols(symbols = []) {
 
   for (let i = 0; i < matchedIds.length; i++) {
     const detail = detailData[i];
+    const id = matchedIds[i];
+
     if (!detail) {
-      console.warn(`Detail coin untuk ID ${matchedIds[i]} kosong`);
+      console.warn(`Detail coin untuk ID ${id} kosong`);
       continue;
     }
 
-    const id = matchedIds[i];
     const symbol = detail.symbol.toLowerCase();
     const name = detail.name;
-
     const categorySlug = detail.categories?.[0]?.toLowerCase().replace(/\s+/g, '-');
 
     let coinMarket = null;
@@ -505,9 +506,15 @@ async function fetchGeckoSymbols(symbols = []) {
       try {
         const marketUrl = `${COINGECKO_API}/coins/markets?vs_currency=usd&category=${categorySlug}&order=market_cap_desc&per_page=250&page=1&sparkline=false`;
         const marketData = await fetchWithRetry(marketUrl);
-        coinMarket = marketData.find(c => c.symbol.toLowerCase() === symbol);
+
+        // Cocokkan symbol dan id agar tidak salah coin (misal: PEPE vs Based Pepe)
+        coinMarket = marketData.find(c =>
+          c.symbol.toLowerCase() === symbol &&
+          c.id === id
+        );
+
         if (!coinMarket) {
-          console.warn(`Coin ${symbol} tidak ditemukan dalam kategori ${categorySlug}, fallback ke data detail`);
+          console.warn(`Coin ${symbol} (${id}) tidak ditemukan dalam kategori ${categorySlug}, fallback ke data detail`);
         }
       } catch (err) {
         console.warn(`Gagal ambil market kategori ${categorySlug}:`, err.message);
@@ -516,7 +523,7 @@ async function fetchGeckoSymbols(symbols = []) {
       console.warn(`Kategori tidak ditemukan untuk ${id}, langsung pakai data detail`);
     }
 
-    // Fallback jika coinMarket null
+    // Fallback ke market_data (wajib isi semua)
     if (!coinMarket) {
       coinMarket = {
         id,
