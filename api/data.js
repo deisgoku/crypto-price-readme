@@ -466,17 +466,17 @@ async function getSocialLinks(geckoDetail, symbol) {
 
 // ============={==FETCHER =======
 
-async function fetchGeckoSymbols(symbols = [], limit = 5) {
+async function fetchGeckoSymbols(symbols = []) {
   const coinList = await fetchWithRetry(`${COINGECKO_API}/coins/list`);
 
+  // Cari ID CoinGecko berdasarkan symbol
   const matchedIds = symbols
     .map(sym => {
       const lowerSym = sym.toLowerCase();
       const candidates = coinList.filter(c => c.symbol.toLowerCase() === lowerSym);
       return (candidates.find(c => c.id.includes(lowerSym)) || candidates[0])?.id || null;
     })
-    .filter(Boolean)
-    .slice(0, limit);
+    .filter(Boolean);
 
   if (!matchedIds.length) throw new Error('Symbol tidak ditemukan di CoinGecko');
 
@@ -494,20 +494,41 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
 
     const id = matchedIds[i];
     const symbol = detail.symbol.toLowerCase();
+    const name = detail.name;
 
     const categorySlug = detail.categories?.[0]?.toLowerCase().replace(/\s+/g, '-');
-    if (!categorySlug) {
-      console.warn(`Kategori tidak ditemukan untuk ${id}`);
-      continue;
+
+    let coinMarket = null;
+
+    // Coba ambil dari data kategori market
+    if (categorySlug) {
+      try {
+        const marketUrl = `${COINGECKO_API}/coins/markets?vs_currency=usd&category=${categorySlug}&order=market_cap_desc&per_page=250&page=1&sparkline=false`;
+        const marketData = await fetchWithRetry(marketUrl);
+        coinMarket = marketData.find(c => c.symbol.toLowerCase() === symbol);
+        if (!coinMarket) {
+          console.warn(`Coin ${symbol} tidak ditemukan dalam kategori ${categorySlug}, fallback ke data detail`);
+        }
+      } catch (err) {
+        console.warn(`Gagal ambil market kategori ${categorySlug}:`, err.message);
+      }
+    } else {
+      console.warn(`Kategori tidak ditemukan untuk ${id}, langsung pakai data detail`);
     }
 
-    const marketUrl = `${COINGECKO_API}/coins/markets?vs_currency=usd&category=${categorySlug}&order=market_cap_desc&per_page=250&page=1&sparkline=false`;
-    const marketData = await fetchWithRetry(marketUrl);
-
-    const coinMarket = marketData.find(c => c.symbol.toLowerCase() === symbol);
+    // Fallback jika coinMarket null
     if (!coinMarket) {
-      console.warn(`Coin ${symbol} tidak ditemukan dalam kategori ${categorySlug}`);
-      continue;
+      coinMarket = {
+        id,
+        name,
+        symbol,
+        current_price: detail.market_data?.current_price?.usd ?? null,
+        total_volume: detail.market_data?.total_volume?.usd ?? null,
+        price_change_percentage_24h: detail.market_data?.price_change_percentage_24h ?? null,
+        sparkline_in_7d: {
+          price: detail.market_data?.sparkline_7d?.price || [],
+        }
+      };
     }
 
     const { price, micin } = formatPrice(coinMarket.current_price || 0);
@@ -521,7 +542,7 @@ async function fetchGeckoSymbols(symbols = [], limit = 5) {
     console.log(`Nama coin: ${coinMarket.name} (Symbol: ${coinMarket.symbol})`);
 
     results.push({
-      name: coinMarket.name, 
+      name: coinMarket.name,
       symbol: coinMarket.symbol.toUpperCase(),
       price,
       micin,
@@ -649,14 +670,14 @@ module.exports = async (req, res) => {
         .split(',')
         .map(c => c.trim().toLowerCase())
         .filter(Boolean)
-        .slice(0, limit);  // Batasi sesuai limit yang diatur
+        .
 
       const cacheKey = `crypto:symbols:${coins.join(',')}`;
       const cached = await getCache(cacheKey);
       if (cached) return res.json({ data: cached });
 
       try {
-        result = await fetchGeckoSymbols(coins, limit);
+        result = await fetchGeckoSymbols(coins);
       } catch {
         try {
           result = await fetchCMC(coins.map(c => c.toUpperCase()), false, limit);
