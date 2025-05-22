@@ -469,15 +469,15 @@ async function getSocialLinks(geckoDetail, symbol) {
 async function fetchGeckoSymbols(symbols = []) {
   const coinList = await fetchWithRetry(`${COINGECKO_API}/coins/list`);
 
-  // Cari ID CoinGecko berdasarkan symbol
-  const matchedIds = symbols
-    .map(sym => {
-      const lowerSym = sym.toLowerCase();
-      const candidates = coinList.filter(c => c.symbol.toLowerCase() === lowerSym);
-      // Prioritaskan ID yang mengandung simbol (lebih akurat), lalu fallback ke yang pertama
-      return (candidates.find(c => c.id === lowerSym || c.id.includes(lowerSym)) || candidates[0])?.id || null;
-    })
-    .filter(Boolean);
+  // Mapping simbol ke ID CoinGecko
+  const matchedIds = symbols.map(originalSym => {
+    const candidates = coinList.filter(c => c.symbol === originalSym || c.symbol.toLowerCase() === originalSym.toLowerCase());
+
+    const exactMatch = candidates.find(c => c.symbol === originalSym);
+    const partialMatch = candidates.find(c => c.id.includes(originalSym.toLowerCase()));
+
+    return (exactMatch || partialMatch || candidates[0])?.id || null;
+  }).filter(Boolean);
 
   if (!matchedIds.length) throw new Error('Symbol tidak ditemukan di CoinGecko');
 
@@ -495,23 +495,19 @@ async function fetchGeckoSymbols(symbols = []) {
       continue;
     }
 
-    const symbol = detail.symbol.toLowerCase();
+    const symbol = detail.symbol;
     const name = detail.name;
     const categorySlug = detail.categories?.[0]?.toLowerCase().replace(/\s+/g, '-');
 
     let coinMarket = null;
 
-    // Coba ambil dari data kategori market
+    // Ambil market dari kategori, pakai ID aja (bukan name)
     if (categorySlug) {
       try {
         const marketUrl = `${COINGECKO_API}/coins/markets?vs_currency=usd&category=${categorySlug}&order=market_cap_desc&per_page=250&page=1&sparkline=false`;
         const marketData = await fetchWithRetry(marketUrl);
 
-        // Cocokkan symbol dan id agar tidak salah coin (misal: PEPE vs Based Pepe)
-        coinMarket = marketData.find(c =>
-          c.symbol.toLowerCase() === symbol &&
-          c.id === id
-        );
+        coinMarket = marketData.find(c => c.id === id);
 
         if (!coinMarket) {
           console.warn(`Coin ${symbol} (${id}) tidak ditemukan dalam kategori ${categorySlug}, fallback ke data detail`);
@@ -523,7 +519,7 @@ async function fetchGeckoSymbols(symbols = []) {
       console.warn(`Kategori tidak ditemukan untuk ${id}, langsung pakai data detail`);
     }
 
-    // Fallback ke market_data (wajib isi semua)
+    // Fallback ke data detail
     if (!coinMarket) {
       coinMarket = {
         id,
@@ -545,8 +541,6 @@ async function fetchGeckoSymbols(symbols = []) {
     const contractAddress = await getContractAddress(detail, symbol);
     const blockchainSites = await getBlockchainSites(detail, symbol);
     const social = await getSocialLinks(detail, symbol);
-
-    console.log(`Nama coin: ${coinMarket.name} (Symbol: ${coinMarket.symbol})`);
 
     results.push({
       name: coinMarket.name,
