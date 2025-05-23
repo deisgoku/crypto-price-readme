@@ -15,14 +15,38 @@ module.exports = function setupMenu(bot) {
   registerHelpActions(bot);
 
   // Command /start
-  bot.command('start', (ctx) => {
-    ctx.reply(
-      'Selamat datang! Pilih menu di bawah:',
-      Markup.inlineKeyboard([
+let botUsername = '';
+
+bot.telegram.getMe().then((info) => {
+  botUsername = info.username;
+  console.log('Bot siap dengan username:', botUsername);
+});
+
+bot.command('start', (ctx) => {
+  const username = ctx.from.first_name || ctx.from.username || 'pengguna';
+
+  const message = `👋🏻 Hai *${username}*
+@${botUsername} adalah bot coin market yang dapat membantu Anda dalam *analisa market, melihat harga market* dan *mengelola grup* Anda dengan mudah & aman!
+
+👉🏻 *Tambahkan bot ke supergrup dan jadikan Admin* agar bot dapat berinteraksi secara maksimal.
+
+❓ *APA SAJA PERINTAHNYA?*
+Ketik /help untuk melihat daftar perintah dan penjelasannya atau lihat di menu.
+
+📃 [Kebijakan Privasi](https://crypto-price-on.vercel.app/privacy)`;
+
+  ctx.reply(
+    message,
+    {
+      parse_mode: 'Markdown',
+      disable_web_page_preview: true,
+      ...Markup.inlineKeyboard([
         [Markup.button.callback('📋 Buka Menu', 'menu')],
+        [Markup.button.url('➕ Tambahkan ke Grup', `https://t.me/${botUsername}?startgroup=add`)]
       ])
-    );
-  });
+    }
+  );
+});
 
   // Callback start
   bot.action('start', async (ctx) => {
@@ -47,15 +71,15 @@ module.exports = function setupMenu(bot) {
       const text = 'Menu Utama:';
       const keyboard = Markup.inlineKeyboard([
         [
-          Markup.button.callback('🛠️ Admin Tools', 'admin_menu'),
-          Markup.button.callback('⚙️ Pengaturan Pribadi', 'personal_menu'),
+          Markup.button.callback('🛠️ Admin', 'admin_menu'),
+          Markup.button.callback('⚙️ Pengaturan', 'personal_menu'),
         ],
         [
           Markup.button.callback('❓ FAQ', 'faq'),
           Markup.button.callback('🆘 Bantuan', 'help'),
         ],
         [
-          Markup.button.callback('💖 Sponsor Kami', 'sponsor'),
+          Markup.button.callback('💖 Sponsor', 'sponsor'),
           Markup.button.callback('🔍 Filter', 'filter_menu'),
         ],
         [
