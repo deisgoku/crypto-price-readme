@@ -1,4 +1,4 @@
-import './styles/privacy.css';
+import '../styles/privacy.css';
 
 export default function PrivacyPolicy() {
   const botUsername = process.env.NEXT_PUBLIC_BOT_USERNAME;
