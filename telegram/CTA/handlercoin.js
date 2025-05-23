@@ -110,35 +110,109 @@ async function handleSymbolCommand(ctx, coinId) {
     const json = await res.json();
 
     if (!json.data || !json.data.length) {
-      return ctx.reply(`☹️ Data ${coinId} tidak ditemukan.\n\nCoba cek lagi ID-nya pakai /c ${coinId}, kali typo.`);
+      return ctx.reply(
+        `☹️ Data ${coinId} tidak ditemukan.\n\nCoba cek lagi ID-nya pakai /s ${coinId}, kali typo.`
+      );
     }
 
     const result = json.data[0];
+
+    // Tambahkan emoji tren
+    const trendValue = result.trend?.replace('%', '') || '0';
+    const trendNum = parseFloat(trendValue);
+    let trendEmoji = '';
+
+    if (!isNaN(trendNum)) {
+      trendEmoji = trendNum > 0 ? '🚀' : trendNum < 0 ? '🔻' : '➖';
+    }
+
     const data = {
       HARGA: result.price,
       VOLUME: result.volume,
-      TREND: result.trend,
+      TREND: `${trendEmoji} ${result.trend}`,
     };
 
+    // Judul
+    let msg = `📊 Market ${result.symbol?.toUpperCase()}`;
+    if (result.name) msg += ` (${result.name})`;
+    msg += `\n\n`;
+
+    // Contract Address dari blockchain_sites
+    if (Array.isArray(result.blockchain_sites)) {
+      const links = [];
+      const unique = new Set();
+
+      for (const url of result.blockchain_sites) {
+        const cleanUrl = url.trim();
+        if (!cleanUrl || unique.has(cleanUrl)) continue;
+        unique.add(cleanUrl);
+
+        const domain = cleanUrl.replace(/^https?:\/\//, '').split('/')[0];
+        let label = domain.split('.')[0];
+
+        label = label
+          .replace(/[-_]/g, ' ')
+          .replace(/\b\w/g, c => c.toUpperCase());
+
+        if (label.length < 3 || label.toLowerCase() === 'www') {
+          label = domain.replace(/\.[^/.]+$/, '');
+        }
+
+        links.push(`• [${label}](${cleanUrl})`);
+      }
+
+      if (links.length) {
+        msg += `🔗 Contract Address:\n${links.join('\n')}\n\n`;
+      }
+    }
+
+    // Sosial Media
+    if (result.social && typeof result.social === 'object') {
+      const socialLinks = Object.values(result.social).filter(
+        url => typeof url === 'string' && url.startsWith('http')
+      );
+
+      if (socialLinks.length) {
+        msg += `🌐 Sosial Media:\n`;
+
+        const socialLines = socialLinks.map(url => {
+          let name = 'Link';
+          try {
+            const u = new URL(url);
+            name = u.hostname.replace(/^www\./, '') + u.pathname;
+          } catch {
+            // fallback tetap "Link"
+          }
+          return `• [${name}](${url})`;
+        });
+
+        msg += socialLines.join('\n') + '\n\n';
+      }
+    }
+
+    // Format Tabel
     const labelMax = Math.max(...Object.keys(data).map(k => k.length));
     const valueMax = Math.max(...Object.values(data).map(v => v.length));
-    const totalLen = labelMax + 3 + valueMax;
+    const totalLen = labelMax + 6 + valueMax;
+
     const year = new Date().getFullYear();
     const creditText = `${year} © Crypto Market Card`;
     const creditLink = `[${creditText}](https://t.me/crypto_market_card_bot/gcmc)`;
 
-    let msg = `📊 Market ${result.symbol.toUpperCase()}\n`;
     msg += '```\n' + '━'.repeat(totalLen) + '\n';
     for (const [label, value] of Object.entries(data)) {
-      msg += `${label.padEnd(labelMax)} : ${value.padStart(valueMax)}\n`;
+      msg += `${label.padEnd(labelMax)}    : ${value.padStart(valueMax)}\n\n`;
     }
-    msg += '━'.repeat(totalLen) + '\n```\n';
+    msg += '━'.repeat(totalLen) + '\n';
+    msg += '```\n\n';
+
     msg += centerText(creditText, totalLen).replace(creditText, creditLink);
 
     return ctx.reply(msg, {
       parse_mode: 'Markdown',
-      disable_web_page_preview: true
+      disable_web_page_preview: true,
     });
+
   } catch (e) {
     console.error(e);
     return ctx.reply(`☹️ Terjadi kesalahan saat mengambil data ${coinId}`);
@@ -211,7 +285,7 @@ async function handleCategoryCommand(ctx, categoryId, count = 5) {
     const priceLen = Math.max(...json.data.map(c => c.price.length), 8);
     const volLen = 7;
     const trendLen = 5;
-    const totalLen = nameMax + priceLen + volLen + trendLen + (gap * 3);
+    const totalLen = nameMax + priceLen + volLen + trendLen + (gap * 1);
     const year = new Date().getFullYear();
     const creditText = `${year} © Crypto Market Card`;
     const creditLink = `[${creditText}](https://t.me/crypto_market_card_bot/gcmc)`;
