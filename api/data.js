@@ -466,20 +466,16 @@ async function getSocialLinks(geckoDetail, symbol) {
 
 // ============={==FETCHER =======
 
-async function fetchGeckoSymbols(symbols = []) {
+async function fetchGeckoSymbols(ids = []) {
   const coinList = await fetchWithRetry(`${COINGECKO_API}/coins/list`);
 
-  // Mapping simbol ke ID CoinGecko
-  const matchedIds = symbols.map(originalSym => {
-    const candidates = coinList.filter(c => c.symbol === originalSym || c.symbol.toLowerCase() === originalSym.toLowerCase());
-
-    const exactMatch = candidates.find(c => c.symbol === originalSym);
-    const partialMatch = candidates.find(c => c.id.includes(originalSym.toLowerCase()));
-
-    return (exactMatch || partialMatch || candidates[0])?.id || null;
+  // Validasi dan cocokkan ID CoinGecko
+  const matchedIds = ids.map(userInput => {
+    const matched = coinList.find(c => c.id === userInput.toLowerCase());
+    return matched?.id || null;
   }).filter(Boolean);
 
-  if (!matchedIds.length) throw new Error('Symbol tidak ditemukan di CoinGecko');
+  if (!matchedIds.length) throw new Error('ID tidak ditemukan di CoinGecko');
 
   const detailUrls = matchedIds.map(id => `${COINGECKO_API}/coins/${id}`);
   const detailData = await fetchInBatches(detailUrls, 3, 1500);
@@ -487,11 +483,11 @@ async function fetchGeckoSymbols(symbols = []) {
   const results = [];
 
   for (let i = 0; i < matchedIds.length; i++) {
-    const detail = detailData[i];
     const id = matchedIds[i];
+    const detail = detailData[i];
 
     if (!detail) {
-      console.warn(`Detail coin untuk ID ${id} kosong`);
+      console.warn(`Detail kosong untuk ID: ${id}`);
       continue;
     }
 
@@ -501,25 +497,18 @@ async function fetchGeckoSymbols(symbols = []) {
 
     let coinMarket = null;
 
-    // Ambil market dari kategori, pakai ID aja (bukan name)
+    // Ambil data market dari kategori (jika ada)
     if (categorySlug) {
       try {
         const marketUrl = `${COINGECKO_API}/coins/markets?vs_currency=usd&category=${categorySlug}&order=market_cap_desc&per_page=250&page=1&sparkline=false`;
         const marketData = await fetchWithRetry(marketUrl);
-
         coinMarket = marketData.find(c => c.id === id);
-
-        if (!coinMarket) {
-          console.warn(`Coin ${symbol} (${id}) tidak ditemukan dalam kategori ${categorySlug}, fallback ke data detail`);
-        }
       } catch (err) {
-        console.warn(`Gagal ambil market kategori ${categorySlug}:`, err.message);
+        console.warn(`Gagal ambil market kategori untuk ${id}:`, err.message);
       }
-    } else {
-      console.warn(`Kategori tidak ditemukan untuk ${id}, langsung pakai data detail`);
     }
 
-    // Fallback ke data detail
+    // Fallback ke detail jika market kosong
     if (!coinMarket) {
       coinMarket = {
         id,
@@ -538,13 +527,15 @@ async function fetchGeckoSymbols(symbols = []) {
     const volume = formatVolume(coinMarket.total_volume || 0);
     const trend = formatTrend(coinMarket.price_change_percentage_24h || 0);
 
-    const contractAddress = await getContractAddress(detail, symbol);
-    const blockchainSites = await getBlockchainSites(detail, symbol);
-    const social = await getSocialLinks(detail, symbol);
+    // Pakai ID, bukan symbol
+    const contractAddress = await getContractAddress(detail, id);
+    const blockchainSites = await getBlockchainSites(detail, id);
+    const social = await getSocialLinks(detail, id);
 
     results.push({
-      name: coinMarket.name,
-      symbol: coinMarket.symbol.toUpperCase(),
+      id,
+      name,
+      symbol: symbol.toUpperCase(),
       price,
       micin,
       volume,
