@@ -6,6 +6,7 @@ body {
   overflow-x: hidden;
   position: relative;
   z-index: 0;
+  color: #fff; 
 }
 
 body::before {
@@ -25,6 +26,7 @@ body::before {
   max-width: 800px;
   margin: 0 auto;
   padding: 2rem;
+  color: #fff; 
 }
 
 .privacy-header {
@@ -44,31 +46,29 @@ body::before {
 }
 
 .privacy-header h2 {
-  color: #ccc;
+  color: #eee;
 }
 
 .privacy-container h3 {
-  color: #ddd;
+  color: #fff;
   margin-top: 2rem;
+}
+
+.privacy-container p {
+  color: #fff;
 }
 
 .privacy-updated {
   margin-top: 2rem;
   font-size: 0.9rem;
-  color: #eee;
+  color: #ddd;
 }
 
 .privacy-container a {
-  color: #66ccff;
+  color: #4ea5ff;
   text-decoration: none;
 }
 
 .privacy-container a:hover {
   text-decoration: underline;
-}
-
-.privacy-container p:last-child {
-  margin-top: 2rem;
-  font-size: 0.9rem;
-  color: #aaa;
 }
