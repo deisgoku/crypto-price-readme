@@ -47,6 +47,25 @@ Ketik /help untuk melihat daftar perintah dan penjelasannya atau lihat di menu.
     });
   });
 
+// ===== Command /menu =====
+bot.command('menu', async (ctx) => {
+  try {
+    await ctx.reply(
+      'Pilih menu di bawah:',
+      {
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard([
+          [Markup.button.callback('📋 Buka Menu', 'menu')],
+        ]),
+      }
+    );
+  } catch (err) {
+    console.error('Error di command /menu:', err);
+    await ctx.reply('Gagal menampilkan menu.');
+  }
+});
+
+
   // ===== Callback: Start ulang dari menu =====
   bot.action('start', async (ctx) => {
     try {
@@ -69,24 +88,27 @@ Ketik /help untuk melihat daftar perintah dan penjelasannya atau lihat di menu.
       let cached = await redis.get(key);
       const text = 'Menu Utama:';
       const keyboard = Markup.inlineKeyboard([
-        [
-          Markup.button.callback('🛠️ Admin Tools', 'admin_menu'),
-          Markup.button.callback('⚙️ Pengaturan Pribadi', 'personal_menu'),
-        ],
-        [
-          Markup.button.callback('❓ FAQ', 'faq'),
-          Markup.button.callback('🆘 Bantuan', 'help'),
-        ],
-        [
-          Markup.button.callback('💖 Sponsor Kami', 'sponsor'),
-          Markup.button.callback('🔍 Filter', 'filter_menu'),
-        ],
-        [
-          Markup.button.callback('🌐 Ganti Bahasa', 'language'),
-          Markup.button.url('🧩 MiniApp Web', 'https://crypto-price-on.vercel.app/unlock?ref=telegram'),
-        ],
-        [Markup.button.callback('🔙 Kembali', 'start')],
-      ]);
+  [
+    Markup.button.callback('🛠️ Admin Tools', 'admin_menu'),
+    Markup.button.callback('⚙️ Pengaturan Pribadi', 'personal_menu'),
+  ],
+  [
+    Markup.button.callback('❓ FAQ', 'faq'),
+    Markup.button.callback('🆘 Bantuan', 'help'),
+  ],
+  [
+    Markup.button.callback('💖 Sponsor Kami', 'sponsor'),
+    Markup.button.callback('🔍 Filter', 'filter_menu'),
+  ],
+  [
+    Markup.button.callback('🌐 Ganti Bahasa', 'language'),
+    Markup.button.url('🧩 MiniApp Web', 'https://crypto-price-on.vercel.app/unlock?ref=telegram'),
+  ],
+  [
+    Markup.button.callback('🔙 Kembali', 'start'),
+    Markup.button.callback('❌ Tutup', 'close_menu'),
+  ],
+]);
 
       if (!cached) await redis.setex(key, 600, text);
       await ctx.editMessageText(text, keyboard);
@@ -96,6 +118,17 @@ Ketik /help untuk melihat daftar perintah dan penjelasannya atau lihat di menu.
       await ctx.answerCbQuery('Terjadi kesalahan, coba lagi nanti.', { show_alert: true });
     }
   });
+
+bot.action('close_menu', async (ctx) => {
+  try {
+    await ctx.deleteMessage();
+    await ctx.answerCbQuery('Menu ditutup.');
+  } catch (err) {
+    console.error('Gagal menghapus menu:', err);
+    await ctx.answerCbQuery('Gagal menutup menu.', { show_alert: true });
+  }
+});
+
 
   // ===== Pengaturan Pribadi =====
   bot.action('personal_menu', async (ctx) => {
