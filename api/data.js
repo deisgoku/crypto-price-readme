@@ -464,16 +464,69 @@ async function getSocialLinks(geckoDetail, symbol) {
   return {};
 }
 
-// ============={==FETCHER =======
+// ================Prediksi =======
 
-async function fetchGeckoSymbols(ids = []) {
+async function predictFromMarketChart(id, duration = '3d', direction = 'future') {
+  const multipliers = { d: 1, w: 7, m: 30, y: 365 };
+
+  
+  direction = (direction || 'future').toLowerCase();
+  if (direction === 'ago') direction = 'past';
+
+  // Normalisasi duration: ubah semua bentuk ke `\d+[dwmy]`
+  duration = duration
+    .toLowerCase()
+    .replace(/\s*days?/, 'd')
+    .replace(/\s*weeks?/, 'w')
+    .replace(/\s*months?/, 'm')
+    .replace(/\s*years?/, 'y')
+    .replace(/[^0-9dwmy]/g, ''); // hapus karakter aneh selain angka & unit
+
+  const match = duration.match(/^(\d+)([dwmy])$/i);
+  if (!match) return null;
+
+  const [_, num, unit] = match;
+  const days = parseInt(num) * multipliers[unit];
+
+  const url = `${COINGECKO_API}/coins/${id}/market_chart?vs_currency=usd&days=${days}&interval=daily`;
+
+  try {
+    const data = await fetchWithRetry(url);
+    const prices = data.prices.map(p => p[1]);
+    if (prices.length < 2) return null;
+
+    const sliced = direction === 'past' ? prices.slice(0, days) : prices.slice(-days);
+    const start = sliced[0];
+    const end = sliced[sliced.length - 1];
+    const change = ((end - start) / start) * 100;
+
+    return {
+      start,
+      end,
+      change: +change.toFixed(2),
+      direction,
+      duration,
+      prices: sliced
+    };
+  } catch (err) {
+    console.warn(`Gagal ambil market_chart untuk ${id}:`, err.message);
+    return null;
+  }
+}
+
+// ================FETCHER =======
+
+async function fetchGeckoSymbols(ids = [], options = {}) {
+  const { usePredict = false, duration = '7d', direction = 'future' } = options;
+
   const coinList = await fetchWithRetry(`${COINGECKO_API}/coins/list`);
 
-  // Validasi dan cocokkan ID CoinGecko
-  const matchedIds = ids.map(userInput => {
-    const matched = coinList.find(c => c.id === userInput.toLowerCase());
-    return matched?.id || null;
-  }).filter(Boolean);
+  const matchedIds = ids
+    .map(userInput => {
+      const matched = coinList.find(c => c.id === userInput.toLowerCase());
+      return matched?.id || null;
+    })
+    .filter(Boolean);
 
   if (!matchedIds.length) throw new Error('ID tidak ditemukan di CoinGecko');
 
@@ -497,7 +550,6 @@ async function fetchGeckoSymbols(ids = []) {
 
     let coinMarket = null;
 
-    // Ambil data market dari kategori (jika ada)
     if (categorySlug) {
       try {
         const marketUrl = `${COINGECKO_API}/coins/markets?vs_currency=usd&category=${categorySlug}&order=market_cap_desc&per_page=250&page=1&sparkline=false`;
@@ -508,7 +560,6 @@ async function fetchGeckoSymbols(ids = []) {
       }
     }
 
-    // Fallback ke detail jika market kosong
     if (!coinMarket) {
       coinMarket = {
         id,
@@ -517,9 +568,12 @@ async function fetchGeckoSymbols(ids = []) {
         current_price: detail.market_data?.current_price?.usd ?? null,
         total_volume: detail.market_data?.total_volume?.usd ?? null,
         price_change_percentage_24h: detail.market_data?.price_change_percentage_24h ?? null,
-        sparkline_in_7d: {
-          price: detail.market_data?.sparkline_7d?.price || [],
-        }
+      };
+    }
+
+    if (!coinMarket.sparkline_in_7d) {
+      coinMarket.sparkline_in_7d = {
+        price: detail.market_data?.sparkline_7d?.price || [],
       };
     }
 
@@ -527,10 +581,13 @@ async function fetchGeckoSymbols(ids = []) {
     const volume = formatVolume(coinMarket.total_volume || 0);
     const trend = formatTrend(coinMarket.price_change_percentage_24h || 0);
 
-    // Pakai ID, bukan symbol
     const contractAddress = await getContractAddress(detail, id);
     const blockchainSites = await getBlockchainSites(detail, id);
     const social = await getSocialLinks(detail, id);
+
+    const prediction = usePredict
+      ? await predictFromMarketChart(id, duration, direction)
+      : null;
 
     results.push({
       id,
@@ -544,6 +601,15 @@ async function fetchGeckoSymbols(ids = []) {
       contract_address: contractAddress,
       blockchain_sites: blockchainSites,
       social,
+      ...(prediction && {
+        prediction_info: {
+          start_price: formatPrice(prediction.start).price,
+          price_estimate: formatPrice(prediction.end).price,
+          change: `${prediction.change > 0 ? '+' : ''}${prediction.change}%`,
+          duration: prediction.duration,
+          direction: prediction.direction,
+        },
+      }),
     });
   }
 
@@ -644,7 +710,7 @@ async function fetchBinance(limit) {
 
 // === FINAL HANDLER ===
 module.exports = async (req, res) => {
-  const { coin, category, count = 5 } = req.query;
+  const { coin, category, count = 5, predict, duration = '7d', direction = 'future' } = req.query;
 
   if (!coin && !category) {
     return res.status(400).json({ error: 'Butuh query coin atau category' });
@@ -657,18 +723,24 @@ module.exports = async (req, res) => {
     const rawLimit = parseInt(count);
     const limit = isNaN(rawLimit) ? 5 : Math.min(rawLimit, 20);  // Pastikan limit nggak lebih dari 20
 
+    const usePredict = predict === 'true';
+
     if (coin) {
       const coins = coin
         .split(',')
         .map(c => c.trim().toLowerCase())
         .filter(Boolean);
 
-      const cacheKey = `crypto:symbols:${coins.join(',')}`;
+      const cacheKey = `crypto:symbols:${coins.join(',')}:${usePredict}:${duration}:${direction}`;
       const cached = await getCache(cacheKey);
       if (cached) return res.json({ data: cached });
 
       try {
-        result = await fetchGeckoSymbols(coins);
+        result = await fetchGeckoSymbols(coins, {
+          usePredict,
+          duration,
+          direction,
+        });
       } catch {
         try {
           result = await fetchCMC(coins.map(c => c.toUpperCase()), false, limit);
